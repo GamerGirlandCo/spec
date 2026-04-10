@@ -12,7 +12,7 @@ github.com/julienschmidt/httprouter v1.3.0 h1:U0609e9tgbseu3rBINet9P48AI/D3oJs4d
 github.com/julienschmidt/httprouter v1.3.0/go.mod h1:JR6WtHb+2LUe8TCKY3cZOxFyyO8IZAc4RVcycCCAKdM=
 github.com/kr/pretty v0.1.0 h1:L/CwN0zerZDmRFUapSPitk6f+Q3+0za1rQkzVuMiMFI=
 github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=
-github.com/oaswrap/spec v0.4.0-rc.1 h1:fE9rvPVurJgq9PAh8ENPGt3UQhBM/QTE1JM4aOWpAdk=
+github.com/oaswrap/spec v0.4.0 h1:eus9hdX4X96utSkAm0r4YK0XSlLuYg7PUl5fdJlJcN8=
 github.com/oaswrap/spec-ui v0.2.0 h1:NVuAqjOUf3acSEmwy5y4q0ii15xD+KGuoJYvNmtLd4k=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=

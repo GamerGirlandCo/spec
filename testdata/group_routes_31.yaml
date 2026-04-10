@@ -73,7 +73,7 @@ paths:
       tags:
       - Profile
       - Authentication
-  /api/v2/profile:
+  /api/v2/profile/:
     put:
       description: Update Profile v2
       requestBody:

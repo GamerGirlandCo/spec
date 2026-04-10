@@ -29,5 +29,13 @@ func JoinURL(base string, segments ...string) string {
 
 // JoinPath joins multiple path segments into a single path, ensuring proper formatting.
 func JoinPath(paths ...string) string {
+	if len(paths) == 0 {
+		return ""
+	}
+
+	lastElement := paths[len(paths)-1]
+	if len(lastElement) > 0 && lastElement[len(lastElement)-1] == '/' {
+		return path.Join(paths...) + "/"
+	}
 	return path.Join(paths...)
 }

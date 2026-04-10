@@ -3,7 +3,7 @@ module github.com/oaswrap/spec/adapter/httpopenapi/example
 go 1.22
 
 require (
-	github.com/oaswrap/spec v0.4.0-rc.1
+	github.com/oaswrap/spec v0.4.0
 	github.com/oaswrap/spec/adapter/httpopenapi v0.0.0
 )
 

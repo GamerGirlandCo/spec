@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/labstack/echo/v4 v4.13.4
-	github.com/oaswrap/spec v0.4.0-rc.1
+	github.com/oaswrap/spec v0.4.0
 	github.com/oaswrap/spec/adapter/echoopenapi v0.0.0
 )
 

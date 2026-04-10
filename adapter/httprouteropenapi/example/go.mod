@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/julienschmidt/httprouter v1.3.0
-	github.com/oaswrap/spec v0.4.0-rc.1
+	github.com/oaswrap/spec v0.4.0
 	github.com/oaswrap/spec/adapter/httprouteropenapi v0.0.0
 )
 

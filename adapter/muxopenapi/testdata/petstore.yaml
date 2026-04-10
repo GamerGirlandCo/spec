@@ -28,7 +28,7 @@ tags:
 - description: Operations about user
   name: user
 paths:
-  pet:
+  pet/:
     get:
       description: Update the details of an existing pet in the store.
       operationId: updatePet
@@ -288,7 +288,7 @@ paths:
       summary: Get order by ID
       tags:
       - store
-  user:
+  user/:
     post:
       description: Create a new user in the store.
       operationId: createUser
