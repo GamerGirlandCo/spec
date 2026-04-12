@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/gin-gonic/gin v1.10.1
-	github.com/oaswrap/spec v0.4.0
+	github.com/oaswrap/spec v0.4.1
 	github.com/oaswrap/spec-ui v0.2.0
 	github.com/stretchr/testify v1.11.1
 )
