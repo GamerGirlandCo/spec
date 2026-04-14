@@ -114,6 +114,7 @@ paths:
                 $ref: '#/components/schemas/Pet'
           description: OK
       security:
+      - api_key: []
       - petstore_auth:
         - write:pets
         - read:pets
@@ -157,6 +158,7 @@ paths:
         name: petId
         required: true
         schema:
+          format: int64
           type: integer
       requestBody:
         content:
@@ -235,6 +237,24 @@ paths:
       summary: Find pets by tags
       tags:
       - pet
+  /store/inventory:
+    get:
+      description: Returns a map of status codes to quantities.
+      operationId: getInventory
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: integer
+                type: object
+          description: OK
+      security:
+      - api_key: []
+      summary: Returns pet inventories by status.
+      tags:
+      - store
   /store/order:
     post:
       description: Place a new order for a pet.
@@ -521,7 +541,7 @@ components:
           type: string
       type: object
   securitySchemes:
-    apiKey:
+    api_key:
       in: header
       name: api_key
       type: apiKey
