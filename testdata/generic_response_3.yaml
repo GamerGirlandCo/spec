@@ -21,9 +21,73 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SpecTestResponseGithubComOaswrapSpecTestToken'
+                $ref: '#/components/schemas/SpecTestResponseToken'
           description: OK
       summary: User Login
+      tags:
+      - Authentication
+  /nested-generic-user:
+    get:
+      description: This operation retrieves a nested generic user.
+      operationId: getNestedGenericUser
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpecTestResponseUserType2'
+          description: OK
+      security:
+      - bearerAuth: []
+      summary: Get Nested Generic User
+      tags:
+      - Authentication
+  /nested-generic-users:
+    get:
+      description: This operation retrieves a nested generic users.
+      operationId: getNestedGenericUsers
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpecTestResponseUserType3'
+          description: OK
+      security:
+      - bearerAuth: []
+      summary: Get Nested Generic Users
+      tags:
+      - Authentication
+  /user:
+    get:
+      description: This operation retrieves the authenticated user's profile.
+      operationId: getUserProfile
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpecTestResponseUser'
+          description: OK
+      security:
+      - bearerAuth: []
+      summary: Get User Profile
+      tags:
+      - Authentication
+  /users:
+    get:
+      description: This operation retrieves a list of users.
+      operationId: getUsers
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpecTestResponseUserList'
+          description: OK
+      security:
+      - bearerAuth: []
+      summary: Get Users
       tags:
       - Authentication
 components:
@@ -40,10 +104,45 @@ components:
       - username
       - password
       type: object
-    SpecTestResponseGithubComOaswrapSpecTestToken:
+    SpecTestResponseToken:
       properties:
         data:
           $ref: '#/components/schemas/SpecTestToken'
+        status:
+          example: 200
+          type: integer
+      type: object
+    SpecTestResponseUser:
+      properties:
+        data:
+          $ref: '#/components/schemas/SpecTestUser'
+        status:
+          example: 200
+          type: integer
+      type: object
+    SpecTestResponseUserList:
+      properties:
+        data:
+          items:
+            $ref: '#/components/schemas/SpecTestUser'
+          nullable: true
+          type: array
+        status:
+          example: 200
+          type: integer
+      type: object
+    SpecTestResponseUserType2:
+      properties:
+        data:
+          $ref: '#/components/schemas/SpecTestResponseUser'
+        status:
+          example: 200
+          type: integer
+      type: object
+    SpecTestResponseUserType3:
+      properties:
+        data:
+          $ref: '#/components/schemas/SpecTestResponseUserList'
         status:
           example: 200
           type: integer
@@ -54,3 +153,25 @@ components:
           example: abc123
           type: string
       type: object
+    SpecTestUser:
+      properties:
+        age:
+          nullable: true
+          type: integer
+        created_at:
+          format: date-time
+          type: string
+        email:
+          type: string
+        id:
+          type: integer
+        updated_at:
+          format: date-time
+          type: string
+        username:
+          type: string
+      type: object
+  securitySchemes:
+    bearerAuth:
+      scheme: Bearer
+      type: http
