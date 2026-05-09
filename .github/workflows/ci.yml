@@ -77,9 +77,6 @@ jobs:
         check-latest: true
         cache: true  # Handles module/build cache
 
-    - name: 🔧 Install Tools
-      run: make install-tools
-
     - name: 🧪 Run Tests
       run: make test
 
