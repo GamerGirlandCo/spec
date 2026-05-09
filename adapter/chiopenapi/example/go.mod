@@ -3,7 +3,7 @@ module github.com/oaswrap/spec/adapter/chiopenapi/example
 go 1.22
 
 require (
-	github.com/go-chi/chi/v5 v5.2.2
+	github.com/go-chi/chi/v5 v5.2.5
 	github.com/oaswrap/spec v0.4.2
 	github.com/oaswrap/spec/adapter/chiopenapi v0.0.0
 )
