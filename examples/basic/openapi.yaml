@@ -1,70 +1,70 @@
-openapi: 3.0.3
+openapi: 3.0.4
 info:
   title: My API
   version: 1.0.0
 servers:
-- url: https://api.example.com
+  - url: https://api.example.com
 paths:
   /api/v1/login:
     post:
+      summary: User login
       description: User login
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LoginRequest'
+              $ref: "#/components/schemas/LoginRequest"
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LoginResponse'
-          description: OK
-      summary: User login
+                $ref: "#/components/schemas/LoginResponse"
   /api/v1/users/{id}:
     get:
+      summary: Get user by ID
       description: Get user by ID
       parameters:
-      - in: path
-        name: id
-        required: true
-        schema:
-          type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         "200":
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
-          description: OK
+                $ref: "#/components/schemas/User"
       security:
-      - bearerAuth: []
-      summary: Get user by ID
+        - bearerAuth: []
 components:
   schemas:
     LoginRequest:
+      type: object
+      required:
+        - username
+        - password
       properties:
         password:
           type: string
         username:
           type: string
-      required:
-      - username
-      - password
-      type: object
     LoginResponse:
+      type: object
       properties:
         token:
           type: string
-      type: object
     User:
+      type: object
       properties:
         id:
           type: string
         name:
           type: string
-      type: object
   securitySchemes:
     bearerAuth:
-      scheme: Bearer
       type: http
+      scheme: Bearer

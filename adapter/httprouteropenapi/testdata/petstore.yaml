@@ -11,6 +11,22 @@ info:
   version: 1.0.0
 servers:
   - url: https://petstore3.swagger.io/api/v3
+externalDocs:
+  description: Find more info here about swagger
+  url: https://swagger.io
+tags:
+  - name: pet
+    description: Everything about your Pets
+    externalDocs:
+      description: Find out more about our Pets
+      url: https://swagger.io
+  - name: store
+    description: Access to Petstore orders
+    externalDocs:
+      description: Find out more about our Store
+      url: https://swagger.io
+  - name: user
+    description: Operations about user
 paths:
   /pet/:
     put:
@@ -505,19 +521,3 @@ components:
           scopes:
             read:pets: read your pets
             write:pets: modify pets in your account
-tags:
-  - name: pet
-    description: Everything about your Pets
-    externalDocs:
-      description: Find out more about our Pets
-      url: https://swagger.io
-  - name: store
-    description: Access to Petstore orders
-    externalDocs:
-      description: Find out more about our Store
-      url: https://swagger.io
-  - name: user
-    description: Operations about user
-externalDocs:
-  description: Find more info here about swagger
-  url: https://swagger.io

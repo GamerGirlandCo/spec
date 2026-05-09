@@ -3,6 +3,19 @@ $self: https://api.example.com/openapi.yaml
 info:
   title: OpenAPI 3.2 Features API
   version: 1.0.0
+tags:
+  - name: commerce
+    summary: Commerce
+    description: Commerce APIs.
+    kind: nav
+  - name: payments
+    summary: Payments
+    description: Payment operations.
+    parent: commerce
+    kind: nav
+security:
+  - deviceAuth:
+      - payments:read
 paths:
   /payments/{id}:
     get:
@@ -52,16 +65,3 @@ components:
             payments:read: Read payments
       oauth2MetadataUrl: https://auth.example.com/.well-known/oauth-authorization-server
       deprecated: true
-security:
-  - deviceAuth:
-      - payments:read
-tags:
-  - name: commerce
-    summary: Commerce
-    description: Commerce APIs.
-    kind: nav
-  - name: payments
-    summary: Payments
-    description: Payment operations.
-    parent: commerce
-    kind: nav
