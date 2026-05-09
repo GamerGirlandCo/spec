@@ -78,14 +78,15 @@ jobs:
         cache: true  # Handles module/build cache
 
     - name: 🧪 Run Tests
+      if: matrix.go-version != '1.25'
       run: make test
 
     - name: 📊 Generate Coverage Report
-      if: matrix.go-version == '1.23'
+      if: matrix.go-version == '1.25'
       run: make testcov
 
     - name: 📈 Upload Coverage Report
-      if: matrix.go-version == '1.23'
+      if: matrix.go-version == '1.25'
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
