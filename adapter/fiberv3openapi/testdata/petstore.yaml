@@ -39,14 +39,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Pet"
+              $ref: "#/components/schemas/Fiberv3openapi_testPet"
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Pet"
+                $ref: "#/components/schemas/Fiberv3openapi_testPet"
       security:
         - petstore_auth:
             - write:pets
@@ -61,14 +61,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Pet"
+              $ref: "#/components/schemas/Fiberv3openapi_testPet"
       responses:
         "201":
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Pet"
+                $ref: "#/components/schemas/Fiberv3openapi_testPet"
       security:
         - petstore_auth:
             - write:pets
@@ -97,7 +97,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Pet"
+                  $ref: "#/components/schemas/Fiberv3openapi_testPet"
       security:
         - petstore_auth:
             - write:pets
@@ -124,7 +124,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Pet"
+                  $ref: "#/components/schemas/Fiberv3openapi_testPet"
       security:
         - petstore_auth:
             - write:pets
@@ -149,7 +149,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Pet"
+                $ref: "#/components/schemas/Fiberv3openapi_testPet"
       security:
         - petstore_auth:
             - write:pets
@@ -222,7 +222,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/APIResponse"
+                $ref: "#/components/schemas/Fiberv3openapi_testAPIResponse"
       security:
         - petstore_auth:
             - write:pets
@@ -238,14 +238,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Order"
+              $ref: "#/components/schemas/Fiberv3openapi_testOrder"
       responses:
         "201":
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Order"
+                $ref: "#/components/schemas/Fiberv3openapi_testOrder"
   /store/order/{orderId}:
     get:
       tags:
@@ -266,7 +266,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Order"
+                $ref: "#/components/schemas/Fiberv3openapi_testOrder"
         "404":
           description: Not Found
     delete:
@@ -296,14 +296,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PetUser"
+              $ref: "#/components/schemas/Fiberv3openapi_testPetUser"
       responses:
         "201":
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PetUser"
+                $ref: "#/components/schemas/Fiberv3openapi_testPetUser"
   /user/createWithList:
     post:
       tags:
@@ -317,7 +317,7 @@ paths:
             schema:
               type: array
               items:
-                $ref: "#/components/schemas/PetUser"
+                $ref: "#/components/schemas/Fiberv3openapi_testPetUser"
       responses:
         "201":
           description: Created
@@ -340,7 +340,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PetUser"
+                $ref: "#/components/schemas/Fiberv3openapi_testPetUser"
         "404":
           description: Not Found
     put:
@@ -389,7 +389,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PetUser"
+                $ref: "#/components/schemas/Fiberv3openapi_testPetUser"
         "404":
           description: Not Found
     delete:
@@ -409,7 +409,7 @@ paths:
           description: No Content
 components:
   schemas:
-    APIResponse:
+    Fiberv3openapi_testAPIResponse:
       type: object
       properties:
         code:
@@ -419,7 +419,7 @@ components:
           type: string
         type:
           type: string
-    Order:
+    Fiberv3openapi_testOrder:
       type: object
       properties:
         complete:
@@ -442,7 +442,7 @@ components:
             - placed
             - approved
             - delivered
-    Pet:
+    Fiberv3openapi_testPet:
       type: object
       properties:
         category:
@@ -471,10 +471,10 @@ components:
         tags:
           type: array
           items:
-            $ref: "#/components/schemas/Tag"
+            $ref: "#/components/schemas/Fiberv3openapi_testTag"
         type:
           type: string
-    PetUser:
+    Fiberv3openapi_testPetUser:
       type: object
       properties:
         email:
@@ -499,7 +499,7 @@ components:
             - 2
         username:
           type: string
-    Tag:
+    Fiberv3openapi_testTag:
       type: object
       properties:
         id:

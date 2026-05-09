@@ -9,6 +9,7 @@ import (
 
 	"github.com/oaswrap/spec"
 	"github.com/oaswrap/spec/internal/reflect"
+	"github.com/oaswrap/spec/internal/testutil/dto"
 	"github.com/oaswrap/spec/openapi"
 	"github.com/oaswrap/spec/option"
 )
@@ -82,6 +83,38 @@ func TestReflector_Config(t *testing.T) {
 
 		assert.Contains(t, doc.Components.Schemas, "Collision")
 		assert.Contains(t, doc.Components.Schemas, "Collision2")
+	})
+
+	t.Run("DefaultDefNameUsesPkgPrefixExceptCallerPackage", func(t *testing.T) {
+		r := spec.NewRouter()
+
+		type SamePkgModel struct{ Foo string }
+		r.Get("/same", option.Response(200, SamePkgModel{}))
+		r.Get("/other", option.Response(200, dto.Pet{}))
+
+		_, err := r.GenerateSchema("yaml")
+		require.NoError(t, err)
+		doc := r.Document()
+
+		assert.Contains(t, doc.Components.Schemas, "SamePkgModel")
+		assert.Contains(t, doc.Components.Schemas, "DtoPet")
+	})
+
+	t.Run("StripDefNamePrefixCanStripGeneratedPkgPrefix", func(t *testing.T) {
+		r := spec.NewRouter(
+			option.WithReflectorConfig(
+				option.StripDefNamePrefix("Dto"),
+			),
+		)
+
+		r.Get("/other", option.Response(200, dto.Pet{}))
+
+		_, err := r.GenerateSchema("yaml")
+		require.NoError(t, err)
+		doc := r.Document()
+
+		assert.Contains(t, doc.Components.Schemas, "Pet")
+		assert.NotContains(t, doc.Components.Schemas, "DtoPet")
 	})
 }
 

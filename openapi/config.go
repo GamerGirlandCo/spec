@@ -74,6 +74,7 @@ type ReflectorConfig struct {
 	InlineRefs          bool
 	StripDefNamePrefix  []string
 	InterceptDefName    func(t reflect.Type, defaultDefName string) string
+	DefNameCallerPkg    string
 	TypeMappings        []TypeMapping
 	ParameterTagMapping map[ParameterIn]string
 }

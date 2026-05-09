@@ -2,6 +2,7 @@ package reflect
 
 import (
 	"fmt"
+	"path"
 	"reflect"
 	"regexp"
 	"strings"
@@ -13,6 +14,7 @@ func (r *Reflector) TypeName(t reflect.Type) string {
 		return name
 	}
 	name := SanitizeTypeName(t.Name())
+	name = sanitizeDefName(t, name, r.callerPkgPath())
 	for _, prefix := range r.StripPrefixes() {
 		name = strings.TrimPrefix(name, prefix)
 	}
@@ -32,6 +34,25 @@ func (r *Reflector) TypeName(t reflect.Type) string {
 	}
 	r.Names[t] = name
 	return name
+}
+
+func sanitizeDefName(t reflect.Type, defaultDefName, callerPkgPath string) string {
+	if callerPkgPath == "" || defaultDefName == "" || t == nil || t.PkgPath() == "" || t.PkgPath() == callerPkgPath {
+		return defaultDefName
+	}
+	pkgName := path.Base(t.PkgPath())
+	if pkgName == "" {
+		return defaultDefName
+	}
+	pkgName = strings.ToUpper(pkgName[:1]) + pkgName[1:]
+	return pkgName + defaultDefName
+}
+
+func (r *Reflector) callerPkgPath() string {
+	if r.Config == nil || r.Config.ReflectorConfig == nil {
+		return ""
+	}
+	return r.Config.ReflectorConfig.DefNameCallerPkg
 }
 
 func (r *Reflector) StripPrefixes() []string {

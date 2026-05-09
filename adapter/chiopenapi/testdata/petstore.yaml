@@ -39,14 +39,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Pet"
+              $ref: "#/components/schemas/DtoPet"
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Pet"
+                $ref: "#/components/schemas/DtoPet"
       security:
         - petstore_auth:
             - write:pets
@@ -61,14 +61,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Pet"
+              $ref: "#/components/schemas/DtoPet"
       responses:
         "201":
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Pet"
+                $ref: "#/components/schemas/DtoPet"
       security:
         - petstore_auth:
             - write:pets
@@ -97,7 +97,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Pet"
+                  $ref: "#/components/schemas/DtoPet"
       security:
         - petstore_auth:
             - write:pets
@@ -124,7 +124,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Pet"
+                  $ref: "#/components/schemas/DtoPet"
       security:
         - petstore_auth:
             - write:pets
@@ -149,7 +149,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Pet"
+                $ref: "#/components/schemas/DtoPet"
       security:
         - petstore_auth:
             - write:pets
@@ -222,7 +222,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/APIResponse"
+                $ref: "#/components/schemas/DtoAPIResponse"
       security:
         - petstore_auth:
             - write:pets
@@ -238,14 +238,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Order"
+              $ref: "#/components/schemas/DtoOrder"
       responses:
         "201":
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Order"
+                $ref: "#/components/schemas/DtoOrder"
   /store/order/{orderId}:
     get:
       tags:
@@ -266,7 +266,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Order"
+                $ref: "#/components/schemas/DtoOrder"
         "404":
           description: Not Found
     delete:
@@ -296,14 +296,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PetUser"
+              $ref: "#/components/schemas/DtoPetUser"
       responses:
         "201":
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PetUser"
+                $ref: "#/components/schemas/DtoPetUser"
   /user/createWithList:
     post:
       tags:
@@ -317,7 +317,7 @@ paths:
             schema:
               type: array
               items:
-                $ref: "#/components/schemas/PetUser"
+                $ref: "#/components/schemas/DtoPetUser"
       responses:
         "201":
           description: Created
@@ -375,7 +375,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PetUser"
+                $ref: "#/components/schemas/DtoPetUser"
         "404":
           description: Not Found
     put:
@@ -424,7 +424,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PetUser"
+                $ref: "#/components/schemas/DtoPetUser"
         "404":
           description: Not Found
     delete:
@@ -444,7 +444,7 @@ paths:
           description: No Content
 components:
   schemas:
-    APIResponse:
+    DtoAPIResponse:
       type: object
       properties:
         code:
@@ -454,7 +454,7 @@ components:
           type: string
         type:
           type: string
-    Order:
+    DtoOrder:
       type: object
       properties:
         complete:
@@ -477,7 +477,7 @@ components:
             - placed
             - approved
             - delivered
-    Pet:
+    DtoPet:
       type: object
       properties:
         category:
@@ -506,10 +506,10 @@ components:
         tags:
           type: array
           items:
-            $ref: "#/components/schemas/Tag"
+            $ref: "#/components/schemas/DtoTag"
         type:
           type: string
-    PetUser:
+    DtoPetUser:
       type: object
       properties:
         email:
@@ -534,7 +534,7 @@ components:
             - 2
         username:
           type: string
-    Tag:
+    DtoTag:
       type: object
       properties:
         id:
