@@ -25,13 +25,16 @@ Thank you for your interest in contributing! This guide covers everything you ne
 
 Please search existing issues before opening a new one.
 
+For community expectations, see [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md).
+For security vulnerabilities, follow [SECURITY.md](./SECURITY.md) and use private disclosure (GitHub Security Advisories) instead of public issues.
+
 ---
 
 ## Getting Started
 
 ### Prerequisites
 
-- Go 1.23 or later
+- Go 1.22 or later
 - Git
 
 ### Setup

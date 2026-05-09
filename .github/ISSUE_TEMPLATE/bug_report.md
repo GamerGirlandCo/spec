@@ -4,6 +4,10 @@ about: Report something that is not working as expected
 labels: bug
 ---
 
+> If this report includes a potential security vulnerability, do **not** open a public issue.
+> Please use private disclosure via GitHub Security Advisories:
+> https://github.com/oaswrap/spec/security/advisories/new
+
 ## Description
 
 <!-- A clear and concise description of the bug. -->

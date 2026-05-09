@@ -24,3 +24,7 @@ Closes #
 ## Notes for Reviewers
 
 <!-- Anything specific to look at, test manually, or decisions you made that need context. -->
+
+## Breaking Change Notes
+
+<!-- Required if this is a breaking change: migration steps, affected adapters/modules, and compatibility impact. -->

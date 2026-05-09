@@ -11,29 +11,6 @@
 
 ---
 
-## Table of Contents
-
-- [Why oaswrap/spec?](#why-oaswrapspec)
-- [Features](#features)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Output](#output)
-- [Framework Adapters](#framework-adapters)
-- [OpenAPI Options](#openapi-options)
-- [Routes and Groups](#routes-and-groups)
-- [Security](#security)
-- [Reflection Tags](#reflection-tags)
-- [Reflected Go Types](#reflected-go-types)
-- [Reflector Configuration](#reflector-configuration)
-- [OpenAPI 3.2](#openapi-32)
-- [Low-Level OpenAPI Control](#low-level-openapi-control)
-- [Examples](#examples)
-- [API Reference](#api-reference)
-- [Contributing](#contributing)
-- [License](#license)
-
----
-
 ## Why oaswrap/spec?
 
 - **Native OpenAPI builder** — paths, operations, components, validation, and schema reflection are all implemented in this repository without third-party OpenAPI dependencies.
@@ -69,7 +46,7 @@ Requirements:
 - Go `1.22+`
 
 ```bash
-go get github.com/oaswrap/spec
+go get -u github.com/oaswrap/spec
 ```
 
 ---
