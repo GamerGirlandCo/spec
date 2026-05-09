@@ -12,7 +12,7 @@ import (
 )
 
 type XMLType struct {
-	Value string `xmlName:"val" xmlNamespace:"ns" xmlPrefix:"p" xmlAttribute:"true"`
+	Value string `xmlName:"val" xmlNamespace:"https://example.com/ns" xmlPrefix:"p" xmlAttribute:"true"`
 }
 
 func TestTags_OpenAPI304(t *testing.T) {
@@ -75,7 +75,7 @@ func TestTags_XML(t *testing.T) {
 		doc := r.Document()
 		schema := doc.Components.Schemas["XMLNode"].Properties["attr"]
 		if assert.NotNil(t, schema.XML) {
-			assert.Equal(t, "attribute", schema.XML.Extra["nodeType"])
+			assert.Equal(t, "attribute", schema.XML.NodeType)
 		}
 	})
 }

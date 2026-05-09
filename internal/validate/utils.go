@@ -356,6 +356,15 @@ func ResolveURIReference(base, ref string) (string, bool) {
 	return baseURL.ResolveReference(refURL).String(), true
 }
 
+func IsNumber(value any) bool {
+	switch value.(type) {
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+		return true
+	default:
+		return false
+	}
+}
+
 func IsURIReference(value string) bool {
 	if strings.ContainsAny(value, " \t\r\n") {
 		return false
@@ -364,7 +373,7 @@ func IsURIReference(value string) bool {
 	return err == nil
 }
 
-func IsAbsoluteURI(value string) bool {
+func IsNonRelativeURI(value string) bool {
 	if !IsURIReference(value) {
 		return false
 	}
@@ -372,12 +381,19 @@ func IsAbsoluteURI(value string) bool {
 	return err == nil && parsed.IsAbs()
 }
 
+func IsServerURL(value string) bool {
+	if strings.ContainsAny(value, "?#") {
+		return false
+	}
+	return IsURIReference(pathParamRe.ReplaceAllString(value, "x"))
+}
+
 func IsHTTPSURI(value string) bool {
-	if !IsAbsoluteURI(value) {
+	if !IsNonRelativeURI(value) {
 		return false
 	}
 	parsed, err := url.Parse(value)
-	return err == nil && strings.EqualFold(parsed.Scheme, "https")
+	return err == nil && strings.EqualFold(parsed.Scheme, "https") && parsed.Fragment == ""
 }
 
 func IsLocalReference(ref string, resources map[string]any) bool {

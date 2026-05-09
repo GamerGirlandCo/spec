@@ -26,10 +26,10 @@ func ValidateComponents(
 	errs = append(errs, ValidateComponentKeys("callbacks", components.Callbacks)...)
 	errs = append(errs, ValidateComponentKeys("pathItems", components.PathItems)...)
 	errs = append(errs, ValidateComponentKeys("mediaTypes", components.MediaTypes)...)
-	if reflect.IsOpenAPI30(version) && len(components.PathItems) > 0 {
+	if reflect.IsOpenAPI30(version) && components.PathItems != nil {
 		errs = append(errs, fmt.Errorf("components.pathItems requires OpenAPI 3.1.x or 3.2.0"))
 	}
-	if version != openapi.Version320 && len(components.MediaTypes) > 0 {
+	if version != openapi.Version320 && components.MediaTypes != nil {
 		errs = append(errs, fmt.Errorf("components.mediaTypes requires OpenAPI 3.2.0"))
 	}
 	for name, schema := range components.Schemas {

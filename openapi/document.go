@@ -72,6 +72,7 @@ type ExternalDocs struct {
 type Server struct {
 	URL         string                    `json:"url"                   yaml:"url"`
 	Description *string                   `json:"description,omitempty" yaml:"description,omitempty"`
+	Name        string                    `json:"name,omitempty"        yaml:"name,omitempty"`
 	Variables   map[string]ServerVariable `json:"variables,omitempty"   yaml:"variables,omitempty"`
 	Extensions  map[string]any            `json:"-"                     yaml:"-"`
 	Extra       map[string]any            `json:"-"                     yaml:"-"`

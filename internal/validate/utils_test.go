@@ -47,11 +47,12 @@ func TestResolveJSONPointer(t *testing.T) {
 	assert.Equal(t, 3, ResolveJSONPointer(root, "/qux/e~0f"))
 }
 
-func TestIsAbsoluteURI(t *testing.T) {
-	assert.True(t, IsAbsoluteURI("https://example.com"))
-	assert.True(t, IsAbsoluteURI("mailto:foo@example.com"))
-	assert.False(t, IsAbsoluteURI("/local/path"))
-	assert.False(t, IsAbsoluteURI("relative"))
+func TestIsNonRelativeURI(t *testing.T) {
+	assert.True(t, IsNonRelativeURI("https://example.com"))
+	assert.True(t, IsNonRelativeURI("https://example.com#frag"))
+	assert.True(t, IsNonRelativeURI("mailto:foo@example.com"))
+	assert.False(t, IsNonRelativeURI("/local/path"))
+	assert.False(t, IsNonRelativeURI("relative"))
 }
 
 func TestIsHTTPSURI(t *testing.T) {

@@ -86,6 +86,104 @@ func TestValidateSchema_EdgeCases(t *testing.T) {
 		err := r.Validate()
 		assertValidationContains(t, err, "xml.nodeType requires OpenAPI 3.2.0")
 	})
+
+	t.Run("SchemaObjectURIsAndDiscriminator", func(t *testing.T) {
+		r := spec.NewRouter(
+			option.WithTitle("Schema Object Validation"),
+			option.WithVersion("1.0.0"),
+		)
+		r.Get("/test", option.Response(200, &openapi.Schema{
+			ExternalDocs:  &openapi.ExternalDocs{URL: "not a uri"},
+			Discriminator: &openapi.Discriminator{},
+			XML:           &openapi.XML{Namespace: "not a uri"},
+		}))
+		err := r.Validate()
+		assertValidationContains(t, err,
+			"responses.200.content.application/json.schema.externalDocs.url must be a URI",
+			"responses.200.content.application/json.schema.discriminator.propertyName is required",
+			"responses.200.content.application/json.schema.xml.namespace must be a non-relative IRI",
+		)
+	})
+
+	t.Run("OpenAPI320_DiscriminatorDefaultMappingRequiredWhenOptional", func(t *testing.T) {
+		r := spec.NewRouter(
+			option.WithOpenAPIVersion(openapi.Version320),
+			option.WithTitle("Discriminator Validation"),
+			option.WithVersion("1.0.0"),
+		)
+		r.Get("/test", option.Response(200, &openapi.Schema{
+			Type: "object",
+			Properties: map[string]*openapi.Schema{
+				"kind": {Type: "string"},
+			},
+			Discriminator: &openapi.Discriminator{PropertyName: "kind"},
+		}))
+		err := r.Validate()
+		assertValidationContains(t, err,
+			"responses.200.content.application/json.schema.discriminator.defaultMapping is required "+
+				"when discriminator property \"kind\" is optional",
+		)
+	})
+
+	t.Run("OpenAPI320_XMLNodeTypeConflicts", func(t *testing.T) {
+		r := spec.NewRouter(
+			option.WithOpenAPIVersion(openapi.Version320),
+			option.WithTitle("XML Node Type Validation"),
+			option.WithVersion("1.0.0"),
+		)
+		r.Get("/test", option.Response(200, &openapi.Schema{
+			Type: "object",
+			XML: &openapi.XML{
+				Attribute: true,
+				Wrapped:   true,
+				Extra:     map[string]any{"nodeType": "attribute"},
+			},
+		}))
+		err := r.Validate()
+		assertValidationContains(t, err,
+			"responses.200.content.application/json.schema.xml.attribute must not be present when xml.nodeType is set",
+			"responses.200.content.application/json.schema.xml.wrapped must not be present when xml.nodeType is set",
+		)
+	})
+
+	t.Run("OpenAPI320_XMLNodeTypeInvalidValue", func(t *testing.T) {
+		r := spec.NewRouter(
+			option.WithOpenAPIVersion(openapi.Version320),
+			option.WithTitle("XML Node Type Invalid"),
+			option.WithVersion("1.0.0"),
+		)
+		r.Get("/test", option.Response(200, &openapi.Schema{
+			Type: "object",
+			XML: &openapi.XML{
+				Extra: map[string]any{"nodeType": "bogus"},
+			},
+		}))
+		err := r.Validate()
+		assertValidationContains(t, err,
+			"responses.200.content.application/json.schema.xml.nodeType must be one of "+
+				"element, attribute, text, cdata, or none",
+		)
+	})
+
+	t.Run("OpenAPI312_AllowsRelativeSchemaExternalDocs", func(t *testing.T) {
+		r := spec.NewRouter(
+			option.WithOpenAPIVersion(openapi.Version312),
+			option.WithTitle("Relative Schema External Docs"),
+			option.WithVersion("1.0.0"),
+		)
+		r.Get("/test", option.Response(200, &openapi.Schema{
+			ExternalDocs: &openapi.ExternalDocs{URL: "schemas/schema-docs"},
+			Discriminator: &openapi.Discriminator{
+				PropertyName: "kind",
+			},
+			OneOf: []*openapi.Schema{
+				{Type: "object"},
+			},
+			XML: &openapi.XML{Namespace: "https://example.com/ns"},
+		}))
+
+		assert.NoError(t, r.Validate())
+	})
 }
 
 func TestValidateAnySchema(t *testing.T) {

@@ -2,6 +2,7 @@ package validate
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/oaswrap/spec/internal/reflect"
 	"github.com/oaswrap/spec/openapi"
@@ -27,13 +28,24 @@ func ValidateSchema(context string, schema *openapi.Schema, version string, visi
 		errs = append(errs, ValidateSchema304Fields(context, schema)...)
 	}
 	if version != openapi.Version320 {
-		if schema.Discriminator != nil && ExtraHas(schema.Discriminator.Extra, "defaultMapping") {
+		if schema.Discriminator != nil &&
+			(schema.Discriminator.DefaultMapping != "" || ExtraHas(schema.Discriminator.Extra, "defaultMapping")) {
 			errs = append(errs, fmt.Errorf("%s.discriminator.defaultMapping requires OpenAPI 3.2.0", context))
 		}
-		if schema.XML != nil && ExtraHas(schema.XML.Extra, "nodeType") {
+		if schema.XML != nil && (schema.XML.NodeType != "" || ExtraHas(schema.XML.Extra, "nodeType")) {
 			errs = append(errs, fmt.Errorf("%s.xml.nodeType requires OpenAPI 3.2.0", context))
 		}
 	}
+	errs = append(errs, ValidateExclusiveBoundaries(context, schema, version)...)
+	if schema.ExternalDocs != nil {
+		if schema.ExternalDocs.URL == "" {
+			errs = append(errs, fmt.Errorf("%s.externalDocs.url is required", context))
+		} else if !IsURIReference(schema.ExternalDocs.URL) {
+			errs = append(errs, fmt.Errorf("%s.externalDocs.url must be a URI", context))
+		}
+	}
+	errs = append(errs, ValidateDiscriminator(context, schema, version)...)
+	errs = append(errs, ValidateXML(context, schema)...)
 	for name, child := range schema.Defs {
 		errs = append(errs, ValidateSchema(context+".$defs."+name, child, version, visited)...)
 	}
@@ -167,6 +179,73 @@ func ValidateSchema304Fields(context string, schema *openapi.Schema) []error {
 			errs,
 			fmt.Errorf("%s contains Extra JSON Schema keywords that require OpenAPI 3.1.x or 3.2.0", context),
 		)
+	}
+	return errs
+}
+
+func ValidateExclusiveBoundaries(context string, schema *openapi.Schema, version string) []error {
+	var errs []error
+	if !IsOpenAPI31(version) && !IsOpenAPI32(version) {
+		return nil
+	}
+	if schema.ExclusiveMaximum != nil && !IsNumber(schema.ExclusiveMaximum) {
+		errs = append(errs, fmt.Errorf("%s.exclusiveMaximum must be a number in OpenAPI 3.1.x or 3.2.0", context))
+	}
+	if schema.ExclusiveMinimum != nil && !IsNumber(schema.ExclusiveMinimum) {
+		errs = append(errs, fmt.Errorf("%s.exclusiveMinimum must be a number in OpenAPI 3.1.x or 3.2.0", context))
+	}
+	return errs
+}
+
+func ValidateDiscriminator(context string, schema *openapi.Schema, version string) []error {
+	var errs []error
+	if schema.Discriminator == nil {
+		return nil
+	}
+	if schema.Discriminator.PropertyName == "" {
+		errs = append(errs, fmt.Errorf("%s.discriminator.propertyName is required", context))
+	}
+	if len(schema.OneOf) == 0 && len(schema.AnyOf) == 0 && len(schema.AllOf) == 0 {
+		errs = append(errs, fmt.Errorf("%s.discriminator is only allowed with anyOf, oneOf, or allOf", context))
+	}
+	if version == openapi.Version320 && schema.Discriminator.PropertyName != "" &&
+		!slices.Contains(schema.Required, schema.Discriminator.PropertyName) &&
+		schema.Discriminator.DefaultMapping == "" && !ExtraHas(schema.Discriminator.Extra, "defaultMapping") {
+		errs = append(
+			errs,
+			fmt.Errorf(
+				"%s.discriminator.defaultMapping is required when discriminator property %q is optional",
+				context,
+				schema.Discriminator.PropertyName,
+			),
+		)
+	}
+	return errs
+}
+
+func ValidateXML(context string, schema *openapi.Schema) []error {
+	var errs []error
+	if schema.XML == nil {
+		return nil
+	}
+	if schema.XML.Namespace != "" && !IsNonRelativeURI(schema.XML.Namespace) {
+		errs = append(errs, fmt.Errorf("%s.xml.namespace must be a non-relative IRI", context))
+	}
+	nodeType := schema.XML.NodeType
+	if extraNodeType, ok := schema.XML.Extra["nodeType"]; ok {
+		nodeType, _ = extraNodeType.(string)
+	}
+	if nodeType != "" {
+		if !slices.Contains([]string{"element", "attribute", "text", "cdata", "none"}, nodeType) {
+			errs = append(errs,
+				fmt.Errorf("%s.xml.nodeType must be one of element, attribute, text, cdata, or none", context))
+		}
+		if schema.XML.Attribute {
+			errs = append(errs, fmt.Errorf("%s.xml.attribute must not be present when xml.nodeType is set", context))
+		}
+		if schema.XML.Wrapped {
+			errs = append(errs, fmt.Errorf("%s.xml.wrapped must not be present when xml.nodeType is set", context))
+		}
 	}
 	return errs
 }

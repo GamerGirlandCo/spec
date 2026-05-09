@@ -34,6 +34,9 @@ func ValidateOperation(
 	if op.ExternalDocs != nil && op.ExternalDocs.URL == "" {
 		errs = append(errs, fmt.Errorf("%s.externalDocs.url is required", context))
 	}
+	if op.ExternalDocs != nil && op.ExternalDocs.URL != "" && !IsURIReference(op.ExternalDocs.URL) {
+		errs = append(errs, fmt.Errorf("%s.externalDocs.url must be a URI", context))
+	}
 	errs = append(errs, ValidateParameters(context+".parameters", op.Parameters, version, componentParameters)...)
 	if op.RequestBody != nil {
 		errs = append(errs, ValidateRequestBody(context+".requestBody", op.RequestBody, version)...)
@@ -113,6 +116,13 @@ func ValidateParameters(
 		}
 		if param.In == string(openapi.ParameterInPath) && !param.Required {
 			errs = append(errs, fmt.Errorf("%s path parameter must be required", paramContext))
+		}
+		if param.In == string(openapi.ParameterInHeader) {
+			lowerName := strings.ToLower(param.Name)
+			if lowerName == "accept" || lowerName == "content-type" || lowerName == "authorization" {
+				errs = append(errs,
+					fmt.Errorf("%s.name %q is not allowed for header parameters", paramContext, param.Name))
+			}
 		}
 		key := param.Name + "\x00" + param.In
 		if _, exists := seen[key]; exists {
@@ -225,6 +235,9 @@ func ValidateResponse(context string, response *openapi.Response, version string
 		errs = append(errs, fmt.Errorf("%s.description is required", context))
 	}
 	for name, header := range response.Headers {
+		if strings.EqualFold(name, "Content-Type") {
+			errs = append(errs, fmt.Errorf("%s.headers contains forbidden header %q", context, name))
+		}
 		errs = append(errs, ValidateHeader(context+".headers."+name, header, version)...)
 	}
 	for mediaType, content := range response.Content {
@@ -337,13 +350,15 @@ func ValidateMediaType(context, mediaTypeName string, mediaType *openapi.MediaTy
 		errs,
 		ValidateSchema(context+".itemSchema", mediaType.ItemSchema, version, map[*openapi.Schema]bool{})...)
 	for name, encoding := range mediaType.Encoding {
-		errs = append(errs, ValidateEncoding(context+".encoding."+name, encoding, version)...)
+		errs = append(errs, ValidateEncoding(context+".encoding."+name, mediaTypeName, encoding, version)...)
 	}
 	for i, encoding := range mediaType.PrefixEncoding {
-		errs = append(errs, ValidateEncoding(fmt.Sprintf("%s.prefixEncoding[%d]", context, i), encoding, version)...)
+		errs = append(errs,
+			ValidateEncoding(fmt.Sprintf("%s.prefixEncoding[%d]", context, i), mediaTypeName, encoding, version)...)
 	}
 	if mediaType.ItemEncoding != nil {
-		errs = append(errs, ValidateEncoding(context+".itemEncoding", mediaType.ItemEncoding, version)...)
+		errs = append(errs,
+			ValidateEncoding(context+".itemEncoding", mediaTypeName, mediaType.ItemEncoding, version)...)
 	}
 	for name, example := range mediaType.Examples {
 		errs = append(errs, ValidateExample(context+".examples."+name, example, version)...)
@@ -351,10 +366,23 @@ func ValidateMediaType(context, mediaTypeName string, mediaType *openapi.MediaTy
 	return errs
 }
 
-func ValidateEncoding(context string, encoding *openapi.Encoding, version string) []error {
+func ValidateEncoding(context, mediaTypeName string, encoding *openapi.Encoding, version string) []error {
 	var errs []error
 	if encoding == nil {
 		return []error{fmt.Errorf("%s is required", context)}
+	}
+	if (encoding.Style != "" || encoding.Explode != nil || encoding.AllowReserved) &&
+		!MediaTypeAllowsNamedEncoding(mediaTypeName) {
+		errs = append(
+			errs,
+			fmt.Errorf(
+				"%s style, explode, and allowReserved require multipart or application/x-www-form-urlencoded media type",
+				context,
+			),
+		)
+	}
+	if len(encoding.Headers) > 0 && !MediaTypeIsMultipart(mediaTypeName) {
+		errs = append(errs, fmt.Errorf("%s.headers requires multipart media type", context))
 	}
 	if version != openapi.Version320 {
 		if len(encoding.PrefixEncoding) > 0 {
@@ -368,13 +396,14 @@ func ValidateEncoding(context string, encoding *openapi.Encoding, version string
 		errs = append(errs, ValidateHeader(context+".headers."+name, header, version)...)
 	}
 	for name, nested := range encoding.Encoding {
-		errs = append(errs, ValidateEncoding(context+".encoding."+name, nested, version)...)
+		errs = append(errs, ValidateEncoding(context+".encoding."+name, mediaTypeName, nested, version)...)
 	}
 	for i, nested := range encoding.PrefixEncoding {
-		errs = append(errs, ValidateEncoding(fmt.Sprintf("%s.prefixEncoding[%d]", context, i), nested, version)...)
+		errs = append(errs,
+			ValidateEncoding(fmt.Sprintf("%s.prefixEncoding[%d]", context, i), mediaTypeName, nested, version)...)
 	}
 	if encoding.ItemEncoding != nil {
-		errs = append(errs, ValidateEncoding(context+".itemEncoding", encoding.ItemEncoding, version)...)
+		errs = append(errs, ValidateEncoding(context+".itemEncoding", mediaTypeName, encoding.ItemEncoding, version)...)
 	}
 	return errs
 }
@@ -399,6 +428,9 @@ func ValidateExample(context string, example *openapi.Example, version string) [
 	if example.Value != nil && example.ExternalValue != "" {
 		errs = append(errs, fmt.Errorf("%s value and externalValue are mutually exclusive", context))
 	}
+	if example.ExternalValue != "" && !IsURIReference(example.ExternalValue) {
+		errs = append(errs, fmt.Errorf("%s.externalValue must be a URI", context))
+	}
 	if example.DataValue != nil && example.Value != nil {
 		errs = append(errs, fmt.Errorf("%s dataValue and value are mutually exclusive", context))
 	}
@@ -415,6 +447,7 @@ func ValidateExample(context string, example *openapi.Example, version string) [
 }
 
 func ValidateLink(context string, link *openapi.Link, version string) []error {
+	var errs []error
 	if link == nil {
 		return []error{fmt.Errorf("%s is required", context)}
 	}
@@ -425,13 +458,16 @@ func ValidateLink(context string, link *openapi.Link, version string) []error {
 	if link.Ref == "" && link.Summary != "" {
 		return []error{fmt.Errorf("%s.summary is only allowed with $ref", context)}
 	}
+	if link.OperationRef != "" && !IsURIReference(link.OperationRef) {
+		errs = append(errs, fmt.Errorf("%s.operationRef must be a URI reference", context))
+	}
 	if link.OperationRef != "" && link.OperationID != "" {
-		return []error{fmt.Errorf("%s operationRef and operationId are mutually exclusive", context)}
+		errs = append(errs, fmt.Errorf("%s operationRef and operationId are mutually exclusive", context))
 	}
 	if link.Ref == "" && link.OperationRef == "" && link.OperationID == "" {
-		return []error{fmt.Errorf("%s must define operationRef or operationId", context)}
+		errs = append(errs, fmt.Errorf("%s must define operationRef or operationId", context))
 	}
-	return nil
+	return errs
 }
 
 func ValidateCallback(
@@ -563,6 +599,8 @@ func ValidateSecurityScheme(context string, scheme *openapi.SecurityScheme, vers
 	case "openIdConnect":
 		if scheme.OpenIDConnectURL == "" {
 			errs = append(errs, fmt.Errorf("%s.openIdConnectUrl is required for openIdConnect", context))
+		} else if !IsHTTPSURI(scheme.OpenIDConnectURL) {
+			errs = append(errs, fmt.Errorf("%s.openIdConnectUrl must be an HTTPS URI without a fragment", context))
 		}
 	}
 	return errs
@@ -624,12 +662,19 @@ func ValidateOAuthFlow(
 	var errs []error
 	if needsAuthorizationURL && flow.AuthorizationURL == "" {
 		errs = append(errs, fmt.Errorf("%s.authorizationUrl is required", context))
+	} else if needsAuthorizationURL && flow.AuthorizationURL != "" && !IsURIReference(flow.AuthorizationURL) {
+		errs = append(errs, fmt.Errorf("%s.authorizationUrl must be a URI", context))
 	}
 	if strings.HasSuffix(context, ".deviceAuthorization") && flow.DeviceAuthorizationURL == "" {
 		errs = append(errs, fmt.Errorf("%s.deviceAuthorizationUrl is required", context))
+	} else if strings.HasSuffix(context, ".deviceAuthorization") && flow.DeviceAuthorizationURL != "" &&
+		!IsURIReference(flow.DeviceAuthorizationURL) {
+		errs = append(errs, fmt.Errorf("%s.deviceAuthorizationUrl must be a URI", context))
 	}
 	if needsTokenURL && flow.TokenURL == "" {
 		errs = append(errs, fmt.Errorf("%s.tokenUrl is required", context))
+	} else if needsTokenURL && flow.TokenURL != "" && !IsURIReference(flow.TokenURL) {
+		errs = append(errs, fmt.Errorf("%s.tokenUrl must be a URI", context))
 	}
 	if flow.Scopes == nil {
 		errs = append(errs, fmt.Errorf("%s.scopes is required", context))
@@ -637,6 +682,9 @@ func ValidateOAuthFlow(
 	if version != openapi.Version320 &&
 		(flow.DeviceAuthorizationURL != "" || ExtraHas(flow.Extra, "deviceAuthorizationUrl")) {
 		errs = append(errs, fmt.Errorf("%s.deviceAuthorizationUrl requires OpenAPI 3.2.0", context))
+	}
+	if flow.RefreshURL != nil && !IsURIReference(*flow.RefreshURL) {
+		errs = append(errs, fmt.Errorf("%s.refreshUrl must be a URI", context))
 	}
 	return errs
 }

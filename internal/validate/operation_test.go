@@ -177,6 +177,89 @@ func TestValidateHeaderAndLinkRules(t *testing.T) {
 	)
 }
 
+func TestValidate_URIFields(t *testing.T) {
+	r := spec.NewRouter(
+		option.WithTitle("URI Fields"),
+		option.WithVersion("1.0.0"),
+		option.WithTermsOfService("not a uri"),
+		option.WithContact(openapi.Contact{URL: "not a uri", Email: "api@example.com"}),
+		option.WithLicense(openapi.License{Name: "MIT", URL: "not a uri"}),
+		option.WithExternalDocs("not a uri"),
+		option.WithSecurity("oidc", option.SecurityOpenIDConnect("not a uri")),
+		option.WithSecurity("oauth2", option.SecurityOAuth2AuthorizationCode(
+			"not a uri",
+			"also not a uri",
+			map[string]string{"read": "Read access"},
+			option.OAuthRefreshURL("also not a uri"),
+		)),
+		option.WithDocument(func(doc *openapi.Document) {
+			doc.Paths["/uri"].Get.Responses["200"].Links = map[string]*openapi.Link{
+				"follow": {
+					OperationRef: "not a uri",
+				},
+			}
+		}),
+	)
+	r.Get("/uri",
+		option.ExternalDocs("not a uri"),
+		option.Response(200, "",
+			option.ContentType("text/plain"),
+			option.ContentNamedExample("remote", nil, option.ExampleExternalValue("not a uri")),
+		),
+	)
+
+	err := r.Validate()
+	assertValidationContains(t, err,
+		"info.termsOfService must be a URI",
+		"info.contact.url must be a URI",
+		"info.license.url must be a URI",
+		"externalDocs.url must be a URI",
+		"GET /uri.externalDocs.url must be a URI",
+		"components.securitySchemes.oidc.openIdConnectUrl must be an HTTPS URI without a fragment",
+		"components.securitySchemes.oauth2.flows.authorizationCode.authorizationUrl must be a URI",
+		"components.securitySchemes.oauth2.flows.authorizationCode.tokenUrl must be a URI",
+		"components.securitySchemes.oauth2.flows.authorizationCode.refreshUrl must be a URI",
+		"GET /uri.responses.200.content.text/plain.examples.remote.externalValue must be a URI",
+		"GET /uri.responses.200.links.follow.operationRef must be a URI reference",
+	)
+}
+
+func TestValidate_URIFields_AllowsRelativeReferences(t *testing.T) {
+	r := spec.NewRouter(
+		option.WithOpenAPIVersion(openapi.Version312),
+		option.WithTitle("Relative URI Fields"),
+		option.WithVersion("1.0.0"),
+		option.WithTermsOfService("terms"),
+		option.WithContact(openapi.Contact{URL: "../contact", Email: "api@example.com"}),
+		option.WithLicense(openapi.License{Name: "MIT", URL: "./license"}),
+		option.WithExternalDocs("../docs"),
+		option.WithSecurity("oidc",
+			option.SecurityOpenIDConnect("https://example.com/.well-known/openid-configuration")),
+		option.WithSecurity("oauth2", option.SecurityOAuth2AuthorizationCode(
+			"/authorize",
+			"/token",
+			map[string]string{"read": "Read access"},
+			option.OAuthRefreshURL("/refresh"),
+		)),
+		option.WithDocument(func(doc *openapi.Document) {
+			doc.Paths["/uri"].Get.Responses["200"].Links = map[string]*openapi.Link{
+				"follow": {
+					OperationRef: "#/paths/~1uri/get",
+				},
+			}
+		}),
+	)
+	r.Get("/uri",
+		option.ExternalDocs("../operation-docs"),
+		option.Response(200, "",
+			option.ContentType("text/plain"),
+			option.ContentNamedExample("remote", nil, option.ExampleExternalValue("examples/remote.txt")),
+		),
+	)
+
+	assert.NoError(t, r.Validate())
+}
+
 func TestValidate_OpenAPI320_ExampleSerializedValue(t *testing.T) {
 	r := spec.NewRouter(
 		option.WithOpenAPIVersion(openapi.Version320),

@@ -619,8 +619,8 @@ components:
           items:
             type: string
           xml:
+            nodeType: element
             name: photoUrl
-            wrapped: true
         status:
           description: pet status in the store
           type: string
@@ -633,7 +633,7 @@ components:
           items:
             $ref: "#/components/schemas/Tag"
           xml:
-            wrapped: true
+            nodeType: element
       xml:
         name: pet
     Tag:

@@ -3,6 +3,8 @@ package validate_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/oaswrap/spec"
 	"github.com/oaswrap/spec/openapi"
 	"github.com/oaswrap/spec/option"
@@ -85,19 +87,128 @@ func TestValidate_Document_OpenAPI312_Rejects320Fields(t *testing.T) {
 	)
 }
 
+func TestValidate_Document_OpenAPI304_RejectsEmptyWebhooksField(t *testing.T) {
+	r := spec.NewRouter(
+		option.WithOpenAPIVersion(openapi.Version304),
+		option.WithTitle("Invalid 3.0"),
+		option.WithVersion("1.0.0"),
+		option.WithDocument(func(doc *openapi.Document) {
+			doc.Webhooks = map[string]*openapi.PathItem{}
+		}),
+	)
+
+	err := r.Validate()
+	assertValidationContains(t, err, "webhooks requires OpenAPI 3.1.x or 3.2.0")
+}
+
+func TestValidate_Document_OpenAPI304_RejectsEmptyComponentsPathItems(t *testing.T) {
+	r := spec.NewRouter(
+		option.WithOpenAPIVersion(openapi.Version304),
+		option.WithTitle("Invalid 3.0"),
+		option.WithVersion("1.0.0"),
+		option.WithDocument(func(doc *openapi.Document) {
+			doc.Components = &openapi.Components{
+				Schemas: map[string]*openapi.Schema{
+					"User": {Type: "object"},
+				},
+				PathItems: map[string]*openapi.PathItem{},
+			}
+		}),
+	)
+
+	err := r.Validate()
+	assertValidationContains(t, err, "components.pathItems requires OpenAPI 3.1.x or 3.2.0")
+}
+
+func TestValidate_Document_OpenAPI312_RejectsEmptyMediaTypesField(t *testing.T) {
+	r := spec.NewRouter(
+		option.WithOpenAPIVersion(openapi.Version312),
+		option.WithTitle("Invalid 3.1"),
+		option.WithVersion("1.0.0"),
+		option.WithDocument(func(doc *openapi.Document) {
+			doc.Components = &openapi.Components{
+				Schemas: map[string]*openapi.Schema{
+					"User": {Type: "object"},
+				},
+				MediaTypes: map[string]*openapi.MediaType{},
+			}
+		}),
+	)
+
+	err := r.Validate()
+	assertValidationContains(t, err, "components.mediaTypes requires OpenAPI 3.2.0")
+}
+
+func TestValidate_Document_AllowsComponentsWithoutPaths(t *testing.T) {
+	r := spec.NewRouter(
+		option.WithOpenAPIVersion(openapi.Version312),
+		option.WithTitle("Components Only"),
+		option.WithVersion("1.0.0"),
+		option.WithDocument(func(doc *openapi.Document) {
+			doc.Paths = nil
+			doc.Components = &openapi.Components{
+				Schemas: map[string]*openapi.Schema{
+					"User": {Type: "object"},
+				},
+			}
+		}),
+	)
+
+	assert.NoError(t, r.Validate())
+}
+
 func TestValidate_Document_URIFields(t *testing.T) {
 	r := spec.NewRouter(
 		option.WithOpenAPIVersion(openapi.Version312),
 		option.WithSelf("not a uri"),
 		option.WithJSONSchemaDialect("relative-dialect"),
+		option.WithTags(openapi.Tag{
+			Name: "users",
+			ExternalDocs: &openapi.ExternalDocs{
+				URL: "not a uri",
+			},
+		}),
 	)
 	r.Get("/uri", option.Response(204, nil))
 
 	err := r.Validate()
 	assertValidationContains(t, err,
 		"$self must be a URI reference",
-		"jsonSchemaDialect must be a URI",
+		"tags[0].externalDocs.url must be a URI",
 	)
+}
+
+func TestValidate_Document_AllowsEmptyPathsIn312(t *testing.T) {
+	r := spec.NewRouter(
+		option.WithOpenAPIVersion(openapi.Version312),
+		option.WithTitle("Empty Paths"),
+		option.WithVersion("1.0.0"),
+	)
+
+	assert.NoError(t, r.Validate())
+}
+
+func TestValidate_Document_AllowsRelativeURIs(t *testing.T) {
+	r := spec.NewRouter(
+		option.WithOpenAPIVersion(openapi.Version312),
+		option.WithTitle("Relative URIs"),
+		option.WithVersion("1.0.0"),
+		option.WithJSONSchemaDialect("schemas/dialect"),
+		option.WithTermsOfService("terms"),
+		option.WithContact(openapi.Contact{
+			URL:   "../contact",
+			Email: "api@example.com",
+		}),
+		option.WithLicense(openapi.License{
+			Name: "MIT",
+			URL:  "./license",
+		}),
+		option.WithExternalDocs("../docs"),
+		option.WithServer("/v1"),
+	)
+	r.Get("/uri", option.Response(204, nil))
+
+	assert.NoError(t, r.Validate())
 }
 
 func TestValidate_Document_TagNamesUnique(t *testing.T) {
@@ -159,5 +270,11 @@ func TestValidate_Document_Server(t *testing.T) {
 			"servers[0].variables.host.default is required",
 			"servers[0].variables.port.default must be one of enum values",
 		)
+	})
+
+	t.Run("QueryOrFragment", func(t *testing.T) {
+		r := spec.NewRouter(option.WithServer("/v1?x=1"))
+		err := r.Validate()
+		assertValidationContains(t, err, "servers[0].url must not contain a query or fragment")
 	})
 }

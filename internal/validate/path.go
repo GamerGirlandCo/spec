@@ -137,7 +137,7 @@ func OperationsOf(item *openapi.PathItem) map[string]*openapi.Operation {
 
 func IsFixedMethod(method string) bool {
 	switch strings.ToLower(method) {
-	case "get", "put", "post", "delete", "options", "head", "patch", "trace":
+	case "get", "put", "post", "delete", "options", "head", "patch", "trace", "query":
 		return true
 	default:
 		return false

@@ -23,7 +23,7 @@ func TestWithOpenAPIConfig(t *testing.T) {
 		WithContact(openapi.Contact{Name: "Test Contact"}),
 		WithLicense(openapi.License{Name: "MIT"}),
 		WithTags(openapi.Tag{Name: "test"}),
-		WithServer("https://api.test.com", ServerDescription("Test server")),
+		WithServer("https://api.test.com", ServerDescription("Test server"), ServerName("prod")),
 		WithExternalDocs("https://docs.test.com", "Test docs"),
 		WithSecurity("apiKey", SecurityAPIKey("X-API-Key", "header")),
 		WithGlobalSecurity("apiKey", "read", "write"),
@@ -47,6 +47,7 @@ func TestWithOpenAPIConfig(t *testing.T) {
 	if assert.Len(t, cfg.Servers, 1) {
 		assert.Equal(t, "https://api.test.com", cfg.Servers[0].URL)
 		assert.Equal(t, "Test server", *cfg.Servers[0].Description)
+		assert.Equal(t, "prod", cfg.Servers[0].Name)
 	}
 	assert.Equal(t, "https://docs.test.com", cfg.ExternalDocs.URL)
 	assert.Equal(t, "Test docs", cfg.ExternalDocs.Description)
@@ -322,6 +323,7 @@ func TestContentOptions(t *testing.T) {
 	opts := []ContentOption{
 		ContentType("text/plain"),
 		ContentDescription("Text"),
+		ContentSummary("Summary"),
 		ContentDefault(true),
 		ContentEncoding("prop", "enc"),
 		ContentExample(map[string]any{"id": "123"}),
@@ -336,6 +338,7 @@ func TestContentOptions(t *testing.T) {
 
 	assert.Equal(t, "text/plain", cu.ContentType)
 	assert.Equal(t, "Text", cu.Description)
+	assert.Equal(t, "Summary", cu.Summary)
 	assert.True(t, cu.IsDefault)
 	assert.Equal(t, "enc", cu.Encoding["prop"])
 	assert.Equal(t, map[string]any{"id": "123"}, cu.Example)

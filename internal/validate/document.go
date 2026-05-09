@@ -18,7 +18,7 @@ func ValidateDocument(doc *openapi.Document, version string) []error {
 	if doc.Self != "" && !IsURIReference(doc.Self) {
 		errs = append(errs, fmt.Errorf("$self must be a URI reference"))
 	}
-	if doc.JSONSchemaDialect != "" && !IsAbsoluteURI(doc.JSONSchemaDialect) {
+	if doc.JSONSchemaDialect != "" && !IsURIReference(doc.JSONSchemaDialect) {
 		errs = append(errs, fmt.Errorf("jsonSchemaDialect must be a URI"))
 	}
 	if doc.Info.Title == "" {
@@ -28,27 +28,31 @@ func ValidateDocument(doc *openapi.Document, version string) []error {
 		errs = append(errs, fmt.Errorf("info.version is required"))
 	}
 	errs = append(errs, ValidateInfo(doc.Info, version)...)
-	if doc.Paths == nil {
+	if reflect.IsOpenAPI30(version) && doc.Paths == nil {
 		errs = append(errs, fmt.Errorf("paths is required"))
 	}
 	if reflect.IsOpenAPI30(version) {
 		if doc.JSONSchemaDialect != "" {
 			errs = append(errs, fmt.Errorf("jsonSchemaDialect requires OpenAPI 3.1.x or 3.2.0"))
 		}
-		if len(doc.Webhooks) > 0 {
+		if doc.Webhooks != nil {
 			errs = append(errs, fmt.Errorf("webhooks requires OpenAPI 3.1.x or 3.2.0"))
 		}
 	}
 	if IsOpenAPI31(version) || IsOpenAPI32(version) {
-		if len(doc.Paths) == 0 && len(doc.Webhooks) == 0 && doc.Components == nil {
+		if doc.Paths == nil && doc.Webhooks == nil && doc.Components == nil {
 			errs = append(errs, fmt.Errorf("one of paths, components, or webhooks is required"))
 		}
 	}
 	for i := range doc.Servers {
 		errs = append(errs, ValidateServer(fmt.Sprintf("servers[%d]", i), &doc.Servers[i])...)
 	}
+	errs = append(errs, ValidateServerNames(doc.Servers)...)
 	if doc.ExternalDocs != nil && doc.ExternalDocs.URL == "" {
 		errs = append(errs, fmt.Errorf("externalDocs.url is required"))
+	}
+	if doc.ExternalDocs != nil && doc.ExternalDocs.URL != "" && !IsURIReference(doc.ExternalDocs.URL) {
+		errs = append(errs, fmt.Errorf("externalDocs.url must be a URI"))
 	}
 	securitySchemes := map[string]*openapi.SecurityScheme{}
 	componentParameters := map[string]*openapi.Parameter{}
@@ -110,6 +114,9 @@ func ValidateTags(tags []openapi.Tag, version string) []error {
 		if tag.ExternalDocs != nil && tag.ExternalDocs.URL == "" {
 			errs = append(errs, fmt.Errorf("tags[%d].externalDocs.url is required", i))
 		}
+		if tag.ExternalDocs != nil && tag.ExternalDocs.URL != "" && !IsURIReference(tag.ExternalDocs.URL) {
+			errs = append(errs, fmt.Errorf("tags[%d].externalDocs.url must be a URI", i))
+		}
 	}
 	if version == openapi.Version320 {
 		errs = append(errs, ValidateTagParents(tags, tagByName)...)
@@ -146,6 +153,12 @@ func ValidateInfo(info openapi.Info, version string) []error {
 	if reflect.IsOpenAPI30(version) && info.Summary != "" {
 		errs = append(errs, fmt.Errorf("info.summary requires OpenAPI 3.1.x or 3.2.0"))
 	}
+	if info.TermsOfService != nil && !IsURIReference(*info.TermsOfService) {
+		errs = append(errs, fmt.Errorf("info.termsOfService must be a URI"))
+	}
+	if info.Contact != nil && info.Contact.URL != "" && !IsURIReference(info.Contact.URL) {
+		errs = append(errs, fmt.Errorf("info.contact.url must be a URI"))
+	}
 	if info.Contact != nil && info.Contact.Email != "" && !strings.Contains(info.Contact.Email, "@") {
 		errs = append(errs, fmt.Errorf("info.contact.email must be an email address"))
 	}
@@ -153,11 +166,30 @@ func ValidateInfo(info openapi.Info, version string) []error {
 		if info.License.Name == "" {
 			errs = append(errs, fmt.Errorf("info.license.name is required"))
 		}
+		if info.License.URL != "" && !IsURIReference(info.License.URL) {
+			errs = append(errs, fmt.Errorf("info.license.url must be a URI"))
+		}
 		if reflect.IsOpenAPI30(version) && info.License.Identifier != "" {
 			errs = append(errs, fmt.Errorf("info.license.identifier requires OpenAPI 3.1.x or 3.2.0"))
 		}
 		if info.License.Identifier != "" && info.License.URL != "" {
 			errs = append(errs, fmt.Errorf("info.license.identifier and info.license.url are mutually exclusive"))
+		}
+	}
+	return errs
+}
+
+func ValidateServerNames(servers []openapi.Server) []error {
+	var errs []error
+	serverNames := map[string]int{}
+	for i, server := range servers {
+		if server.Name != "" {
+			if previous, exists := serverNames[server.Name]; exists {
+				errs = append(errs,
+					fmt.Errorf("servers[%d].name %q duplicates servers[%d].name", i, server.Name, previous))
+			} else {
+				serverNames[server.Name] = i
+			}
 		}
 	}
 	return errs
@@ -170,6 +202,8 @@ func ValidateServer(context string, server *openapi.Server) []error {
 	}
 	if server.URL == "" {
 		errs = append(errs, fmt.Errorf("%s.url is required", context))
+	} else if !IsServerURL(server.URL) {
+		errs = append(errs, fmt.Errorf("%s.url must not contain a query or fragment", context))
 	}
 	for name, variable := range server.Variables {
 		if variable.Default == "" {

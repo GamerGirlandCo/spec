@@ -75,7 +75,7 @@ func TestValidatePathItem_Errors(t *testing.T) {
 func TestIsFixedMethodAndIsValidParameterIn(t *testing.T) {
 	assert.True(t, validate.IsFixedMethod("GET"))
 	assert.True(t, validate.IsFixedMethod("patch"))
-	assert.False(t, validate.IsFixedMethod("QUERY"))
+	assert.True(t, validate.IsFixedMethod("QUERY"))
 	assert.False(t, validate.IsFixedMethod("PURGE"))
 
 	assert.True(t, validate.IsValidParameterIn("query"))

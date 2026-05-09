@@ -227,7 +227,7 @@ r := spec.NewRouter(
 
 **Tag options:** `TagSummary`, `TagDescription`, `TagExternalDocs`, `TagParent` (3.2.0), `TagKind` (3.2.0).
 
-**Server options:** `ServerDescription`, `ServerVariables`.
+**Server options:** `ServerDescription`, `ServerVariables`, `ServerName` (3.2.0).
 
 ---
 
@@ -283,6 +283,7 @@ api.Get("/users/{id}",
 | --- | --- |
 | `ContentType(contentType)` | Set media type; default is `application/json`. |
 | `ContentDescription(description)` | Set request/response description. |
+| `ContentSummary(summary)` | Set request/response summary (OpenAPI `3.2.0`). |
 | `ContentDefault(isDefault...)` | Mark response as `default`. |
 | `ContentEncoding(prop, enc)` | Add media type encoding metadata for a property. |
 | `ContentExample(value)` | Set media type `example`. |
@@ -483,10 +484,13 @@ Selecting `openapi.Version320` enables the following additional features:
 - Custom HTTP methods via `Add`, emitted as `additionalOperations`.
 - `querystring` parameter tags.
 - Root `$self` field.
+- Server `name` field.
+- Response `summary` field.
 - Tag `parent` and `kind` fields.
 - Security scheme metadata and deprecation fields.
 - `components.mediaTypes`.
 - Media type and encoding fields: `itemSchema`, `prefixEncoding`, `itemEncoding`.
+- Discriminator `defaultMapping`.
 - Example `dataValue` and `serializedValue` fields.
 - XML `nodeType`.
 

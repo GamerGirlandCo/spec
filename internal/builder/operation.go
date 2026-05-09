@@ -59,6 +59,9 @@ func (b *Builder) AddResponse(op *openapi.Operation, cu *openapi.ContentUnit) er
 		response = &openapi.Response{Description: ResponseDescription(cu)}
 		op.Responses[key] = response
 	}
+	if cu.Summary != "" && b.Config.OpenAPIVersion == openapi.Version320 {
+		response.Summary = cu.Summary
+	}
 	if response.Content == nil {
 		response.Content = map[string]openapi.MediaType{}
 	}
