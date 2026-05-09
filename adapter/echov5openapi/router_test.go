@@ -10,15 +10,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/labstack/echo/v5"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	stoplightemb "github.com/oaswrap/spec-ui/stoplightemb"
-	"github.com/oaswrap/spec/adapter/echov5openapi"
 	"github.com/oaswrap/spec/openapi"
 	"github.com/oaswrap/spec/option"
 	"github.com/oaswrap/spec/pkg/dto"
-	"github.com/oaswrap/spec/pkg/testutil"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+
+	"github.com/oaswrap/spec/adapter/echov5openapi"
 )
 
 //nolint:gochecknoglobals // test flag for golden file updates
@@ -135,7 +137,7 @@ func TestRouter_Spec(t *testing.T) {
 				),
 				option.WithSecurity("petstore_auth", option.SecurityOAuth2(
 					openapi.OAuthFlows{
-						Implicit: &openapi.OAuthFlowsImplicit{
+						Implicit: &openapi.OAuthFlow{
 							AuthorizationURL: "https://petstore3.swagger.io/oauth/authorize",
 							Scopes: map[string]string{
 								"write:pets": "modify pets in your account",
@@ -322,7 +324,10 @@ func TestRouter_Spec(t *testing.T) {
 			want, err := os.ReadFile(golden)
 			require.NoError(t, err, "failed to read golden file %s", golden)
 
-			testutil.EqualYAML(t, want, schema)
+			diff := cmp.Diff(string(want), string(schema))
+			if diff != "" {
+				t.Errorf("OpenAPI schema mismatch (-want +got):\n%s", diff)
+			}
 		})
 	}
 }

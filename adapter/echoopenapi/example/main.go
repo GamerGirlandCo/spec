@@ -4,8 +4,10 @@ import (
 	"log"
 
 	"github.com/labstack/echo/v4"
-	"github.com/oaswrap/spec/adapter/echoopenapi"
+
 	"github.com/oaswrap/spec/option"
+
+	"github.com/oaswrap/spec/adapter/echoopenapi"
 )
 
 func main() {

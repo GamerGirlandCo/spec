@@ -2,6 +2,7 @@ package echoopenapi
 
 import (
 	"github.com/labstack/echo/v4"
+
 	"github.com/oaswrap/spec"
 	"github.com/oaswrap/spec/option"
 )

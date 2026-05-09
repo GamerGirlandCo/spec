@@ -3,13 +3,15 @@ package fiberv3openapi
 import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/adaptor"
+
 	"github.com/oaswrap/spec"
 	specui "github.com/oaswrap/spec-ui"
-	"github.com/oaswrap/spec/adapter/fiberv3openapi/internal/constant"
 	"github.com/oaswrap/spec/openapi"
 	"github.com/oaswrap/spec/option"
 	"github.com/oaswrap/spec/pkg/mapper"
 	"github.com/oaswrap/spec/pkg/parser"
+
+	"github.com/oaswrap/spec/adapter/fiberv3openapi/internal/constant"
 )
 
 // NewGenerator creates a new OpenAPI generator with the specified Fiber v3 router and options.

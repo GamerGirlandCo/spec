@@ -4,6 +4,7 @@ import (
 	"io/fs"
 
 	"github.com/labstack/echo/v5"
+
 	"github.com/oaswrap/spec/option"
 )
 

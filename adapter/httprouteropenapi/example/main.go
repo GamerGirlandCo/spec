@@ -7,8 +7,10 @@ import (
 	"time"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/oaswrap/spec/adapter/httprouteropenapi"
+
 	"github.com/oaswrap/spec/option"
+
+	"github.com/oaswrap/spec/adapter/httprouteropenapi"
 )
 
 func main() {

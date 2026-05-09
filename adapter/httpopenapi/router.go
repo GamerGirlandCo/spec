@@ -7,10 +7,11 @@ import (
 
 	"github.com/oaswrap/spec"
 	specui "github.com/oaswrap/spec-ui"
-	"github.com/oaswrap/spec/adapter/httpopenapi/internal/constant"
-	"github.com/oaswrap/spec/adapter/httpopenapi/internal/parser"
 	"github.com/oaswrap/spec/option"
 	"github.com/oaswrap/spec/pkg/mapper"
+
+	"github.com/oaswrap/spec/adapter/httpopenapi/internal/constant"
+	"github.com/oaswrap/spec/adapter/httpopenapi/internal/parser"
 )
 
 type router struct {

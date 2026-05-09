@@ -4,8 +4,10 @@ import (
 	"log"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/oaswrap/spec/adapter/fiberv3openapi"
+
 	"github.com/oaswrap/spec/option"
+
+	"github.com/oaswrap/spec/adapter/fiberv3openapi"
 )
 
 func main() {

@@ -2,6 +2,7 @@ package echov5openapi
 
 import (
 	"github.com/labstack/echo/v5"
+
 	"github.com/oaswrap/spec"
 	"github.com/oaswrap/spec/option"
 )

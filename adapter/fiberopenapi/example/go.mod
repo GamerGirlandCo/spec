@@ -10,6 +10,7 @@ require (
 
 require (
 	github.com/andybalholm/brotli v1.2.0 // indirect
+	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/klauspost/compress v1.18.4 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
@@ -17,13 +18,11 @@ require (
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/oaswrap/spec-ui v0.2.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
-	github.com/swaggest/jsonschema-go v0.3.79 // indirect
-	github.com/swaggest/openapi-go v0.2.61 // indirect
-	github.com/swaggest/refl v1.4.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.69.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
+
+replace github.com/oaswrap/spec => ../../..
 
 replace github.com/oaswrap/spec/adapter/fiberopenapi => ..

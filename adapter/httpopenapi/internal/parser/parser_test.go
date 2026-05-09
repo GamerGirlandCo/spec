@@ -3,9 +3,10 @@ package parser_test
 import (
 	"testing"
 
-	"github.com/oaswrap/spec/adapter/httpopenapi/internal/parser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/oaswrap/spec/adapter/httpopenapi/internal/parser"
 )
 
 func TestParseRoutePattern(t *testing.T) {

@@ -9,20 +9,19 @@ require (
 )
 
 require (
+	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/oaswrap/spec-ui v0.2.0 // indirect
-	github.com/swaggest/jsonschema-go v0.3.79 // indirect
-	github.com/swaggest/openapi-go v0.2.61 // indirect
-	github.com/swaggest/refl v1.4.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	golang.org/x/crypto v0.48.0 // indirect
 	golang.org/x/net v0.50.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
+
+replace github.com/oaswrap/spec => ../../..
 
 replace github.com/oaswrap/spec/adapter/echoopenapi => ..

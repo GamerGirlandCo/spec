@@ -2,6 +2,7 @@ package fiberv3openapi
 
 import (
 	"github.com/gofiber/fiber/v3"
+
 	"github.com/oaswrap/spec/option"
 )
 

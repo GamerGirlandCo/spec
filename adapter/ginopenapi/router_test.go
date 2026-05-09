@@ -9,14 +9,16 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	stoplightemb "github.com/oaswrap/spec-ui/stoplightemb"
-	"github.com/oaswrap/spec/adapter/ginopenapi"
 	"github.com/oaswrap/spec/openapi"
 	"github.com/oaswrap/spec/option"
 	"github.com/oaswrap/spec/pkg/dto"
-	"github.com/oaswrap/spec/pkg/testutil"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+
+	"github.com/oaswrap/spec/adapter/ginopenapi"
 )
 
 //nolint:gochecknoglobals // test flag for golden file updates
@@ -72,7 +74,7 @@ func TestRouter_Spec(t *testing.T) {
 				),
 				option.WithSecurity("petstore_auth", option.SecurityOAuth2(
 					openapi.OAuthFlows{
-						Implicit: &openapi.OAuthFlowsImplicit{
+						Implicit: &openapi.OAuthFlow{
 							AuthorizationURL: "https://petstore3.swagger.io/oauth/authorize",
 							Scopes: map[string]string{
 								"write:pets": "modify pets in your account",
@@ -248,7 +250,6 @@ func TestRouter_Spec(t *testing.T) {
 				option.WithVersion("1.0.0"),
 				option.WithDescription("This is a test API for " + tt.name),
 				option.WithReflectorConfig(
-					option.RequiredPropByValidateTag(),
 					option.StripDefNamePrefix("GinopenapiTest"),
 				),
 			}
@@ -284,7 +285,10 @@ func TestRouter_Spec(t *testing.T) {
 			want, err := os.ReadFile(golden)
 			require.NoError(t, err, "failed to read golden file %s", golden)
 
-			testutil.EqualYAML(t, want, schema)
+			diff := cmp.Diff(want, schema)
+			if diff != "" {
+				t.Errorf("OpenAPI schema mismatch (-want +got):\n%s", diff)
+			}
 		})
 	}
 }
@@ -559,7 +563,7 @@ func TestGenerator_Docs(t *testing.T) {
 			"application/x-yaml",
 			"expected Content-Type to be application/x-yaml",
 		)
-		assert.Contains(t, rec.Body.String(), "openapi: 3.0.3", "expected OpenAPI version in response body")
+		assert.Contains(t, rec.Body.String(), "openapi: 3.0.4", "expected OpenAPI version in response body")
 	})
 }
 

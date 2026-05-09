@@ -2,15 +2,17 @@ package httprouteropenapi
 
 import (
 	"net/http"
+	"path"
 
 	"github.com/julienschmidt/httprouter"
+
 	"github.com/oaswrap/spec"
 	specui "github.com/oaswrap/spec-ui"
-	"github.com/oaswrap/spec/adapter/httprouteropenapi/internal/constant"
 	"github.com/oaswrap/spec/option"
 	"github.com/oaswrap/spec/pkg/mapper"
 	"github.com/oaswrap/spec/pkg/parser"
-	"github.com/oaswrap/spec/pkg/util"
+
+	"github.com/oaswrap/spec/adapter/httprouteropenapi/internal/constant"
 )
 
 // NewRouter creates a new router with the given HTTP router and options.
@@ -80,7 +82,19 @@ func (r *router) pathOf(path string) string {
 	if r.prefix == "" {
 		return path
 	}
-	return util.JoinPath(r.prefix, path)
+	return joinPath(r.prefix, path)
+}
+
+func joinPath(paths ...string) string {
+	if len(paths) == 0 {
+		return ""
+	}
+
+	lastElement := paths[len(paths)-1]
+	if len(lastElement) > 0 && lastElement[len(lastElement)-1] == '/' {
+		return path.Join(paths...) + "/"
+	}
+	return path.Join(paths...)
 }
 
 func (r *router) Handle(method, path string, handle httprouter.Handle) Route {
