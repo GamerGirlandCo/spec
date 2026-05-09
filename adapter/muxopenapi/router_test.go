@@ -3,11 +3,13 @@ package muxopenapi_test
 import (
 	"encoding/json"
 	"flag"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/gorilla/mux"
@@ -17,13 +19,75 @@ import (
 	stoplightemb "github.com/oaswrap/spec-ui/stoplightemb"
 	"github.com/oaswrap/spec/openapi"
 	"github.com/oaswrap/spec/option"
-	"github.com/oaswrap/spec/pkg/dto"
 
 	"github.com/oaswrap/spec/adapter/muxopenapi"
 )
 
 //nolint:gochecknoglobals // test flag for golden file updates
 var update = flag.Bool("update", false, "update golden files")
+
+type Pet struct {
+	ID        int      `json:"id"`
+	Name      string   `json:"name"`
+	Type      string   `json:"type"`
+	Status    string   `json:"status" enum:"available,pending,sold"`
+	Category  Category `json:"category"`
+	Tags      []Tag    `json:"tags"`
+	PhotoURLs []string `json:"photoUrls"`
+}
+
+type Tag struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+type Category struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+type UpdatePetWithFormRequest struct {
+	ID     int    `path:"petId" required:"true"`
+	Name   string `required:"true" formData:"name"`
+	Status string `formData:"status" enum:"available,pending,sold"`
+}
+
+type UploadImageRequest struct {
+	ID                 int64           `params:"petId" path:"petId"`
+	AdditionalMetaData string          `query:"additionalMetadata"`
+	_                  *multipart.File `contentType:"application/octet-stream"`
+}
+
+type DeletePetRequest struct {
+	ID     int    `path:"petId" required:"true"`
+	APIKey string `header:"api_key"`
+}
+
+type Order struct {
+	ID       int       `json:"id"`
+	PetID    int       `json:"petId"`
+	Quantity int       `json:"quantity"`
+	ShipDate time.Time `json:"shipDate"`
+	Status   string    `json:"status" enum:"placed,approved,delivered"`
+	Complete bool      `json:"complete"`
+}
+
+type PetUser struct {
+	ID         int    `json:"id"`
+	Username   string `json:"username"`
+	FirstName  string `json:"firstName"`
+	LastName   string `json:"lastName"`
+	Email      string `json:"email"`
+	Password   string `json:"password"`
+	Phone      string `json:"phone"`
+	UserStatus int    `json:"userStatus" enum:"0,1,2"`
+}
+
+type APIResponse struct {
+	Message string `json:"message"`
+	Type    string `json:"type"`
+	Code    int    `json:"code"`
+}
 
 func TestRouter_Spec(t *testing.T) {
 	tests := []struct {
@@ -94,15 +158,15 @@ func TestRouter_Spec(t *testing.T) {
 					option.OperationID("updatePet"),
 					option.Summary("Update an existing pet"),
 					option.Description("Update the details of an existing pet in the store."),
-					option.Request(new(dto.Pet)),
-					option.Response(200, new(dto.Pet)),
+					option.Request(new(Pet)),
+					option.Response(200, new(Pet)),
 				)
 				pet.HandleFunc("/", nil).Methods("POST").With(
 					option.OperationID("addPet"),
 					option.Summary("Add a new pet"),
 					option.Description("Add a new pet to the store."),
-					option.Request(new(dto.Pet)),
-					option.Response(201, new(dto.Pet)),
+					option.Request(new(Pet)),
+					option.Response(201, new(Pet)),
 				)
 				pet.HandleFunc("/findByStatus", nil).Methods("GET").With(
 					option.OperationID("findPetsByStatus"),
@@ -111,7 +175,7 @@ func TestRouter_Spec(t *testing.T) {
 					option.Request(new(struct {
 						Status string `query:"status" enum:"available,pending,sold"`
 					})),
-					option.Response(200, new([]dto.Pet)),
+					option.Response(200, new([]Pet)),
 				)
 				pet.HandleFunc("/findByTags", nil).Methods("GET").With(
 					option.OperationID("findPetsByTags"),
@@ -120,14 +184,14 @@ func TestRouter_Spec(t *testing.T) {
 					option.Request(new(struct {
 						Tags []string `query:"tags"`
 					})),
-					option.Response(200, new([]dto.Pet)),
+					option.Response(200, new([]Pet)),
 				)
 				pet.HandleFunc("/{petId}/uploadImage", nil).Methods("POST").With(
 					option.OperationID("uploadFile"),
 					option.Summary("Upload an image for a pet"),
 					option.Description("Uploads an image for a pet."),
-					option.Request(new(dto.UploadImageRequest)),
-					option.Response(200, new(dto.APIResponse)),
+					option.Request(new(UploadImageRequest)),
+					option.Response(200, new(APIResponse)),
 				)
 				pet.HandleFunc("/{petId}", nil).Methods("GET").With(
 					option.OperationID("getPetById"),
@@ -136,20 +200,20 @@ func TestRouter_Spec(t *testing.T) {
 					option.Request(new(struct {
 						ID int `path:"petId" required:"true"`
 					})),
-					option.Response(200, new(dto.Pet)),
+					option.Response(200, new(Pet)),
 				)
 				pet.HandleFunc("/{petId}", nil).Methods("POST").With(
 					option.OperationID("updatePetWithForm"),
 					option.Summary("Update pet with form"),
 					option.Description("Updates a pet in the store with form data."),
-					option.Request(new(dto.UpdatePetWithFormRequest)),
+					option.Request(new(UpdatePetWithFormRequest)),
 					option.Response(200, nil),
 				)
 				pet.HandleFunc("/delete/{petId}", nil).Methods("DELETE").With(
 					option.OperationID("deletePet"),
 					option.Summary("Delete a pet"),
 					option.Description("Delete a pet from the store by its ID."),
-					option.Request(new(dto.DeletePetRequest)),
+					option.Request(new(DeletePetRequest)),
 					option.Response(204, nil),
 				)
 
@@ -160,8 +224,8 @@ func TestRouter_Spec(t *testing.T) {
 					option.OperationID("placeOrder"),
 					option.Summary("Place an order"),
 					option.Description("Place a new order for a pet."),
-					option.Request(new(dto.Order)),
-					option.Response(201, new(dto.Order)),
+					option.Request(new(Order)),
+					option.Response(201, new(Order)),
 				)
 				store.HandleFunc("/order/{orderId}", nil).Methods("GET").With(
 					option.OperationID("getOrderById"),
@@ -170,7 +234,7 @@ func TestRouter_Spec(t *testing.T) {
 					option.Request(new(struct {
 						ID int `path:"orderId" required:"true"`
 					})),
-					option.Response(200, new(dto.Order)),
+					option.Response(200, new(Order)),
 					option.Response(404, nil),
 				)
 				store.HandleFunc("/order/{orderId}", nil).Methods("DELETE").With(
@@ -190,15 +254,15 @@ func TestRouter_Spec(t *testing.T) {
 					option.OperationID("createUsersWithList"),
 					option.Summary("Create users with list"),
 					option.Description("Create multiple users in the store with a list."),
-					option.Request(new([]dto.PetUser)),
+					option.Request(new([]PetUser)),
 					option.Response(201, nil),
 				)
 				user.HandleFunc("/", nil).Methods("POST").With(
 					option.OperationID("createUser"),
 					option.Summary("Create a new user"),
 					option.Description("Create a new user in the store."),
-					option.Request(new(dto.PetUser)),
-					option.Response(201, new(dto.PetUser)),
+					option.Request(new(PetUser)),
+					option.Response(201, new(PetUser)),
 				)
 				user.HandleFunc("/{username}", nil).Methods("GET").With(
 					option.OperationID("getUserByName"),
@@ -207,7 +271,7 @@ func TestRouter_Spec(t *testing.T) {
 					option.Request(new(struct {
 						Username string `path:"username" required:"true"`
 					})),
-					option.Response(200, new(dto.PetUser)),
+					option.Response(200, new(PetUser)),
 					option.Response(404, nil),
 				)
 				user.HandleFunc("/{username}", nil).Methods("PUT").With(
@@ -215,11 +279,11 @@ func TestRouter_Spec(t *testing.T) {
 					option.Summary("Update an existing user"),
 					option.Description("Update the details of an existing user."),
 					option.Request(new(struct {
-						dto.PetUser
+						PetUser
 
 						Username string `path:"username" required:"true"`
 					})),
-					option.Response(200, new(dto.PetUser)),
+					option.Response(200, new(PetUser)),
 					option.Response(404, nil),
 				)
 				user.HandleFunc("/{username}", nil).Methods("DELETE").With(

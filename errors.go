@@ -2,6 +2,7 @@ package spec
 
 import "strings"
 
+// ValidationErrors is a collection of validation errors that can be returned by the Validate method of various structs in the spec package. It implements the error interface and can be used to aggregate multiple validation errors into a single error value.
 type ValidationErrors struct { //nolint:errname // ValidationErrors is a better name than ErrorsError or ValidationError here
 	Errors []error
 }
