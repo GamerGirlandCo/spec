@@ -1,0 +1,71 @@
+openapi: 3.1.2
+info:
+  title: Reference Descriptions API
+  version: 1.0.0
+jsonSchemaDialect: https://spec.openapis.org/oas/3.1/dialect/base
+paths:
+  /users/{id}:
+    get:
+      operationId: findUser
+      parameters:
+        - name: id
+          in: path
+          description: User identifier
+          required: true
+          schema:
+            description: User identifier
+            type: string
+        - $ref: "#/components/parameters/TraceID"
+          description: Request trace identifier.
+      requestBody:
+        $ref: "#/components/requestBodies/UserBody"
+        description: Reusable user payload.
+      responses:
+        "200":
+          $ref: "#/components/responses/UserResponse"
+          description: Reusable user response.
+        "204":
+          description: No content
+          links:
+            findUser:
+              $ref: "#/components/links/FindUser"
+              description: Reusable follow-up link.
+components:
+  schemas:
+    User:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+  responses:
+    UserResponse:
+      description: User response
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/User"
+  parameters:
+    TraceID:
+      name: traceId
+      in: header
+      required: true
+      schema:
+        type: string
+  examples:
+    UserExample:
+      value:
+        id: user-123
+        name: Ada
+  requestBodies:
+    UserBody:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/User"
+  links:
+    FindUser:
+      operationId: findUser

@@ -1,59 +1,58 @@
 package option
 
-import (
-	"github.com/oaswrap/spec/openapi"
-	"github.com/oaswrap/spec/pkg/util"
-)
+import "github.com/oaswrap/spec/openapi"
 
-// OperationConfig holds configuration for an OpenAPI operation.
+// OperationConfig stores effective operation-level settings.
 type OperationConfig struct {
-	Hide        bool
-	OperationID string
-	Description string
-	Summary     string
-	Deprecated  bool
-	Tags        []string
-	Security    []OperationSecurityConfig
-
-	Requests  []*openapi.ContentUnit
-	Responses []*openapi.ContentUnit
+	Hide         bool
+	OperationID  string
+	Description  string
+	Summary      string
+	ExternalDocs *openapi.ExternalDocs
+	Deprecated   bool
+	Tags         []string
+	Security     []OperationSecurityConfig
+	Requests     []*openapi.ContentUnit
+	Responses    []*openapi.ContentUnit
+	Customizers  []func(*openapi.Operation)
 }
 
-// OperationSecurityConfig defines a security requirement for an operation.
+// OperationSecurityConfig describes one operation security requirement entry.
 type OperationSecurityConfig struct {
 	Name   string
 	Scopes []string
 }
 
-// OperationOption applies configuration to an OpenAPI operation.
+// OperationOption mutates operation generation behavior.
 type OperationOption func(*OperationConfig)
 
-// Hidden marks the operation as hidden in the OpenAPI documentation.
-//
-// This is useful for internal or non-public endpoints.
+// Hidden skips emitting this operation.
 func Hidden(hide ...bool) OperationOption {
-	return func(cfg *OperationConfig) {
-		cfg.Hide = util.Optional(true, hide...)
-	}
+	return func(cfg *OperationConfig) { cfg.Hide = optional(true, hide...) }
 }
 
-// OperationID sets the unique operation ID for the OpenAPI operation.
+// OperationID sets `operationId`.
 func OperationID(id string) OperationOption {
-	return func(cfg *OperationConfig) {
-		cfg.OperationID = id
-	}
+	return func(cfg *OperationConfig) { cfg.OperationID = id }
 }
 
-// Description sets the detailed description for the OpenAPI operation.
+// Description sets operation description.
 func Description(description string) OperationOption {
+	return func(cfg *OperationConfig) { cfg.Description = description }
+}
+
+// ExternalDocs sets operation external documentation.
+func ExternalDocs(url string, description ...string) OperationOption {
 	return func(cfg *OperationConfig) {
-		cfg.Description = description
+		docs := &openapi.ExternalDocs{URL: url}
+		if len(description) > 0 {
+			docs.Description = description[0]
+		}
+		cfg.ExternalDocs = docs
 	}
 }
 
-// Summary sets a short summary for the OpenAPI operation.
-//
-// If no description is set, the summary is also used as the description.
+// Summary sets operation summary and, when empty, description.
 func Summary(summary string) OperationOption {
 	return func(cfg *OperationConfig) {
 		cfg.Summary = summary
@@ -64,64 +63,49 @@ func Summary(summary string) OperationOption {
 }
 
 // Deprecated marks the operation as deprecated.
-//
-// Deprecated operations should not be used by clients.
 func Deprecated(deprecated ...bool) OperationOption {
-	return func(cfg *OperationConfig) {
-		cfg.Deprecated = util.Optional(true, deprecated...)
-	}
+	return func(cfg *OperationConfig) { cfg.Deprecated = optional(true, deprecated...) }
 }
 
-// Tags adds tags to the OpenAPI operation.
-//
-// Tags help organize operations in the generated documentation.
+// Tags appends operation tags.
 func Tags(tags ...string) OperationOption {
+	return func(cfg *OperationConfig) { cfg.Tags = append(cfg.Tags, tags...) }
+}
+
+// Security appends one operation security requirement.
+func Security(name string, scopes ...string) OperationOption {
 	return func(cfg *OperationConfig) {
-		cfg.Tags = append(cfg.Tags, tags...)
+		cfg.Security = append(cfg.Security, OperationSecurityConfig{Name: name, Scopes: scopes})
 	}
 }
 
-// Security adds a security requirement to the OpenAPI operation.
-//
-// Example:
-//
-//	r.Get("/me",
-//	    option.Security("bearerAuth"),
-//	)
-func Security(securityName string, scopes ...string) OperationOption {
+// Request appends one request content unit.
+func Request(structure any, opts ...ContentOption) OperationOption {
 	return func(cfg *OperationConfig) {
-		cfg.Security = append(cfg.Security, OperationSecurityConfig{
-			Name:   securityName,
-			Scopes: scopes,
-		})
-	}
-}
-
-// Request adds a request body or parameter structure to the OpenAPI operation.
-func Request(structure any, options ...ContentOption) OperationOption {
-	return func(cfg *OperationConfig) {
-		cu := &openapi.ContentUnit{
-			Structure: structure,
-		}
-		for _, opt := range options {
+		cu := &openapi.ContentUnit{Structure: structure}
+		for _, opt := range opts {
 			opt(cu)
 		}
 		cfg.Requests = append(cfg.Requests, cu)
 	}
 }
 
-// Response adds a response for the OpenAPI operation.
-//
-// The HTTP status code defines which response is described.
-func Response(httpStatus int, structure any, options ...ContentOption) OperationOption {
+// Response appends one response content unit.
+func Response(httpStatus int, structure any, opts ...ContentOption) OperationOption {
 	return func(cfg *OperationConfig) {
-		cu := &openapi.ContentUnit{
-			HTTPStatus: httpStatus,
-			Structure:  structure,
-		}
-		for _, opt := range options {
+		cu := &openapi.ContentUnit{HTTPStatus: httpStatus, Structure: structure}
+		for _, opt := range opts {
 			opt(cu)
 		}
 		cfg.Responses = append(cfg.Responses, cu)
+	}
+}
+
+// CustomizeOperation applies a low-level mutation to the generated operation.
+func CustomizeOperation(fn func(*openapi.Operation)) OperationOption {
+	return func(cfg *OperationConfig) {
+		if fn != nil {
+			cfg.Customizers = append(cfg.Customizers, fn)
+		}
 	}
 }

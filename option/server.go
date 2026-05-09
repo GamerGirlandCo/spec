@@ -2,37 +2,15 @@ package option
 
 import "github.com/oaswrap/spec/openapi"
 
-// ServerOption applies configuration to an OpenAPI server.
+// ServerOption mutates a server entry.
 type ServerOption func(*openapi.Server)
 
-// ServerDescription sets the description for an OpenAPI server.
-//
-// Example:
-//
-//	option.WithServer("https://api.example.com",
-//	    option.ServerDescription("Production server"),
-//	)
+// ServerDescription sets server description.
 func ServerDescription(description string) ServerOption {
-	return func(s *openapi.Server) {
-		s.Description = &description
-	}
+	return func(server *openapi.Server) { server.Description = &description }
 }
 
-// ServerVariables sets one or more variables for an OpenAPI server.
-//
-// Example:
-//
-//	option.WithServer("https://api.example.com/{version}",
-//	    option.ServerVariables(map[string]openapi.ServerVariable{
-//	        "version": {
-//	            Default:     "v1",
-//	            Description: "API version",
-//	            Enum:        []string{"v1", "v2"},
-//	        },
-//	    }),
-//	)
+// ServerVariables sets server variables map.
 func ServerVariables(variables map[string]openapi.ServerVariable) ServerOption {
-	return func(s *openapi.Server) {
-		s.Variables = variables
-	}
+	return func(server *openapi.Server) { server.Variables = variables }
 }

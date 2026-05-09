@@ -3,11 +3,12 @@ package mapper_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/oaswrap/spec"
 	"github.com/oaswrap/spec-ui/config"
 	"github.com/oaswrap/spec/option"
 	"github.com/oaswrap/spec/pkg/mapper"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestSpecUIOpts(t *testing.T) {

@@ -1,0 +1,128 @@
+openapi: 3.0.4
+info:
+  title: Complex API
+  version: 1.0.0
+paths:
+  /complex:
+    post:
+      operationId: complex
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ComplexRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComplexResponse"
+components:
+  schemas:
+    ComplexRequest:
+      type: object
+      required:
+        - string
+      properties:
+        any: {}
+        array:
+          type: array
+          maxItems: 5
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+        bool:
+          type: boolean
+        enum:
+          type: string
+          enum:
+            - a
+            - b
+            - c
+        int:
+          type: integer
+          format: int32
+          maximum: 100.0
+          minimum: 1.0
+        map:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int32
+        nullable:
+          type: string
+          nullable: true
+        number:
+          type: number
+          format: double
+          multipleOf: 0.5
+        object:
+          type: object
+          nullable: true
+          properties:
+            foo:
+              type: string
+        string:
+          type: string
+          maxLength: 10
+          minLength: 1
+          pattern: ^[a-z]+$
+    ComplexResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          required:
+            - string
+          properties:
+            any: {}
+            array:
+              type: array
+              maxItems: 5
+              minItems: 1
+              uniqueItems: true
+              items:
+                type: string
+            bool:
+              type: boolean
+            enum:
+              type: string
+              enum:
+                - a
+                - b
+                - c
+            int:
+              type: integer
+              format: int32
+              maximum: 100.0
+              minimum: 1.0
+            map:
+              type: object
+              additionalProperties:
+                type: integer
+                format: int32
+            nullable:
+              type: string
+              nullable: true
+            number:
+              type: number
+              format: double
+              multipleOf: 0.5
+            object:
+              type: object
+              nullable: true
+              properties:
+                foo:
+                  type: string
+            string:
+              type: string
+              maxLength: 10
+              minLength: 1
+              pattern: ^[a-z]+$
+        message:
+          type: string
+          deprecated: true
+        status:
+          type: string

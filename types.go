@@ -1,102 +1,106 @@
 package spec
 
 import (
-	specopenapi "github.com/oaswrap/spec/openapi"
+	"github.com/oaswrap/spec/internal/builder"
+	"github.com/oaswrap/spec/openapi"
 	"github.com/oaswrap/spec/option"
-	"github.com/swaggest/openapi-go"
 )
 
-// Generator defines an interface for building and exporting OpenAPI specifications.
+type Contact = openapi.Contact
+type License = openapi.License
+type Tag = openapi.Tag
+type ExternalDocs = openapi.ExternalDocs
+type Server = openapi.Server
+type ServerVariable = openapi.ServerVariable
+type SecurityScheme = openapi.SecurityScheme
+type OAuthFlows = openapi.OAuthFlows
+type OAuthFlow = openapi.OAuthFlow
+type Schema = openapi.Schema
+type Document = openapi.Document
+
+// OneOf returns a value that represents multiple possible schemas.
+func OneOf(values ...any) any {
+	return builder.OneOf(values...)
+}
+
+// SchemaExposer lets custom Go types provide their own OpenAPI Schema Object.
+// The selected OpenAPI version is passed so implementations can return
+// version-specific schema keywords.
+type SchemaExposer interface {
+	OpenAPISchema(version string) *openapi.Schema
+}
+
+// StaticSchemaExposer lets custom Go types provide an OpenAPI Schema Object
+// when they do not need version-specific output.
+type StaticSchemaExposer interface {
+	OpenAPISchema() *openapi.Schema
+}
+
+// Generator builds, validates, and serializes an OpenAPI document.
 type Generator interface {
 	Router
-
-	// Config returns the OpenAPI configuration used by the Generator.
-	Config() *specopenapi.Config
-
-	// GenerateSchema generates the OpenAPI schema in the specified format.
-	// By default, it generates YAML. Pass "json" to generate JSON instead.
+	// Config returns the effective OpenAPI configuration.
+	Config() *openapi.Config
+	// Document returns the built in-memory OpenAPI document.
+	Document() *openapi.Document
+	// GenerateSchema serializes the document in YAML by default, or JSON/YAML
+	// when explicitly requested.
 	GenerateSchema(formats ...string) ([]byte, error)
-
-	// MarshalYAML returns the OpenAPI specification marshaled as YAML.
+	// MarshalYAML validates and serializes the document as YAML.
 	MarshalYAML() ([]byte, error)
-
-	// MarshalJSON returns the OpenAPI specification marshaled as JSON.
+	// MarshalJSON validates and serializes the document as pretty JSON.
 	MarshalJSON() ([]byte, error)
-
-	// Validate checks whether the OpenAPI specification is valid.
+	// Validate builds the document and validates OpenAPI invariants.
 	Validate() error
-
-	// WriteSchemaTo writes the OpenAPI schema to a file.
-	// The format is inferred from the file extension: ".yaml" for YAML, ".json" for JSON.
+	// WriteSchemaTo serializes and writes the document based on file extension.
 	WriteSchemaTo(path string) error
 }
 
-// Router defines methods for registering API routes and operations
-// in an OpenAPI specification. It lets you describe HTTP methods, paths, and options.
+// Router registers operations and route groups that are converted to OpenAPI
+// Paths and Webhooks during document generation.
 type Router interface {
-	// Get registers a GET operation for the given path and options.
+	// Get registers a GET operation for a path.
 	Get(path string, opts ...option.OperationOption) Route
-
-	// Post registers a POST operation for the given path and options.
+	// Post registers a POST operation for a path.
 	Post(path string, opts ...option.OperationOption) Route
-
-	// Put registers a PUT operation for the given path and options.
+	// Put registers a PUT operation for a path.
 	Put(path string, opts ...option.OperationOption) Route
-
-	// Delete registers a DELETE operation for the given path and options.
+	// Delete registers a DELETE operation for a path.
 	Delete(path string, opts ...option.OperationOption) Route
-
-	// Patch registers a PATCH operation for the given path and options.
+	// Patch registers a PATCH operation for a path.
 	Patch(path string, opts ...option.OperationOption) Route
-
-	// Options registers an OPTIONS operation for the given path and options.
+	// Options registers an OPTIONS operation for a path.
 	Options(path string, opts ...option.OperationOption) Route
-
-	// Head registers a HEAD operation for the given path and options.
+	// Head registers a HEAD operation for a path.
 	Head(path string, opts ...option.OperationOption) Route
-
-	// Trace registers a TRACE operation for the given path and options.
+	// Trace registers a TRACE operation for a path.
 	Trace(path string, opts ...option.OperationOption) Route
-
-	// Add registers an operation for the given HTTP method, path, and options.
+	// Query registers an OpenAPI 3.2 QUERY operation for a path.
+	Query(path string, opts ...option.OperationOption) Route
+	// Add registers an operation for an arbitrary HTTP method.
 	Add(method, path string, opts ...option.OperationOption) Route
-
-	// NewRoute creates a new route with the given options.
+	// Webhook registers a webhook entry using POST as the default method.
+	// Webhooks require OpenAPI 3.1.x or 3.2.0.
+	Webhook(name string, opts ...option.OperationOption) Route
+	// AddWebhook registers a webhook entry with an explicit HTTP method.
+	// Webhooks require OpenAPI 3.1.x or 3.2.0.
+	AddWebhook(method, name string, opts ...option.OperationOption) Route
+	// NewRoute creates a route that can be configured incrementally.
 	NewRoute(opts ...option.OperationOption) Route
-
-	// Route registers a nested route under the given pattern.
-	// The provided function receives a Router to define sub-routes.
+	// Route creates a grouped router and executes registrations in fn.
 	Route(pattern string, fn func(router Router), opts ...option.GroupOption) Router
-
-	// Group creates a new sub-router with the given path prefix and group options.
+	// Group creates a grouped router with a path prefix and group options.
 	Group(pattern string, opts ...option.GroupOption) Router
-
-	// With applies one or more group options to the router.
+	// With appends group options to the current router scope.
 	With(opts ...option.GroupOption) Router
 }
 
-// Route represents a single API route in the OpenAPI specification.
+// Route lets callers set method/path/options incrementally.
 type Route interface {
-	// Method sets the HTTP method for the route.
+	// Method sets the HTTP method.
 	Method(method string) Route
-	// Path sets the HTTP path for the route.
+	// Path sets the route path or webhook name.
 	Path(path string) Route
-	// With applies additional operation options to the route.
+	// With appends operation options.
 	With(opts ...option.OperationOption) Route
-}
-
-type reflector interface {
-	Add(method, path string, opts ...option.OperationOption)
-	Spec() spec
-	Validate() error
-}
-
-type spec interface {
-	MarshalYAML() ([]byte, error)
-	MarshalJSON() ([]byte, error)
-}
-
-type operationContext interface {
-	With(opts ...option.OperationOption) operationContext
-	build() openapi.OperationContext
 }

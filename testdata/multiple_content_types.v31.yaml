@@ -1,0 +1,48 @@
+openapi: 3.1.2
+info:
+  title: Multi-content API
+  version: 1.0.0
+jsonSchemaDialect: https://spec.openapis.org/oas/3.1/dialect/base
+paths:
+  /multi:
+    post:
+      operationId: multi
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+            application/xml:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+components:
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        password:
+          type: string
+          writeOnly: true
+        username:
+          type: string
+          minLength: 3
+    LoginResponse:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
