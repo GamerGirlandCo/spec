@@ -6,8 +6,8 @@ This repository is a Go workspace for `github.com/oaswrap/spec`. Core package fi
 
 ## Build, Test, and Development Commands
 
-- `make install-tools`: installs `gotestsum` and `golangci-lint`.
-- `make test`: runs core and adapter tests.
+- `make install-tools`: installs `golangci-lint`.
+- `make test`: runs core and adapter tests with `go test`.
 - `make test-adapter`: runs only adapter module tests.
 - `make test-update`: regenerates golden files when output changes intentionally.
 - `make testcov` / `make testcov-html`: produces coverage reports in `coverage/`.

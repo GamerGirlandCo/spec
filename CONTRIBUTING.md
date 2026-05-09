@@ -41,7 +41,7 @@ Please search existing issues before opening a new one.
 git clone https://github.com/oaswrap/spec.git
 cd spec
 
-# Install development tools (gotestsum, golangci-lint)
+# Install development tools (golangci-lint)
 make install-tools
 ```
 
@@ -77,7 +77,7 @@ Changes to the core module may require corresponding updates to affected adapter
 ## Testing
 
 ```bash
-# Run all tests (core + adapters)
+# Run all tests (core + adapters with go test)
 make test
 
 # Run adapter tests only

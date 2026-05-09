@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/oaswrap/spec-ui/config"
 	"github.com/oaswrap/spec/openapi"
 )
 
@@ -363,6 +364,16 @@ func TestContentOptions(t *testing.T) {
 		assert.Nil(t, content.Examples["serialized"].Value)
 		assert.JSONEq(t, `{"id":"123"}`, content.Examples["serialized"].SerializedValue)
 	})
+
+	t.Run("ExampleDescriptionAndDataValue", func(t *testing.T) {
+		example := &openapi.Example{Value: "keep"}
+		ExampleDescription("Example desc")(example)
+		ExampleDataValue(map[string]any{"id": "123"})(example)
+		assert.Equal(t, "Example desc", example.Description)
+		assert.Nil(t, example.Value)
+		assert.Equal(t, map[string]any{"id": "123"}, example.DataValue)
+		assert.Empty(t, example.ExternalValue)
+	})
 }
 
 func TestServerOptions(t *testing.T) {
@@ -380,8 +391,96 @@ func TestServerOptions(t *testing.T) {
 	assert.Equal(t, "d", s.Variables["v"].Default)
 }
 
+func TestConfigAndUIOptions(t *testing.T) {
+	t.Run("Basic config setters", func(t *testing.T) {
+		cfg := &openapi.Config{}
+
+		WithDisableDocs()(cfg)
+		assert.True(t, cfg.DisableDocs)
+
+		WithDisableDocs(false)(cfg)
+		assert.False(t, cfg.DisableDocs)
+
+		WithDocsPath("/custom/docs")(cfg)
+		assert.Equal(t, "/custom/docs", cfg.DocsPath)
+
+		WithSpecPath("/custom/openapi.yaml")(cfg)
+		assert.Equal(t, "/custom/openapi.yaml", cfg.SpecPath)
+
+		WithCacheAge(42)(cfg)
+		if assert.NotNil(t, cfg.CacheAge) {
+			assert.Equal(t, 42, *cfg.CacheAge)
+		}
+	})
+
+	t.Run("WithUIOption", func(t *testing.T) {
+		cfg := &openapi.Config{}
+		called := false
+		opt := func(*config.SpecUI) { called = true }
+
+		WithUIOption(opt)(cfg)
+		if assert.NotNil(t, cfg.UIOption) {
+			cfg.UIOption(&config.SpecUI{})
+		}
+		assert.True(t, called)
+	})
+
+	t.Run("Provider helpers", func(t *testing.T) {
+		t.Run("SwaggerUI", func(t *testing.T) {
+			cfg := &openapi.Config{}
+			WithSwaggerUI(config.SwaggerUI{HideCurl: true})(cfg)
+			assert.Equal(t, config.ProviderSwaggerUI, cfg.UIProvider)
+			if assert.NotNil(t, cfg.SwaggerUIConfig) {
+				assert.True(t, cfg.SwaggerUIConfig.HideCurl)
+			}
+			assert.NotNil(t, cfg.UIOption)
+		})
+
+		t.Run("StoplightElements", func(t *testing.T) {
+			cfg := &openapi.Config{}
+			WithStoplightElements(config.StoplightElements{HideTryIt: true})(cfg)
+			assert.Equal(t, config.ProviderStoplightElements, cfg.UIProvider)
+			if assert.NotNil(t, cfg.StoplightElementsConfig) {
+				assert.True(t, cfg.StoplightElementsConfig.HideTryIt)
+			}
+			assert.NotNil(t, cfg.UIOption)
+		})
+
+		t.Run("ReDoc", func(t *testing.T) {
+			cfg := &openapi.Config{}
+			WithReDoc(config.ReDoc{HideSearch: true})(cfg)
+			assert.Equal(t, config.ProviderReDoc, cfg.UIProvider)
+			if assert.NotNil(t, cfg.ReDocConfig) {
+				assert.True(t, cfg.ReDocConfig.HideSearch)
+			}
+			assert.NotNil(t, cfg.UIOption)
+		})
+
+		t.Run("Scalar", func(t *testing.T) {
+			cfg := &openapi.Config{}
+			WithScalar(config.Scalar{DarkMode: true})(cfg)
+			assert.Equal(t, config.ProviderScalar, cfg.UIProvider)
+			if assert.NotNil(t, cfg.ScalarConfig) {
+				assert.True(t, cfg.ScalarConfig.DarkMode)
+			}
+			assert.NotNil(t, cfg.UIOption)
+		})
+
+		t.Run("RapiDoc", func(t *testing.T) {
+			cfg := &openapi.Config{}
+			WithRapiDoc(config.RapiDoc{HideHeader: true})(cfg)
+			assert.Equal(t, config.ProviderRapiDoc, cfg.UIProvider)
+			if assert.NotNil(t, cfg.RapiDocConfig) {
+				assert.True(t, cfg.RapiDocConfig.HideHeader)
+			}
+			assert.NotNil(t, cfg.UIOption)
+		})
+	})
+}
+
 func TestOptional(t *testing.T) {
 	assert.Equal(t, 1, optional(1))
 	assert.Equal(t, 2, optional(1, 2))
 	assert.Equal(t, "b", optional("a", "b"))
+	assert.False(t, optional(true, false))
 }
