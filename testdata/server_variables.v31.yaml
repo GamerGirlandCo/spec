@@ -2,7 +2,6 @@ openapi: 3.1.2
 info:
   title: Server Var API
   version: 1.0.0
-jsonSchemaDialect: https://spec.openapis.org/oas/3.1/dialect/base
 servers:
   - url: https://{environment}.example.com/v1
     variables:

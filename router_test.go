@@ -77,25 +77,6 @@ func TestRouter_GenerateSchema_OpenAPI304(t *testing.T) {
 	assert.Equal(t, "http", doc.Components.SecuritySchemes["bearerAuth"].Type)
 }
 
-func TestRouter_GenerateSchema_OpenAPI312_Dialect(t *testing.T) {
-	r := spec.NewRouter(
-		option.WithOpenAPIVersion(openapi.Version312),
-		option.WithTitle("Events API"),
-		option.WithVersion("1.0.0"),
-	)
-	r.Get("/events/{id}",
-		option.Request(new(GetUserRequest)),
-		option.Response(200, new(User)),
-	)
-
-	doc := r.Document()
-	require.NoError(t, r.Validate())
-	assert.NotEmpty(t, doc.JSONSchemaDialect)
-
-	_, err := r.GenerateSchema("yaml")
-	assert.NoError(t, err)
-}
-
 func TestRouter_OpenAPI320_Features(t *testing.T) {
 	r := spec.NewRouter(
 		option.WithOpenAPIVersion(openapi.Version320),

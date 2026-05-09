@@ -364,9 +364,6 @@ func newDocument(cfg *openapi.Config) *openapi.Document {
 		Tags:         cfg.Tags,
 		ExternalDocs: cfg.ExternalDocs,
 	}
-	if validate.IsOpenAPI31(cfg.OpenAPIVersion) || validate.IsOpenAPI32(cfg.OpenAPIVersion) {
-		doc.JSONSchemaDialect = "https://spec.openapis.org/oas/3.1/dialect/base"
-	}
 	if cfg.JSONSchemaDialect != "" {
 		doc.JSONSchemaDialect = cfg.JSONSchemaDialect
 	}

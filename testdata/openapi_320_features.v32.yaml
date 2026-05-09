@@ -3,7 +3,6 @@ $self: https://api.example.com/openapi.yaml
 info:
   title: OpenAPI 3.2 Features API
   version: 1.0.0
-jsonSchemaDialect: https://spec.openapis.org/oas/3.1/dialect/base
 paths:
   /payments/{id}:
     get:
