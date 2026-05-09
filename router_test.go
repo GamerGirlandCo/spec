@@ -143,12 +143,17 @@ func TestRouter_MergeResponses(t *testing.T) {
 	assert.Len(t, schema.OneOf, 2)
 }
 
-func TestMissingPathParamFailsValidation(t *testing.T) {
+func TestMissingPathParamIsAutoAdded(t *testing.T) {
 	r := spec.NewRouter(option.WithTitle("Invalid"), option.WithVersion("1.0.0"))
 	r.Get("/users/{id}", option.Response(200, new(User)))
 
-	err := r.Validate()
-	assert.ErrorContains(t, err, `missing path parameter "id"`)
+	require.NoError(t, r.Validate())
+	doc := r.Document()
+	params := doc.Paths["/users/{id}"].Get.Parameters
+	require.Len(t, params, 1)
+	assert.Equal(t, "id", params[0].Name)
+	assert.Equal(t, "path", params[0].In)
+	assert.True(t, params[0].Required)
 }
 
 func TestUnsupportedVersionFailsValidation(t *testing.T) {
@@ -291,6 +296,21 @@ func TestRouterGenerateSchemaErrors(t *testing.T) {
 	r.Get("/ping", option.Response(204, nil))
 	_, err = r.GenerateSchema("invalid")
 	require.Error(t, err)
+}
+
+func TestRouterAutoAddsPathParameterWithoutRequestStruct(t *testing.T) {
+	r := spec.NewRouter()
+	r.Get("/users/{id}", option.Response(200, nil))
+
+	require.NoError(t, r.Validate())
+	doc := r.Document()
+	params := doc.Paths["/users/{id}"].Get.Parameters
+	require.Len(t, params, 1)
+	assert.Equal(t, "id", params[0].Name)
+	assert.Equal(t, "path", params[0].In)
+	assert.True(t, params[0].Required)
+	require.NotNil(t, params[0].Schema)
+	assert.Equal(t, "string", params[0].Schema.Type)
 }
 
 func TestRouterMarshal(t *testing.T) {

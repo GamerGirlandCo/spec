@@ -2,6 +2,7 @@ package builder
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/oaswrap/spec/internal/reflect"
@@ -14,6 +15,8 @@ type Builder struct {
 	Doc       *openapi.Document
 	Reflector *reflect.Reflector
 }
+
+var pathParamTemplateRe = regexp.MustCompile(`\{([^{}]+)\}`)
 
 func NewBuilder(cfg *openapi.Config, doc *openapi.Document) *Builder {
 	return &Builder{
@@ -80,6 +83,7 @@ func (b *Builder) AddOperationTo(
 	for _, customize := range cfg.Customizers {
 		customize(op)
 	}
+	b.ensurePathParameters(target, op)
 
 	item := items[target]
 	if item == nil {
@@ -128,4 +132,46 @@ func SecurityRequirement(name string, scopes []string) openapi.SecurityRequireme
 		scopes = []string{}
 	}
 	return openapi.SecurityRequirement{name: scopes}
+}
+
+func (b *Builder) ensurePathParameters(target string, op *openapi.Operation) {
+	if !strings.HasPrefix(target, "/") {
+		return
+	}
+	matches := pathParamTemplateRe.FindAllStringSubmatch(target, -1)
+	if len(matches) == 0 {
+		return
+	}
+	existing := map[string]struct{}{}
+	hasComponentParamRef := false
+	for _, p := range op.Parameters {
+		if p == nil {
+			continue
+		}
+		if p.Ref != "" {
+			if strings.HasPrefix(p.Ref, "#/components/parameters/") {
+				hasComponentParamRef = true
+			}
+			continue
+		}
+		if p.In == string(openapi.ParameterInPath) && p.Name != "" {
+			existing[p.Name] = struct{}{}
+		}
+	}
+	if hasComponentParamRef {
+		return
+	}
+	for _, m := range matches {
+		name := m[1]
+		if _, ok := existing[name]; ok {
+			continue
+		}
+		op.Parameters = append(op.Parameters, &openapi.Parameter{
+			Name:     name,
+			In:       string(openapi.ParameterInPath),
+			Required: true,
+			Schema:   &openapi.Schema{Type: "string"},
+		})
+		existing[name] = struct{}{}
+	}
 }
