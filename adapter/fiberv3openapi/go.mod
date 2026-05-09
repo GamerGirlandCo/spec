@@ -4,7 +4,6 @@ go 1.25.0
 
 require (
 	github.com/gofiber/fiber/v3 v3.1.0
-	github.com/google/go-cmp v0.7.0
 	github.com/oaswrap/spec v0.4.2
 	github.com/oaswrap/spec-ui v0.2.0
 	github.com/stretchr/testify v1.11.1
@@ -16,6 +15,7 @@ require (
 	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/gofiber/schema v1.7.0 // indirect
 	github.com/gofiber/utils/v2 v2.0.2 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/klauspost/compress v1.18.4 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect

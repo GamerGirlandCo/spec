@@ -1,23 +1,18 @@
 package spec_test
 
 import (
-	"bytes"
-	"flag"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/oaswrap/spec"
+	"github.com/oaswrap/spec/internal/testutil"
 	"github.com/oaswrap/spec/openapi"
 	"github.com/oaswrap/spec/option"
 )
-
-var updateGolden = flag.Bool("update", false, "update golden files") //nolint:gochecknoglobals // flag for tests
 
 type ComplexRequest struct {
 	String   string         `json:"string" required:"true" minLength:"1" maxLength:"10" pattern:"^[a-z]+$"`
@@ -325,10 +320,10 @@ func TestGolden(t *testing.T) {
 					if tc.run != nil {
 						tc.run(r)
 					}
-					raw, err := r.GenerateSchema("yaml")
+					schema, err := r.GenerateSchema("yaml")
 					require.NoError(t, err)
 					versionSuffix := strings.ReplaceAll(v[:3], ".", "")
-					assertGolden(t, tc.name+".v"+versionSuffix+".yaml", raw)
+					testutil.AssertGolden(t, schema, filepath.Join("testdata", tc.name+".v"+versionSuffix+".yaml"))
 				})
 			}
 		})
@@ -340,10 +335,10 @@ func TestGoldenPetstore(t *testing.T) {
 	for _, v := range versions {
 		t.Run(v, func(t *testing.T) {
 			r := newPetstoreRouter(option.WithOpenAPIVersion(v))
-			raw, err := r.GenerateSchema("yaml")
+			schema, err := r.GenerateSchema("yaml")
 			require.NoError(t, err)
 			versionSuffix := strings.ReplaceAll(v[:3], ".", "")
-			assertGolden(t, "petstore.v"+versionSuffix+".yaml", raw)
+			testutil.AssertGolden(t, schema, filepath.Join("testdata", "petstore.v"+versionSuffix+".yaml"))
 		})
 	}
 }
@@ -401,9 +396,9 @@ func TestGoldenOpenAPI320Features(t *testing.T) {
 		}),
 	)
 
-	raw, err := r.GenerateSchema("yaml")
+	schema, err := r.GenerateSchema("yaml")
 	require.NoError(t, err)
-	assertGolden(t, "openapi_320_features.v32.yaml", raw)
+	testutil.AssertGolden(t, schema, filepath.Join("testdata", "openapi_320_features.v32.yaml"))
 }
 
 func TestGoldenOpenAPI312ReferenceDescriptions(t *testing.T) {
@@ -485,9 +480,9 @@ func TestGoldenOpenAPI312ReferenceDescriptions(t *testing.T) {
 		}),
 	)
 
-	raw, err := r.GenerateSchema("yaml")
+	schema, err := r.GenerateSchema("yaml")
 	require.NoError(t, err)
-	assertGolden(t, "openapi_312_reference_descriptions.v31.yaml", raw)
+	testutil.AssertGolden(t, schema, filepath.Join("testdata", "openapi_312_reference_descriptions.v31.yaml"))
 }
 
 func TestOutputKeepsOpenAPIObjectOrder(t *testing.T) {
@@ -501,35 +496,6 @@ func TestOutputKeepsOpenAPIObjectOrder(t *testing.T) {
 	jsonRaw, err := r.GenerateSchema("json")
 	require.NoError(t, err)
 	assertContainsInOrder(t, string(jsonRaw), "", `"openapi":`, `"info":`, `"paths":`, `"components":`)
-}
-
-func assertGolden(t *testing.T, name string, got []byte) {
-	t.Helper()
-
-	path := filepath.Join("testdata", name)
-	got = normalizeGoldenBytes(got)
-
-	if *updateGolden {
-		err := os.MkdirAll(filepath.Dir(path), 0o755)
-		require.NoError(t, err)
-		err = os.WriteFile(path, got, 0o600)
-		require.NoError(t, err)
-		return
-	}
-
-	want, err := os.ReadFile(path)
-	require.NoError(t, err)
-	want = normalizeGoldenBytes(want)
-
-	if diff := cmp.Diff(string(want), string(got)); diff != "" {
-		t.Fatalf("golden mismatch for %s (-want +got):\n%s", path, diff)
-	}
-}
-
-func normalizeGoldenBytes(value []byte) []byte {
-	value = bytes.ReplaceAll(value, []byte("\r\n"), []byte("\n"))
-	value = bytes.TrimRight(value, "\n")
-	return append(value, '\n')
 }
 
 func assertContainsInOrder(t *testing.T, value, separator string, parts ...string) {

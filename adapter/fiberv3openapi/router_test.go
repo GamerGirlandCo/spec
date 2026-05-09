@@ -1,7 +1,6 @@
 package fiberv3openapi_test
 
 import (
-	"flag"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -11,19 +10,16 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	stoplightemb "github.com/oaswrap/spec-ui/stoplightemb"
+	"github.com/oaswrap/spec/internal/testutil"
 	"github.com/oaswrap/spec/openapi"
 	"github.com/oaswrap/spec/option"
 
 	"github.com/oaswrap/spec/adapter/fiberv3openapi"
 )
-
-//nolint:gochecknoglobals // test flag for golden file updates
-var update = flag.Bool("update", false, "update golden files")
 
 type Pet struct {
 	ID        int      `json:"id"`
@@ -102,7 +98,7 @@ func TestRouter_Spec(t *testing.T) {
 	}{
 		{
 			name:   "Pet Store API",
-			golden: "petstore.yaml",
+			golden: "petstore",
 			options: []option.OpenAPIOption{
 				option.WithDescription("This is a sample Petstore server."),
 				option.WithVersion("1.0.0"),
@@ -338,21 +334,7 @@ func TestRouter_Spec(t *testing.T) {
 			schema, err := r.GenerateSchema()
 
 			require.NoError(t, err, "failed to generate OpenAPI schema")
-			goldenFile := filepath.Join("testdata", tt.golden)
-
-			if *update {
-				err = r.WriteSchemaTo(goldenFile)
-				require.NoError(t, err, "failed to write golden file")
-				t.Logf("Updated golden file: %s", goldenFile)
-			}
-
-			want, err := os.ReadFile(goldenFile)
-			require.NoError(t, err, "failed to read golden file %s", goldenFile)
-
-			diff := cmp.Diff(want, schema)
-			if diff != "" {
-				t.Errorf("OpenAPI schema mismatch (-want +got):\n%s", diff)
-			}
+			testutil.AssertGolden(t, schema, filepath.Join("testdata", tt.golden+".yaml"))
 		})
 	}
 }

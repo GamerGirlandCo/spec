@@ -1,9 +1,7 @@
 package echov5openapi_test
 
 import (
-	"flag"
 	"fmt"
-	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -11,20 +9,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/labstack/echo/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	stoplightemb "github.com/oaswrap/spec-ui/stoplightemb"
+	"github.com/oaswrap/spec/internal/testutil"
 	"github.com/oaswrap/spec/openapi"
 	"github.com/oaswrap/spec/option"
 
 	"github.com/oaswrap/spec/adapter/echov5openapi"
 )
-
-//nolint:gochecknoglobals // test flag for golden file updates
-var update = flag.Bool("update", false, "update golden files")
 
 type HelloRequest struct {
 	Name string `json:"name" query:"name"`
@@ -83,69 +78,6 @@ type ValidationResponse struct {
 		Field   string `json:"field"`
 		Message string `json:"message"`
 	} `json:"errors"`
-}
-
-type Pet struct {
-	ID        int      `json:"id"`
-	Name      string   `json:"name"`
-	Type      string   `json:"type"`
-	Status    string   `json:"status" enum:"available,pending,sold"`
-	Category  Category `json:"category"`
-	Tags      []Tag    `json:"tags"`
-	PhotoURLs []string `json:"photoUrls"`
-}
-
-type Tag struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
-}
-
-type Category struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
-}
-
-type UpdatePetWithFormRequest struct {
-	ID     int    `path:"petId" required:"true"`
-	Name   string `required:"true" formData:"name"`
-	Status string `formData:"status" enum:"available,pending,sold"`
-}
-
-type UploadImageRequest struct {
-	ID                 int64           `params:"petId" path:"petId"`
-	AdditionalMetaData string          `query:"additionalMetadata"`
-	_                  *multipart.File `contentType:"application/octet-stream"`
-}
-
-type DeletePetRequest struct {
-	ID     int    `path:"petId" required:"true"`
-	APIKey string `header:"api_key"`
-}
-
-type Order struct {
-	ID       int       `json:"id"`
-	PetID    int       `json:"petId"`
-	Quantity int       `json:"quantity"`
-	ShipDate time.Time `json:"shipDate"`
-	Status   string    `json:"status" enum:"placed,approved,delivered"`
-	Complete bool      `json:"complete"`
-}
-
-type PetUser struct {
-	ID         int    `json:"id"`
-	Username   string `json:"username"`
-	FirstName  string `json:"firstName"`
-	LastName   string `json:"lastName"`
-	Email      string `json:"email"`
-	Password   string `json:"password"`
-	Phone      string `json:"phone"`
-	UserStatus int    `json:"userStatus" enum:"0,1,2"`
-}
-
-type APIResponse struct {
-	Message string `json:"message"`
-	Type    string `json:"type"`
-	Code    int    `json:"code"`
 }
 
 func DummyHandler(c *echo.Context) error {
@@ -220,15 +152,15 @@ func TestRouter_Spec(t *testing.T) {
 					option.OperationID("updatePet"),
 					option.Summary("Update an existing pet"),
 					option.Description("Update the details of an existing pet in the store."),
-					option.Request(new(Pet)),
-					option.Response(200, new(Pet)),
+					option.Request(new(testutil.Pet)),
+					option.Response(200, new(testutil.Pet)),
 				)
 				pet.POST("/", nil).With(
 					option.OperationID("addPet"),
 					option.Summary("Add a new pet"),
 					option.Description("Add a new pet to the store."),
-					option.Request(new(Pet)),
-					option.Response(201, new(Pet)),
+					option.Request(new(testutil.Pet)),
+					option.Response(201, new(testutil.Pet)),
 				)
 				pet.GET("/findByStatus", nil).With(
 					option.OperationID("findPetsByStatus"),
@@ -237,7 +169,7 @@ func TestRouter_Spec(t *testing.T) {
 					option.Request(new(struct {
 						Status string `query:"status" enum:"available,pending,sold"`
 					})),
-					option.Response(200, new([]Pet)),
+					option.Response(200, new([]testutil.Pet)),
 				)
 				pet.GET("/findByTags", nil).With(
 					option.OperationID("findPetsByTags"),
@@ -246,14 +178,14 @@ func TestRouter_Spec(t *testing.T) {
 					option.Request(new(struct {
 						Tags []string `query:"tags"`
 					})),
-					option.Response(200, new([]Pet)),
+					option.Response(200, new([]testutil.Pet)),
 				)
 				pet.POST("/{petId}/uploadImage", nil).With(
 					option.OperationID("uploadFile"),
 					option.Summary("Upload an image for a pet"),
 					option.Description("Uploads an image for a pet."),
-					option.Request(new(UploadImageRequest)),
-					option.Response(200, new(APIResponse)),
+					option.Request(new(testutil.UploadImageRequest)),
+					option.Response(200, new(testutil.APIResponse)),
 				)
 				pet.GET("/{petId}", nil).With(
 					option.OperationID("getPetById"),
@@ -262,20 +194,20 @@ func TestRouter_Spec(t *testing.T) {
 					option.Request(new(struct {
 						ID int `param:"petId" required:"true"`
 					})),
-					option.Response(200, new(Pet)),
+					option.Response(200, new(testutil.Pet)),
 				)
 				pet.POST("/{petId}", nil).With(
 					option.OperationID("updatePetWithForm"),
 					option.Summary("Update pet with form"),
 					option.Description("Updates a pet in the store with form data."),
-					option.Request(new(UpdatePetWithFormRequest)),
+					option.Request(new(testutil.UpdatePetWithFormRequest)),
 					option.Response(200, nil),
 				)
 				pet.DELETE("/{petId}", nil).With(
 					option.OperationID("deletePet"),
 					option.Summary("Delete a pet"),
 					option.Description("Delete a pet from the store by its ID."),
-					option.Request(new(DeletePetRequest)),
+					option.Request(new(testutil.DeletePetRequest)),
 					option.Response(204, nil),
 				)
 				store := r.Group("/store").With(
@@ -285,8 +217,8 @@ func TestRouter_Spec(t *testing.T) {
 					option.OperationID("placeOrder"),
 					option.Summary("Place an order"),
 					option.Description("Place a new order for a pet."),
-					option.Request(new(Order)),
-					option.Response(201, new(Order)),
+					option.Request(new(testutil.Order)),
+					option.Response(201, new(testutil.Order)),
 				)
 				store.GET("/order/{orderId}", nil).With(
 					option.OperationID("getOrderById"),
@@ -295,7 +227,7 @@ func TestRouter_Spec(t *testing.T) {
 					option.Request(new(struct {
 						ID int `param:"orderId" required:"true"`
 					})),
-					option.Response(200, new(Order)),
+					option.Response(200, new(testutil.Order)),
 					option.Response(404, nil),
 				)
 				store.DELETE("/order/{orderId}", nil).With(
@@ -315,15 +247,15 @@ func TestRouter_Spec(t *testing.T) {
 					option.OperationID("createUsersWithList"),
 					option.Summary("Create users with list"),
 					option.Description("Create multiple users in the store with a list."),
-					option.Request(new([]PetUser)),
+					option.Request(new([]testutil.PetUser)),
 					option.Response(201, nil),
 				)
 				user.POST("/", nil).With(
 					option.OperationID("createUser"),
 					option.Summary("Create a new user"),
 					option.Description("Create a new user in the store."),
-					option.Request(new(PetUser)),
-					option.Response(201, new(PetUser)),
+					option.Request(new(testutil.PetUser)),
+					option.Response(201, new(testutil.PetUser)),
 				)
 				user.GET("/{username}", nil).With(
 					option.OperationID("getUserByName"),
@@ -332,7 +264,7 @@ func TestRouter_Spec(t *testing.T) {
 					option.Request(new(struct {
 						Username string `param:"username" required:"true"`
 					})),
-					option.Response(200, new(PetUser)),
+					option.Response(200, new(testutil.PetUser)),
 					option.Response(404, nil),
 				)
 				user.PUT("/{username}", nil).With(
@@ -340,11 +272,11 @@ func TestRouter_Spec(t *testing.T) {
 					option.Summary("Update an existing user"),
 					option.Description("Update the details of an existing user."),
 					option.Request(new(struct {
-						PetUser
+						testutil.PetUser
 
 						Username string `param:"username" required:"true"`
 					})),
-					option.Response(200, new(PetUser)),
+					option.Response(200, new(testutil.PetUser)),
 					option.Response(404, nil),
 				)
 				user.DELETE("/{username}", nil).With(
@@ -377,20 +309,7 @@ func TestRouter_Spec(t *testing.T) {
 			schema, err := r.GenerateSchema()
 			require.NoError(t, err, "failed to generate schema")
 
-			golden := filepath.Join("testdata", tt.golden+".yaml")
-			if *update {
-				err = r.WriteSchemaTo(golden)
-				require.NoError(t, err, "failed to write golden file")
-				t.Logf("Updated golden file: %s", golden)
-			}
-
-			want, err := os.ReadFile(golden)
-			require.NoError(t, err, "failed to read golden file %s", golden)
-
-			diff := cmp.Diff(string(want), string(schema))
-			if diff != "" {
-				t.Errorf("OpenAPI schema mismatch (-want +got):\n%s", diff)
-			}
+			testutil.AssertGolden(t, schema, filepath.Join("testdata", tt.golden+".yaml"))
 		})
 	}
 }
