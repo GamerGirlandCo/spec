@@ -80,6 +80,12 @@ func Security(name string, scopes ...string) OperationOption {
 }
 
 // Request appends one request content unit.
+//
+// Example:
+//
+//	r.Post("/users",
+//		option.Request(new(CreateUserRequest)),
+//	)
 func Request(structure any, opts ...ContentOption) OperationOption {
 	return func(cfg *OperationConfig) {
 		cu := &openapi.ContentUnit{Structure: structure}
@@ -91,6 +97,13 @@ func Request(structure any, opts ...ContentOption) OperationOption {
 }
 
 // Response appends one response content unit.
+//
+// Example:
+//
+//	r.Get("/users/{id}",
+//		option.Response(200, new(User)),
+//		option.Response(404, nil, option.ContentDescription("Not Found")),
+//	)
 func Response(httpStatus int, structure any, opts ...ContentOption) OperationOption {
 	return func(cfg *OperationConfig) {
 		cu := &openapi.ContentUnit{HTTPStatus: httpStatus, Structure: structure}

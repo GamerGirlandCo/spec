@@ -142,7 +142,7 @@ To add support for a new Go web framework:
 2. Add the new module to `go.work`.
 3. Implement the `spec.Generator` interface by wrapping both the framework router and the core `spec.Router`.
 4. Register routes on the framework router **and** call `spec.Router.Add()` for documentation.
-5. Automatically mount `/docs` (UI) and `/docs/openapi.yaml` (spec) unless `option.DisableDocs()` is set.
+5. Automatically mount `/docs` (UI) and `/docs/openapi.yaml` (spec) unless `option.WithDisableDocs()` is set.
 6. Use a `parser.ColonParamParser` (or equivalent) to translate framework path params (e.g. `:id`) to OpenAPI style (`{id}`).
 7. Add a `testdata/` directory and golden-file tests following the pattern in existing adapters.
 8. Add a `README.md` describing the adapter.

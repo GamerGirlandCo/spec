@@ -1,5 +1,6 @@
 package openapi
 
+// Document represents an OpenAPI document root object.
 type Document struct {
 	OpenAPI           string                `json:"openapi"                     yaml:"openapi"`
 	Self              string                `json:"$self,omitempty"             yaml:"$self,omitempty"`
@@ -16,6 +17,7 @@ type Document struct {
 	Extra             map[string]any        `json:"-"                           yaml:"-"`
 }
 
+// Info represents the OpenAPI Info Object.
 type Info struct {
 	Title          string         `json:"title"                    yaml:"title"`
 	Summary        string         `json:"summary,omitempty"        yaml:"summary,omitempty"`
@@ -28,6 +30,7 @@ type Info struct {
 	Extra          map[string]any `json:"-"                        yaml:"-"`
 }
 
+// Contact represents the OpenAPI Contact Object.
 type Contact struct {
 	Name       string         `json:"name,omitempty"  yaml:"name,omitempty"`
 	URL        string         `json:"url,omitempty"   yaml:"url,omitempty"`
@@ -36,6 +39,7 @@ type Contact struct {
 	Extra      map[string]any `json:"-"               yaml:"-"`
 }
 
+// License represents the OpenAPI License Object.
 type License struct {
 	Name       string         `json:"name"                 yaml:"name"`
 	Identifier string         `json:"identifier,omitempty" yaml:"identifier,omitempty"`
@@ -44,6 +48,7 @@ type License struct {
 	Extra      map[string]any `json:"-"                    yaml:"-"`
 }
 
+// Tag represents the OpenAPI Tag Object.
 type Tag struct {
 	Name         string         `json:"name"                   yaml:"name"`
 	Summary      string         `json:"summary,omitempty"      yaml:"summary,omitempty"`
@@ -55,6 +60,7 @@ type Tag struct {
 	Extra        map[string]any `json:"-"                      yaml:"-"`
 }
 
+// ExternalDocs represents the OpenAPI External Documentation Object.
 type ExternalDocs struct {
 	Description string         `json:"description,omitempty" yaml:"description,omitempty"`
 	URL         string         `json:"url"                   yaml:"url"`
@@ -62,6 +68,7 @@ type ExternalDocs struct {
 	Extra       map[string]any `json:"-"                     yaml:"-"`
 }
 
+// Server represents the OpenAPI Server Object.
 type Server struct {
 	URL         string                    `json:"url"                   yaml:"url"`
 	Description *string                   `json:"description,omitempty" yaml:"description,omitempty"`
@@ -70,6 +77,7 @@ type Server struct {
 	Extra       map[string]any            `json:"-"                     yaml:"-"`
 }
 
+// ServerVariable represents the OpenAPI Server Variable Object.
 type ServerVariable struct {
 	Enum        []string       `json:"enum,omitempty"        yaml:"enum,omitempty"`
 	Default     string         `json:"default"               yaml:"default"`
@@ -78,6 +86,7 @@ type ServerVariable struct {
 	Extra       map[string]any `json:"-"                     yaml:"-"`
 }
 
+// Components represents the OpenAPI Components Object.
 type Components struct {
 	Schemas         map[string]*Schema         `json:"schemas,omitempty"         yaml:"schemas,omitempty"`
 	Responses       map[string]*Response       `json:"responses,omitempty"       yaml:"responses,omitempty"`

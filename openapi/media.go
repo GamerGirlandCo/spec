@@ -1,5 +1,6 @@
 package openapi
 
+// ContentUnit is an internal content descriptor used by option builders.
 type ContentUnit struct {
 	Structure   any
 	HTTPStatus  int
@@ -13,6 +14,7 @@ type ContentUnit struct {
 	Format      string
 }
 
+// MediaType represents the OpenAPI Media Type Object.
 type MediaType struct {
 	Ref            string               `json:"$ref,omitempty"           yaml:"$ref,omitempty"`
 	Summary        string               `json:"summary,omitempty"        yaml:"summary,omitempty"`
@@ -28,6 +30,7 @@ type MediaType struct {
 	Extra          map[string]any       `json:"-"                        yaml:"-"`
 }
 
+// Encoding represents the OpenAPI Encoding Object.
 type Encoding struct {
 	ContentType    string               `json:"contentType,omitempty"    yaml:"contentType,omitempty"`
 	Headers        map[string]*Header   `json:"headers,omitempty"        yaml:"headers,omitempty"`
@@ -41,6 +44,7 @@ type Encoding struct {
 	Extra          map[string]any       `json:"-"                        yaml:"-"`
 }
 
+// Example represents the OpenAPI Example Object.
 type Example struct {
 	Ref             string `json:"$ref,omitempty"            yaml:"$ref,omitempty"`
 	Summary         string `json:"summary,omitempty"         yaml:"summary,omitempty"`

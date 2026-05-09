@@ -137,7 +137,7 @@ When you create a httpopenapi router, the following endpoints are automatically 
 If you want to disable the built-in UI, you can do so by passing `option.WithDisableDocs()` when creating the router:
 
 ```go
-r := httpopenapi.NewRouter(mainMux,
+r := httpopenapi.NewGenerator(mainMux,
 	option.WithTitle("My API"),
 	option.WithVersion("1.0.0"),
 	option.WithDisableDocs(),
@@ -154,7 +154,7 @@ Choose from multiple UI options, powered by [`oaswrap/spec-ui`](https://github.c
 - **RapiDoc** — Highly customizable
 
 ```go
-r := httpopenapi.NewRouter(mainMux,
+r := httpopenapi.NewGenerator(mainMux,
 	option.WithTitle("My API"),
 	option.WithVersion("1.0.0"),
 	option.WithScalar(), // Use Scalar as the documentation UI

@@ -39,13 +39,13 @@ type sharedState struct {
 // NewRouter creates a new OpenAPI generator.
 // It is an alias of NewGenerator for naming compatibility.
 //
-// Example usage:
+// Example:
 //
 //	g := NewRouter(
-//		option.Title("My API"),
-//		option.Version("1.0.0"),
-//		option.Description("This is my API"),
-//		option.Server("https://api.example.com"),
+//		option.WithTitle("My API"),
+//		option.WithVersion("1.0.0"),
+//		option.WithDescription("This is my API"),
+//		option.WithServer("https://api.example.com"),
 //	)
 //	g.Get("/users", option.Summary("Get all users"))
 //	g.Post("/users", option.Summary("Create a new user"))
@@ -60,13 +60,13 @@ func NewRouter(opts ...option.OpenAPIOption) Generator {
 
 // NewGenerator creates a new OpenAPI generator with the provided options.
 //
-// Example usage:
+// Example:
 //
 //	g := NewGenerator(
-//		option.Title("My API"),
-//		option.Version("1.0.0"),
-//		option.Description("This is my API"),
-//		option.Server("https://api.example.com"),
+//		option.WithTitle("My API"),
+//		option.WithVersion("1.0.0"),
+//		option.WithDescription("This is my API"),
+//		option.WithServer("https://api.example.com"),
 //	)
 //	g.Get("/users", option.Summary("Get all users"))
 //	g.Post("/users", option.Summary("Create a new user"))

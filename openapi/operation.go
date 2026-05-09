@@ -1,5 +1,6 @@
 package openapi
 
+// Operation represents the OpenAPI Operation Object.
 type Operation struct {
 	Tags         []string              `json:"tags,omitempty"         yaml:"tags,omitempty"`
 	Summary      string                `json:"summary,omitempty"      yaml:"summary,omitempty"`
@@ -17,6 +18,7 @@ type Operation struct {
 	Extra        map[string]any        `json:"-"                      yaml:"-"`
 }
 
+// RequestBody represents the OpenAPI Request Body Object.
 type RequestBody struct {
 	Ref         string               `json:"$ref,omitempty"        yaml:"$ref,omitempty"`
 	Summary     string               `json:"summary,omitempty"     yaml:"summary,omitempty"`
@@ -27,6 +29,7 @@ type RequestBody struct {
 	Extra       map[string]any       `json:"-"                     yaml:"-"`
 }
 
+// Response represents the OpenAPI Response Object.
 type Response struct {
 	Ref         string               `json:"$ref,omitempty"        yaml:"$ref,omitempty"`
 	Summary     string               `json:"summary,omitempty"     yaml:"summary,omitempty"`
@@ -38,6 +41,7 @@ type Response struct {
 	Extra       map[string]any       `json:"-"                     yaml:"-"`
 }
 
+// Header represents the OpenAPI Header Object.
 type Header struct {
 	Ref             string                `json:"$ref,omitempty"            yaml:"$ref,omitempty"`
 	Summary         string                `json:"summary,omitempty"         yaml:"summary,omitempty"`
@@ -56,6 +60,7 @@ type Header struct {
 	Extra           map[string]any        `json:"-"                         yaml:"-"`
 }
 
+// Link represents the OpenAPI Link Object.
 type Link struct {
 	Ref          string         `json:"$ref,omitempty"         yaml:"$ref,omitempty"`
 	Summary      string         `json:"summary,omitempty"      yaml:"summary,omitempty"`
@@ -69,6 +74,7 @@ type Link struct {
 	Extra        map[string]any `json:"-"                      yaml:"-"`
 }
 
+// Callback represents the OpenAPI Callback Object.
 type Callback struct {
 	Ref         string               `json:"$ref,omitempty"        yaml:"$ref,omitempty"`
 	Summary     string               `json:"summary,omitempty"     yaml:"summary,omitempty"`
@@ -78,16 +84,22 @@ type Callback struct {
 	Extra       map[string]any       `json:"-"                     yaml:"-"`
 }
 
+// SecurityRequirement represents one OpenAPI Security Requirement Object.
 type SecurityRequirement map[string][]string
 
+// SecuritySchemeAPIKeyIn is the location of an API key security scheme.
 type SecuritySchemeAPIKeyIn string
 
 const (
-	SecuritySchemeAPIKeyInQuery  SecuritySchemeAPIKeyIn = "query"
+	// SecuritySchemeAPIKeyInQuery indicates an API key in query.
+	SecuritySchemeAPIKeyInQuery SecuritySchemeAPIKeyIn = "query"
+	// SecuritySchemeAPIKeyInHeader indicates an API key in header.
 	SecuritySchemeAPIKeyInHeader SecuritySchemeAPIKeyIn = "header"
+	// SecuritySchemeAPIKeyInCookie indicates an API key in cookie.
 	SecuritySchemeAPIKeyInCookie SecuritySchemeAPIKeyIn = "cookie"
 )
 
+// SecurityScheme represents the OpenAPI Security Scheme Object.
 type SecurityScheme struct {
 	Ref               string                 `json:"$ref,omitempty"              yaml:"$ref,omitempty"`
 	Summary           string                 `json:"summary,omitempty"           yaml:"summary,omitempty"`
@@ -105,6 +117,7 @@ type SecurityScheme struct {
 	Extra             map[string]any         `json:"-"                           yaml:"-"`
 }
 
+// OAuthFlows represents the OpenAPI OAuth Flows Object.
 type OAuthFlows struct {
 	Implicit            *OAuthFlow     `json:"implicit,omitempty"            yaml:"implicit,omitempty"`
 	Password            *OAuthFlow     `json:"password,omitempty"            yaml:"password,omitempty"`
@@ -115,6 +128,7 @@ type OAuthFlows struct {
 	Extra               map[string]any `json:"-"                             yaml:"-"`
 }
 
+// OAuthFlow represents one OpenAPI OAuth Flow Object.
 type OAuthFlow struct {
 	AuthorizationURL       string            `json:"authorizationUrl,omitempty"       yaml:"authorizationUrl,omitempty"`
 	DeviceAuthorizationURL string            `json:"deviceAuthorizationUrl,omitempty" yaml:"deviceAuthorizationUrl,omitempty"`

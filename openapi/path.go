@@ -1,5 +1,6 @@
 package openapi
 
+// PathItem represents the OpenAPI Path Item Object.
 type PathItem struct {
 	Ref                  string                `json:"$ref,omitempty"                 yaml:"$ref,omitempty"`
 	Summary              string                `json:"summary,omitempty"              yaml:"summary,omitempty"`
@@ -20,6 +21,7 @@ type PathItem struct {
 	Extra                map[string]any        `json:"-"                              yaml:"-"`
 }
 
+// Parameter represents the OpenAPI Parameter Object.
 type Parameter struct {
 	Ref             string                `json:"$ref,omitempty"            yaml:"$ref,omitempty"`
 	Summary         string                `json:"summary,omitempty"         yaml:"summary,omitempty"`
@@ -40,12 +42,18 @@ type Parameter struct {
 	Extra           map[string]any        `json:"-"                         yaml:"-"`
 }
 
+// ParameterIn is the location of a parameter.
 type ParameterIn string
 
 const (
-	ParameterInPath        ParameterIn = "path"
-	ParameterInQuery       ParameterIn = "query"
+	// ParameterInPath indicates a path parameter.
+	ParameterInPath ParameterIn = "path"
+	// ParameterInQuery indicates a query parameter.
+	ParameterInQuery ParameterIn = "query"
+	// ParameterInQueryString indicates an OpenAPI 3.2 querystring parameter.
 	ParameterInQueryString ParameterIn = "querystring"
-	ParameterInHeader      ParameterIn = "header"
-	ParameterInCookie      ParameterIn = "cookie"
+	// ParameterInHeader indicates a header parameter.
+	ParameterInHeader ParameterIn = "header"
+	// ParameterInCookie indicates a cookie parameter.
+	ParameterInCookie ParameterIn = "cookie"
 )

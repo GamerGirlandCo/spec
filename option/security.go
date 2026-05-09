@@ -40,6 +40,13 @@ func SecurityDeprecated(deprecated ...bool) SecurityOption {
 }
 
 // SecurityAPIKey configures an `apiKey` security scheme.
+//
+// Example:
+//
+//	option.WithSecurity(
+//		"apiKeyAuth",
+//		option.SecurityAPIKey("X-API-Key", openapi.SecuritySchemeAPIKeyInHeader),
+//	)
 func SecurityAPIKey(name string, in openapi.SecuritySchemeAPIKeyIn) SecurityOption {
 	return func(cfg *securityConfig) {
 		current := currentSecurityScheme(cfg)
@@ -95,6 +102,17 @@ func SecurityOAuth2ClientCredentials(
 }
 
 // SecurityOAuth2AuthorizationCode configures an OAuth2 authorization code flow.
+//
+// Example:
+//
+//	option.WithSecurity(
+//		"oauth2",
+//		option.SecurityOAuth2AuthorizationCode(
+//			"https://auth.example.com/oauth/authorize",
+//			"https://auth.example.com/oauth/token",
+//			map[string]string{"read": "Read access"},
+//		),
+//	)
 func SecurityOAuth2AuthorizationCode(
 	authorizationURL string,
 	tokenURL string,

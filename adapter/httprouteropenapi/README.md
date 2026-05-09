@@ -122,7 +122,7 @@ func GetUserHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 ## Documentation Features
 
 ### Built-in Endpoints
-When you create a httpopenapi router, the following endpoints are automatically available:
+When you create a httprouteropenapi router, the following endpoints are automatically available:
 
 - **`/docs`** — Interactive UI documentation
 - **`/docs/openapi.yaml`** — Raw OpenAPI specification in YAML format

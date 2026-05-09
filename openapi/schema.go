@@ -1,5 +1,6 @@
 package openapi
 
+// Schema represents the OpenAPI Schema Object.
 type Schema struct {
 	Ref                   string              `json:"$ref,omitempty"                  yaml:"$ref,omitempty"`
 	Schema                string              `json:"$schema,omitempty"               yaml:"$schema,omitempty"`
@@ -66,6 +67,7 @@ type Schema struct {
 	Extra                 map[string]any      `json:"-"                               yaml:"-"`
 }
 
+// Discriminator represents the OpenAPI Discriminator Object.
 type Discriminator struct {
 	PropertyName string            `json:"propertyName"      yaml:"propertyName"`
 	Mapping      map[string]string `json:"mapping,omitempty" yaml:"mapping,omitempty"`
@@ -73,6 +75,7 @@ type Discriminator struct {
 	Extra        map[string]any    `json:"-"                 yaml:"-"`
 }
 
+// XML represents the OpenAPI XML Object.
 type XML struct {
 	Name       string         `json:"name,omitempty"      yaml:"name,omitempty"`
 	Namespace  string         `json:"namespace,omitempty" yaml:"namespace,omitempty"`

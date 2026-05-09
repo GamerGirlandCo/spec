@@ -6,16 +6,37 @@ import (
 	"github.com/oaswrap/spec/option"
 )
 
+// Contact is an alias of openapi.Contact.
 type Contact = openapi.Contact
+
+// License is an alias of openapi.License.
 type License = openapi.License
+
+// Tag is an alias of openapi.Tag.
 type Tag = openapi.Tag
+
+// ExternalDocs is an alias of openapi.ExternalDocs.
 type ExternalDocs = openapi.ExternalDocs
+
+// Server is an alias of openapi.Server.
 type Server = openapi.Server
+
+// ServerVariable is an alias of openapi.ServerVariable.
 type ServerVariable = openapi.ServerVariable
+
+// SecurityScheme is an alias of openapi.SecurityScheme.
 type SecurityScheme = openapi.SecurityScheme
+
+// OAuthFlows is an alias of openapi.OAuthFlows.
 type OAuthFlows = openapi.OAuthFlows
+
+// OAuthFlow is an alias of openapi.OAuthFlow.
 type OAuthFlow = openapi.OAuthFlow
+
+// Schema is an alias of openapi.Schema.
 type Schema = openapi.Schema
+
+// Document is an alias of openapi.Document.
 type Document = openapi.Document
 
 // OneOf returns a value that represents multiple possible schemas.

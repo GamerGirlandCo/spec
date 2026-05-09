@@ -15,6 +15,14 @@ import (
 type OpenAPIOption func(*openapi.Config)
 
 // WithOpenAPIConfig builds config with defaults and applies options in order.
+//
+// Example:
+//
+//	cfg := option.WithOpenAPIConfig(
+//		option.WithOpenAPIVersion(openapi.Version312),
+//		option.WithTitle("Payments API"),
+//		option.WithVersion("1.2.0"),
+//	)
 func WithOpenAPIConfig(opts ...OpenAPIOption) *openapi.Config {
 	cfg := &openapi.Config{
 		OpenAPIVersion: openapi.Version304,
@@ -152,6 +160,16 @@ func WithExternalDocs(url string, description ...string) OpenAPIOption {
 }
 
 // WithSecurity registers a reusable named security scheme.
+//
+// Example:
+//
+//	r := spec.NewRouter(
+//		option.WithSecurity(
+//			"bearerAuth",
+//			option.SecurityHTTPBearer("bearer"),
+//		),
+//		option.WithGlobalSecurity("bearerAuth"),
+//	)
 func WithSecurity(name string, opts ...SecurityOption) OpenAPIOption {
 	return func(c *openapi.Config) {
 		s := &securityConfig{}
@@ -179,6 +197,15 @@ func WithGlobalSecurity(name string, scopes ...string) OpenAPIOption {
 }
 
 // WithReflectorConfig mutates schema reflection settings.
+//
+// Example:
+//
+//	r := spec.NewRouter(
+//		option.WithReflectorConfig(
+//			option.InlineRefs(),
+//			option.ParameterTagMapping(openapi.ParameterInPath, "uri"),
+//		),
+//	)
 func WithReflectorConfig(opts ...ReflectorOption) OpenAPIOption {
 	return func(c *openapi.Config) {
 		if c.ReflectorConfig == nil {
@@ -202,6 +229,14 @@ func WithPathParser(parser openapi.PathParser) OpenAPIOption {
 
 // WithDocument applies a low-level mutation after routes and reflected schemas
 // have been added and before validation/serialization.
+//
+// Example:
+//
+//	r := spec.NewRouter(
+//		option.WithDocument(func(doc *openapi.Document) {
+//			doc.Extensions = map[string]any{"x-service": "billing"}
+//		}),
+//	)
 func WithDocument(fn func(*openapi.Document)) OpenAPIOption {
 	return func(c *openapi.Config) {
 		if fn != nil {
