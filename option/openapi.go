@@ -42,12 +42,14 @@ func WithOpenAPIVersion(version string) OpenAPIOption {
 	return func(c *openapi.Config) { c.OpenAPIVersion = version }
 }
 
-// WithSelf sets the OpenAPI 3.2 `$self` URI reference.
+// WithSelf sets the OpenAPI 3.2.0 `$self` URI reference.
+// It is only valid when `openapi` is `3.2.0`.
 func WithSelf(self string) OpenAPIOption {
 	return func(c *openapi.Config) { c.Self = self }
 }
 
 // WithJSONSchemaDialect sets the root `jsonSchemaDialect`.
+// It is only valid for OpenAPI 3.1.x and 3.2.0.
 func WithJSONSchemaDialect(uri string) OpenAPIOption {
 	return func(c *openapi.Config) { c.JSONSchemaDialect = uri }
 }
@@ -127,12 +129,14 @@ func TagExternalDocs(url string, description ...string) TagOption {
 	}
 }
 
-// TagParent sets the OpenAPI 3.2 tag parent.
+// TagParent sets the OpenAPI 3.2.0 tag parent.
+// It is only valid when `openapi` is `3.2.0`.
 func TagParent(parent string) TagOption {
 	return func(tag *openapi.Tag) { tag.Parent = parent }
 }
 
-// TagKind sets the OpenAPI 3.2 tag kind.
+// TagKind sets the OpenAPI 3.2.0 tag kind.
+// It is only valid when `openapi` is `3.2.0`.
 func TagKind(kind string) TagOption {
 	return func(tag *openapi.Tag) { tag.Kind = kind }
 }
@@ -356,6 +360,7 @@ func WithComponentPathItem(name string, pathItem *openapi.PathItem) OpenAPIOptio
 }
 
 // WithComponentMediaType registers a reusable media type component.
+// Media type components are only valid for OpenAPI 3.2.0.
 func WithComponentMediaType(name string, mediaType *openapi.MediaType) OpenAPIOption {
 	return WithDocument(func(doc *openapi.Document) {
 		components := ensureComponents(doc)

@@ -77,6 +77,7 @@ func ExampleExternalValue(url string) ExampleOption {
 }
 
 // ExampleDataValue sets example dataValue and clears other value fields.
+// `dataValue` is only valid for OpenAPI 3.2.0.
 func ExampleDataValue(value any) ExampleOption {
 	return func(example *openapi.Example) {
 		example.Value = nil
@@ -86,6 +87,7 @@ func ExampleDataValue(value any) ExampleOption {
 }
 
 // ExampleSerializedValue sets example serializedValue and clears value fields.
+// `serializedValue` is only valid for OpenAPI 3.2.0.
 func ExampleSerializedValue(value string) ExampleOption {
 	return func(example *openapi.Example) {
 		example.Value = nil

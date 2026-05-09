@@ -7,18 +7,43 @@
 [![Go Version](https://img.shields.io/github/go-mod/go-version/oaswrap/spec)](https://github.com/oaswrap/spec/blob/main/go.mod)
 [![License](https://img.shields.io/github/license/oaswrap/spec)](LICENSE)
 
-`spec` is a self-contained OpenAPI generator for Go. It generates OpenAPI `3.0.x`, `3.1.x`, and `3.2.0` documents through a router and functional options API.
+`spec` is a Go library for generating OpenAPI `3.0.x`, `3.1.x`, and `3.2.0` documents. It uses a router and functional options API, and owns its OpenAPI model and schema reflection — no external OpenAPI or JSON Schema generators needed. YAML serialization uses `github.com/goccy/go-yaml`.
 
-The library owns its OpenAPI model and schema reflection implementation. It does not import OpenAPI or JSON Schema generator libraries. YAML serialization uses `github.com/goccy/go-yaml`; docs UI integration and tests bring additional dependencies.
+---
+
+## Table of Contents
+
+- [Why oaswrap/spec?](#why-oaswrapspec)
+- [Features](#features)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Output](#output)
+- [Framework Adapters](#framework-adapters)
+- [OpenAPI Options](#openapi-options)
+- [Routes and Groups](#routes-and-groups)
+- [Security](#security)
+- [Reflection Tags](#reflection-tags)
+- [Reflected Go Types](#reflected-go-types)
+- [Reflector Configuration](#reflector-configuration)
+- [OpenAPI 3.2](#openapi-32)
+- [Low-Level OpenAPI Control](#low-level-openapi-control)
+- [Examples](#examples)
+- [API Reference](#api-reference)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
 
 ## Why oaswrap/spec?
 
-- **Native OpenAPI builder**: OpenAPI paths, operations, components, validation, and schema reflection are implemented in this repository.
-- **Framework agnostic core**: Use `spec.NewRouter` for static generation, or use adapters for Chi, Echo, Gin, Fiber, net/http, and Mux.
-- **Code-first route documentation**: Register routes and documentation together with Go functions and typed options.
-- **Version-aware output**: Generate OpenAPI `3.0.4` by default, with support for `3.1.2` and `3.2.0` features when selected.
-- **Direct model escape hatches**: Use typed `openapi` structs, `Extensions` for `x-*` fields, and `Extra` for official or future fields not wrapped by helper options yet.
-- **Golden-file friendly**: The generated document is deterministic enough for snapshot tests and CI documentation checks.
+- **Native OpenAPI builder** — paths, operations, components, validation, and schema reflection are all implemented in this repository without third-party OpenAPI dependencies.
+- **Framework-agnostic core** — use `spec.NewRouter` for static generation, or drop in adapters for Chi, Echo, Gin, Fiber, net/http, and Mux.
+- **Code-first route documentation** — register routes and their documentation together using Go functions and typed options.
+- **Version-aware output** — defaults to OpenAPI `3.0.4`, with full support for `3.1.2` and `3.2.0` features when selected.
+- **Direct model escape hatches** — use typed `openapi` structs, `Extensions` for `x-*` fields, and `Extra` for official or future fields not yet wrapped by a helper option.
+- **Deterministic output** — generated documents are stable enough for golden-file snapshot tests and CI documentation checks.
+
+---
 
 ## Features
 
@@ -35,11 +60,19 @@ The library owns its OpenAPI model and schema reflection implementation. It does
 - `spec.OneOf` for explicit one-of schemas.
 - `SchemaExposer` and `StaticSchemaExposer` hooks for custom reflected schemas.
 
+---
+
 ## Installation
+
+Requirements:
+
+- Go `1.22+`
 
 ```bash
 go get github.com/oaswrap/spec
 ```
+
+---
 
 ## Quick Start
 
@@ -99,19 +132,29 @@ type User struct {
 }
 ```
 
+---
+
 ## Output
 
-- `GenerateSchema()` defaults to YAML.
-- `GenerateSchema("yaml")` and `GenerateSchema("yml")` return YAML.
-- `GenerateSchema("json")` returns pretty JSON.
-- `MarshalYAML()` validates and serializes YAML.
-- `MarshalJSON()` validates and serializes pretty JSON.
-- `WriteSchemaTo("openapi.yaml")`, `WriteSchemaTo("openapi.yml")`, and `WriteSchemaTo("openapi.json")` infer format from extension.
-- `Document()` returns the built `*openapi.Document`.
-- `Validate()` builds the document and validates OpenAPI invariants.
-- `Config()` returns the effective OpenAPI configuration.
+`spec.NewRouter` and `spec.NewGenerator` expose the following output methods:
+
+| Method | Description |
+| --- | --- |
+| `GenerateSchema()` | Defaults to YAML. |
+| `GenerateSchema("yaml")` / `GenerateSchema("yml")` | Returns YAML. |
+| `GenerateSchema("json")` | Returns pretty-printed JSON. |
+| `MarshalYAML()` | Validates and serializes YAML. |
+| `MarshalJSON()` | Validates and serializes pretty-printed JSON. |
+| `WriteSchemaTo("openapi.yaml")` | Infers format from file extension (`.yaml`, `.yml`, `.json`). |
+| `Document()` | Returns the built `*openapi.Document`. |
+| `Validate()` | Builds the document and checks OpenAPI invariants. |
+| `Config()` | Returns the effective OpenAPI configuration. |
+
+---
 
 ## Framework Adapters
+
+Use the core `spec` package for static generation and CI workflows. Use an adapter when you want route registration, spec generation, and docs UI wiring in a single framework-specific router.
 
 | Framework | Package |
 | --- | --- |
@@ -124,7 +167,18 @@ type User struct {
 | net/http | [`httpopenapi`](/adapter/httpopenapi) |
 | Mux | [`muxopenapi`](/adapter/muxopenapi) |
 
-Use the core `spec` package for static generation and CI workflows. Use adapters when you want route registration, spec generation, and docs UI wiring in one framework-specific router.
+Adapter module import paths:
+
+- `github.com/oaswrap/spec/adapter/chiopenapi`
+- `github.com/oaswrap/spec/adapter/echoopenapi`
+- `github.com/oaswrap/spec/adapter/echov5openapi`
+- `github.com/oaswrap/spec/adapter/fiberopenapi`
+- `github.com/oaswrap/spec/adapter/fiberv3openapi`
+- `github.com/oaswrap/spec/adapter/ginopenapi`
+- `github.com/oaswrap/spec/adapter/httpopenapi`
+- `github.com/oaswrap/spec/adapter/muxopenapi`
+
+---
 
 ## OpenAPI Options
 
@@ -150,7 +204,7 @@ r := spec.NewRouter(
 | Option | Purpose |
 | --- | --- |
 | `WithOpenAPIConfig(opts...)` | Build an `*openapi.Config` with defaults and apply options. |
-| `WithOpenAPIVersion(version)` | Set `openapi`; default is `openapi.Version304`. Constants are available for `3.0.0` through `3.0.4`, `3.1.0` through `3.1.2`, and `3.2.0`. |
+| `WithOpenAPIVersion(version)` | Set `openapi`; default is `openapi.Version304`. Constants are available for `3.0.0`–`3.0.4`, `3.1.0`–`3.1.2`, and `3.2.0`. |
 | `WithSelf(uri)` | Set OpenAPI `3.2.0` `$self`. |
 | `WithJSONSchemaDialect(uri)` | Set root `jsonSchemaDialect`. |
 | `WithTitle(title)` | Set `info.title`. |
@@ -168,7 +222,7 @@ r := spec.NewRouter(
 | `WithGlobalSecurity(name, scopes...)` | Add a root security requirement. |
 | `WithReflectorConfig(opts...)` | Configure schema reflection. |
 | `WithStripTrailingSlash(strip...)` | Trim trailing slashes from operation paths except `/`. |
-| `WithPathParser(parser)` | Convert framework paths, for example `:id` to `{id}`. |
+| `WithPathParser(parser)` | Convert framework-style paths, e.g. `:id` → `{id}`. |
 | `WithDocument(fn)` | Mutate the final low-level document before validation and serialization. |
 | `WithComponentSchema(name, schema)` | Register a reusable schema component. |
 | `WithComponentResponse(name, response)` | Register a reusable response component. |
@@ -180,7 +234,7 @@ r := spec.NewRouter(
 | `WithComponentLink(name, link)` | Register a reusable link component. |
 | `WithComponentCallback(name, callback)` | Register a reusable callback component. |
 | `WithComponentPathItem(name, pathItem)` | Register a reusable path item component. |
-| `WithComponentMediaType(name, mediaType)` | Register a reusable media type component for OpenAPI `3.2.0`. |
+| `WithComponentMediaType(name, mediaType)` | Register a reusable media type component (OpenAPI `3.2.0`). |
 | `WithDisableDocs(disable...)` | Disable adapter docs endpoints. |
 | `WithDocsPath(path)` | Set adapter docs UI path. |
 | `WithSpecPath(path)` | Set adapter OpenAPI spec path. |
@@ -192,20 +246,15 @@ r := spec.NewRouter(
 | `WithScalar(cfg...)` | Use Scalar. |
 | `WithRapiDoc(cfg...)` | Use RapiDoc. |
 
-Tag options:
+> Adapter-only options: `WithDisableDocs`, `WithDocsPath`, `WithSpecPath`, `WithCacheAge`, `WithUIOption`, `WithSwaggerUI`, `WithStoplightElements`, `WithReDoc`, `WithScalar`, and `WithRapiDoc` affect adapter docs/spec endpoints, not core static generation output.
 
-- `TagSummary(summary)`
-- `TagDescription(description)`
-- `TagExternalDocs(url, description...)`
-- `TagParent(parent)` for OpenAPI `3.2.0`
-- `TagKind(kind)` for OpenAPI `3.2.0`
+**Tag options:** `TagSummary`, `TagDescription`, `TagExternalDocs`, `TagParent` (3.2.0), `TagKind` (3.2.0).
 
-Server options:
+**Server options:** `ServerDescription`, `ServerVariables`.
 
-- `ServerDescription(description)`
-- `ServerVariables(variables)`
+---
 
-## Routes And Groups
+## Routes and Groups
 
 ```go
 api := r.Group("/api/v1", option.GroupTags("v1"))
@@ -222,35 +271,20 @@ api.Get("/users/{id}",
 )
 ```
 
-Router methods:
+**Router methods:**
 
-- `Get(path, opts...)`
-- `Post(path, opts...)`
-- `Put(path, opts...)`
-- `Delete(path, opts...)`
-- `Patch(path, opts...)`
-- `Options(path, opts...)`
-- `Head(path, opts...)`
-- `Trace(path, opts...)`
-- `Query(path, opts...)` for OpenAPI `3.2.0`
-- `Add(method, path, opts...)`
-- `Webhook(name, opts...)` using POST by default, for OpenAPI `3.1.x+`
-- `AddWebhook(method, name, opts...)` for OpenAPI `3.1.x+`
-- `NewRoute(opts...).Method(method).Path(path).With(opts...)`
-- `Group(prefix, opts...)`
-- `Route(prefix, func(router), opts...)`
-- `With(groupOpts...)`
+`Get`, `Post`, `Put`, `Delete`, `Patch`, `Options`, `Head`, `Trace`, `Query` (3.2.0), `Add`, `Webhook` (3.1.x+), `AddWebhook` (3.1.x+), `NewRoute(...).Method(...).Path(...).With(...)`, `Group`, `Route`, `With`.
 
-Group options:
+**Group options:**
 
 | Option | Purpose |
 | --- | --- |
-| `GroupTags(tags...)` | Apply tags to routes in the group. |
-| `GroupSecurity(name, scopes...)` | Apply operation security to routes in the group. |
-| `GroupDeprecated(deprecated...)` | Mark routes in the group deprecated. |
-| `GroupHidden(hide...)` | Hide routes in the group. |
+| `GroupTags(tags...)` | Apply tags to all routes in the group. |
+| `GroupSecurity(name, scopes...)` | Apply an operation security requirement to all routes in the group. |
+| `GroupDeprecated(deprecated...)` | Mark all routes in the group as deprecated. |
+| `GroupHidden(hide...)` | Exclude all routes in the group from the generated document. |
 
-Operation options:
+**Operation options:**
 
 | Option | Purpose |
 | --- | --- |
@@ -259,34 +293,30 @@ Operation options:
 | `Description(description)` | Set `description`. |
 | `ExternalDocs(url, description...)` | Set operation `externalDocs`. |
 | `Tags(tags...)` | Add operation tags. |
-| `Security(name, scopes...)` | Add operation security requirement. |
-| `Deprecated(deprecated...)` | Mark operation deprecated. |
-| `Hidden(hide...)` | Skip operation from generated document. |
-| `Request(structure, contentOpts...)` | Add parameters and/or request body from a Go value. |
+| `Security(name, scopes...)` | Add an operation security requirement. |
+| `Deprecated(deprecated...)` | Mark the operation deprecated. |
+| `Hidden(hide...)` | Exclude the operation from the generated document. |
+| `Request(structure, contentOpts...)` | Add parameters and/or a request body from a Go value. |
 | `Response(status, structure, contentOpts...)` | Add a response. Duplicate status/content pairs are merged into `oneOf`. |
-| `CustomizeOperation(fn)` | Mutate the low-level `openapi.Operation`. |
+| `CustomizeOperation(fn)` | Mutate the low-level `openapi.Operation` directly. |
 
-Content options:
+**Content options:**
 
 | Option | Purpose |
 | --- | --- |
-| `ContentType(contentType)` | Set media type. Default is `application/json`. |
+| `ContentType(contentType)` | Set media type; default is `application/json`. |
 | `ContentDescription(description)` | Set request/response description. |
 | `ContentDefault(isDefault...)` | Mark response as `default`. |
 | `ContentEncoding(prop, enc)` | Add media type encoding metadata for a property. |
 | `ContentExample(value)` | Set media type `example`. |
 | `ContentNamedExample(name, value, opts...)` | Add one named media type example. |
 | `ContentExamples(examples)` | Set media type `examples`. |
-| `ContentRequired(required...)` | Mark request body required. |
-| `ContentFormat(format)` | Override reflected content schema format. |
+| `ContentRequired(required...)` | Mark request body as required. |
+| `ContentFormat(format)` | Override the reflected content schema format. |
 
-Example options:
+**Example options:** `ExampleSummary`, `ExampleDescription`, `ExampleExternalValue`, `ExampleDataValue` (3.2.0), `ExampleSerializedValue` (3.2.0).
 
-- `ExampleSummary(summary)`
-- `ExampleDescription(description)`
-- `ExampleExternalValue(url)`
-- `ExampleDataValue(value)` for OpenAPI `3.2.0`
-- `ExampleSerializedValue(value)` for OpenAPI `3.2.0`
+---
 
 ## Security
 
@@ -307,7 +337,7 @@ r := spec.NewRouter(
 )
 ```
 
-Security helpers:
+**Security helpers:**
 
 - `SecurityAPIKey(name, in)`
 - `SecurityHTTPBearer(scheme, bearerFormat...)`
@@ -316,13 +346,15 @@ Security helpers:
 - `SecurityOAuth2Password(tokenURL, scopes, flowOpts...)`
 - `SecurityOAuth2ClientCredentials(tokenURL, scopes, flowOpts...)`
 - `SecurityOAuth2AuthorizationCode(authorizationURL, tokenURL, scopes, flowOpts...)`
-- `SecurityOAuth2DeviceAuthorization(deviceAuthorizationURL, tokenURL, scopes, flowOpts...)` for OpenAPI `3.2.0`
+- `SecurityOAuth2DeviceAuthorization(deviceAuthorizationURL, tokenURL, scopes, flowOpts...)` — OpenAPI `3.2.0`
 - `OAuthRefreshURL(url)`
 - `SecurityOpenIDConnect(url)`
 - `SecurityMutualTLS()`
 - `SecurityDescription(description)`
-- `SecurityOAuth2MetadataURL(url)` for OpenAPI `3.2.0`
-- `SecurityDeprecated(deprecated...)` for OpenAPI `3.2.0`
+- `SecurityOAuth2MetadataURL(url)` — OpenAPI `3.2.0`
+- `SecurityDeprecated(deprecated...)` — OpenAPI `3.2.0`
+
+---
 
 ## Reflection Tags
 
@@ -330,11 +362,10 @@ Request structs are split into parameters and request body:
 
 - Fields with `path`, `query`, `header`, `cookie`, or `querystring` tags become OpenAPI parameters.
 - `querystring` is only valid for OpenAPI `3.2.0`.
-- Body fields use `json` names by default.
-- For `application/x-www-form-urlencoded` and `multipart/form-data`, body fields use `form` names and fall back to `json`.
+- Body fields use `json` names by default; for `application/x-www-form-urlencoded` and `multipart/form-data` they use `form` names, falling back to `json`.
 - `json:"-"` skips a field.
 - Path parameters are always marked required.
-- Adapter packages can add framework-specific parameter tags with `ParameterTagMapping`; for example Gin uses `uri`, Fiber uses `params`, and Echo uses `param`.
+- Adapter packages can add framework-specific parameter tags with `ParameterTagMapping` (e.g. Gin uses `uri`, Fiber uses `params`, Echo uses `param`).
 
 ```go
 type SearchRequest struct {
@@ -348,7 +379,7 @@ type SearchRequest struct {
 }
 ```
 
-Naming and location tags:
+**Naming and location tags:**
 
 | Tag | Purpose |
 | --- | --- |
@@ -360,26 +391,26 @@ Naming and location tags:
 | `querystring:"name"` | OpenAPI `3.2.0` whole-query-string parameter. |
 | `form:"name"` | Form body property name for form content types. |
 
-Schema tags:
+**Schema tags:**
 
 | Tag | Output |
 | --- | --- |
 | `required:"true"` | Adds property to parent `required`; path parameters are required automatically. |
-| `type:"string,null"` | Overrides `type`; comma-separated unions are emitted only for OpenAPI `3.1.x` and `3.2.0`. |
+| `type:"string,null"` | Overrides `type`; comma-separated unions emitted only for OpenAPI `3.1.x`/`3.2.0`. |
 | `title:"..."` | `title`. |
 | `description:"..."` | `description`. |
 | `format:"email"` | `format`. |
 | `pattern:"..."` | `pattern`. |
 | `default:"..."` | `default`; JSON values are decoded when valid. |
 | `example:"..."` | `example`; JSON values are decoded when valid. |
-| `examples:"[...]"` | `examples` for OpenAPI `3.1.x` and `3.2.0`; JSON array preferred, comma-separated fallback. |
+| `examples:"[...]"` | `examples` for OpenAPI `3.1.x`/`3.2.0`; JSON array preferred, comma-separated fallback. |
 | `enum:"a,b,c"` | `enum`; JSON array or comma-separated values. |
-| `const:"..."` | `const` for OpenAPI `3.1.x` and `3.2.0`. |
+| `const:"..."` | `const` for OpenAPI `3.1.x`/`3.2.0`. |
 | `multipleOf:"2"` | `multipleOf`. |
 | `maximum:"100"` | `maximum`. |
 | `minimum:"1"` | `minimum`. |
-| `exclusiveMaximum:"true"` | OpenAPI `3.0.x` boolean `exclusiveMaximum`; OpenAPI `3.1.x`/`3.2.0` numeric value. |
-| `exclusiveMinimum:"true"` | OpenAPI `3.0.x` boolean `exclusiveMinimum`; OpenAPI `3.1.x`/`3.2.0` numeric value. |
+| `exclusiveMaximum:"true"` | OpenAPI `3.0.x`: boolean; OpenAPI `3.1.x`/`3.2.0`: numeric value. |
+| `exclusiveMinimum:"true"` | OpenAPI `3.0.x`: boolean; OpenAPI `3.1.x`/`3.2.0`: numeric value. |
 | `maxLength:"80"` | `maxLength`. |
 | `minLength:"2"` | `minLength`. |
 | `maxItems:"10"` | `maxItems`. |
@@ -391,8 +422,8 @@ Schema tags:
 | `deprecated:"true"` | `deprecated`. |
 | `readOnly:"true"` | `readOnly`. |
 | `writeOnly:"true"` | `writeOnly`. |
-| `contentEncoding:"base64"` | `contentEncoding` for OpenAPI `3.1.x` and `3.2.0`. |
-| `contentMediaType:"image/png"` | `contentMediaType` for OpenAPI `3.1.x` and `3.2.0`. |
+| `contentEncoding:"base64"` | `contentEncoding` for OpenAPI `3.1.x`/`3.2.0`. |
+| `contentMediaType:"image/png"` | `contentMediaType` for OpenAPI `3.1.x`/`3.2.0`. |
 | `xmlName:"name"` | XML object `name`. |
 | `xmlNamespace:"uri"` | XML object `namespace`. |
 | `xmlPrefix:"p"` | XML object `prefix`. |
@@ -400,27 +431,29 @@ Schema tags:
 | `xmlWrapped:"true"` | XML object `wrapped`; skipped when OpenAPI `3.2.0` `xmlNodeType` is set. |
 | `xmlNodeType:"element"` | OpenAPI `3.2.0` XML object `nodeType`. |
 
-Reflection intentionally avoids emitting keywords that are invalid for the selected OpenAPI version. For example, `const`, `examples`, `contentEncoding`, and `contentMediaType` are not emitted for OpenAPI `3.0.x`.
+> Reflection intentionally omits keywords that are invalid for the selected OpenAPI version. For example, `const`, `examples`, `contentEncoding`, and `contentMediaType` are not emitted for OpenAPI `3.0.x`.
+
+---
 
 ## Reflected Go Types
 
 | Go type | Schema |
 | --- | --- |
 | `bool` | `type: boolean` |
-| signed ints except `int64` | `type: integer`, `format: int32` |
+| Signed integers (except `int64`) | `type: integer`, `format: int32` |
 | `int64` | `type: integer`, `format: int64` |
-| unsigned ints except `uint64` and `uintptr` | `type: integer`, `format: int32`, `minimum: 0` |
+| Unsigned integers (except `uint64`/`uintptr`) | `type: integer`, `format: int32`, `minimum: 0` |
 | `uint64`, `uintptr` | `type: integer`, `format: int64`, `minimum: 0` |
 | `float32` | `type: number`, `format: float` |
 | `float64` | `type: number`, `format: double` |
 | `string` | `type: string` |
 | `time.Time` | `type: string`, `format: date-time` |
 | `[]T`, `[N]T` | `type: array`, `items: T` |
-| `[]byte` | OpenAPI `3.0.x`: `type: string`, `format: byte`; OpenAPI `3.1.x`/`3.2.0`: `type: string`, `contentEncoding: base64` |
+| `[]byte` | `3.0.x`: `type: string`, `format: byte`; `3.1.x`/`3.2.0`: `type: string`, `contentEncoding: base64` |
 | `map[string]T` | `type: object`, `additionalProperties: T` |
-| structs | `type: object`, `properties` |
-| named structs in component mode | `#/components/schemas/{TypeName}` references |
-| pointers | nullable schema behavior |
+| Structs | `type: object`, `properties` |
+| Named structs (component mode) | `#/components/schemas/{TypeName}` reference |
+| Pointers | Nullable schema behavior |
 
 Custom types can expose their own schema when tags are not expressive enough:
 
@@ -436,6 +469,8 @@ func (*Slug) OpenAPISchema(version string) *openapi.Schema {
 ```
 
 For static schemas, implement `OpenAPISchema() *openapi.Schema` instead. Field tags are still applied on top of custom schemas.
+
+---
 
 ## Reflector Configuration
 
@@ -455,30 +490,34 @@ r := spec.NewRouter(
 
 | Option | Purpose |
 | --- | --- |
-| `InlineRefs(inline...)` | Inline schemas instead of using components for named structs. |
+| `InlineRefs(inline...)` | Inline schemas instead of using component references for named structs. |
 | `StripDefNamePrefix(prefixes...)` | Strip prefixes from generated component names. |
-| `TypeMapping(src, dst)` | Reflect `src` as `dst`. |
+| `TypeMapping(src, dst)` | Reflect `src` as if it were `dst`. |
 | `ParameterTagMapping(in, sourceTag)` | Add a custom tag for a parameter location while keeping the default tag. |
 | `InterceptDefName(fn)` | Customize schema component names. |
 
+---
+
 ## OpenAPI 3.2
 
-OpenAPI `3.2.0` enables:
+Selecting `openapi.Version320` enables the following additional features:
 
-- `Router.Query(path, opts...)`.
-- custom HTTP methods through `Add`, emitted as `additionalOperations`.
+- `Router.Query(path, opts...)` — new `QUERY` HTTP method.
+- Custom HTTP methods via `Add`, emitted as `additionalOperations`.
 - `querystring` parameter tags.
-- root `$self`.
-- tag `parent` and `kind`.
-- security scheme metadata and deprecation fields.
+- Root `$self` field.
+- Tag `parent` and `kind` fields.
+- Security scheme metadata and deprecation fields.
 - `components.mediaTypes`.
-- media type and encoding fields such as `itemSchema`, `prefixEncoding`, and `itemEncoding`.
-- example `dataValue` and `serializedValue`.
+- Media type and encoding fields: `itemSchema`, `prefixEncoding`, `itemEncoding`.
+- Example `dataValue` and `serializedValue` fields.
 - XML `nodeType`.
+
+---
 
 ## Low-Level OpenAPI Control
 
-The `openapi` package exposes owned low-level OpenAPI structs. Use them when a feature does not need reflection or does not have a convenience option yet.
+The `openapi` package exposes typed low-level OpenAPI structs. Use them when a feature does not require reflection or doesn't yet have a convenience option.
 
 ```go
 r := spec.NewRouter(
@@ -501,36 +540,43 @@ r := spec.NewRouter(
 )
 ```
 
-Use:
+- Use `Extensions` for `x-*` specification extensions.
+- Use `Extra` to emit official or future fields not yet typed.
+- Use `CustomizeOperation` to mutate an operation directly.
+- Use `WithDocument` to mutate the final document before output.
 
-- `Extensions` for `x-*` specification extensions.
-- `Extra` to emit official or future fields not typed yet.
-- `CustomizeOperation` to mutate an operation directly.
-- `WithDocument` to mutate the final document directly.
+> The library validates many OpenAPI invariants but does not attempt exhaustive semantic validation for every rule in the specification.
 
-The library validates many OpenAPI invariants, but it does not attempt exhaustive semantic validation for every official rule.
+---
 
 ## Examples
 
-Explore complete working examples in the [`examples/`](examples/) directory:
+Complete working examples are in the [`examples/`](examples/) directory:
 
-- **[Basic](examples/basic/)**: standalone spec generation.
-- **[Petstore](examples/petstore/)**: full Petstore API with routes and models.
+- **[Basic](examples/basic/)** — standalone spec generation.
+- **[Petstore](examples/petstore/)** — full Petstore API with routes and models.
+- **Adapter examples** — framework-specific examples in [`adapter/*/example`](adapter/).
+
+---
 
 ## API Reference
 
-Complete documentation is available at [pkg.go.dev/github.com/oaswrap/spec](https://pkg.go.dev/github.com/oaswrap/spec).
+Full documentation is available at [pkg.go.dev/github.com/oaswrap/spec](https://pkg.go.dev/github.com/oaswrap/spec).
 
-Key packages:
+| Package | Purpose |
+| --- | --- |
+| [`spec`](https://pkg.go.dev/github.com/oaswrap/spec) | Core router and spec builder. |
+| [`openapi`](https://pkg.go.dev/github.com/oaswrap/spec/openapi) | Owned OpenAPI model. |
+| [`option`](https://pkg.go.dev/github.com/oaswrap/spec/option) | Configuration options. |
+| [`pkg/parser`](https://pkg.go.dev/github.com/oaswrap/spec/pkg/parser) | Path parsers such as `NewColonParamParser`. |
 
-- [`spec`](https://pkg.go.dev/github.com/oaswrap/spec): core router and spec builder.
-- [`openapi`](https://pkg.go.dev/github.com/oaswrap/spec/openapi): owned OpenAPI model.
-- [`option`](https://pkg.go.dev/github.com/oaswrap/spec/option): configuration options.
-- [`pkg/parser`](https://pkg.go.dev/github.com/oaswrap/spec/pkg/parser): path parsers such as `NewColonParamParser`.
+---
 
 ## Contributing
 
 Issues and pull requests are welcome. Please check existing issues and discussions before starting work on new features.
+
+---
 
 ## License
 

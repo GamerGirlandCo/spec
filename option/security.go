@@ -19,7 +19,8 @@ func SecurityDescription(description string) SecurityOption {
 	}
 }
 
-// SecurityOAuth2MetadataURL sets oauth2 metadata discovery URL (OpenAPI 3.2).
+// SecurityOAuth2MetadataURL sets oauth2 metadata discovery URL.
+// It is only valid for OpenAPI 3.2.0 and for `oauth2` security schemes.
 func SecurityOAuth2MetadataURL(url string) SecurityOption {
 	return func(cfg *securityConfig) {
 		if cfg.scheme == nil {
@@ -29,7 +30,8 @@ func SecurityOAuth2MetadataURL(url string) SecurityOption {
 	}
 }
 
-// SecurityDeprecated marks a security scheme deprecated (OpenAPI 3.2).
+// SecurityDeprecated marks a security scheme deprecated.
+// It is only valid for OpenAPI 3.2.0.
 func SecurityDeprecated(deprecated ...bool) SecurityOption {
 	return func(cfg *securityConfig) {
 		if cfg.scheme == nil {
@@ -128,7 +130,8 @@ func SecurityOAuth2AuthorizationCode(
 	})
 }
 
-// SecurityOAuth2DeviceAuthorization configures an OpenAPI 3.2 OAuth2 device authorization flow.
+// SecurityOAuth2DeviceAuthorization configures an OAuth2 device authorization flow.
+// It is only valid for OpenAPI 3.2.0.
 func SecurityOAuth2DeviceAuthorization(
 	deviceAuthorizationURL string,
 	tokenURL string,
