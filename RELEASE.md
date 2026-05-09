@@ -19,7 +19,6 @@ The project consists of:
   - `github.com/oaswrap/spec/adapter/fiberv3openapi` - Fiber v3 framework adapter
   - `github.com/oaswrap/spec/adapter/ginopenapi` - Gin framework adapter
   - `github.com/oaswrap/spec/adapter/httpopenapi` - net/http adapter
-  - `github.com/oaswrap/spec/adapter/httprouteropenapi` - HttpRouter adapter
   - `github.com/oaswrap/spec/adapter/muxopenapi` - Gorilla Mux adapter
 
 ## Prerequisites

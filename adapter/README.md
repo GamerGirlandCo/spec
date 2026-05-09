@@ -15,5 +15,4 @@ This directory contains framework-specific adapters for `oaswrap/spec` that prov
 | [Fiber v3](https://github.com/gofiber/fiber) | [`fiberv3openapi`](./fiberv3openapi) | `github.com/oaswrap/spec/adapter/fiberv3openapi` | Fiber v3 with updated Ctx interface and binding API |
 | [Gin](https://github.com/gin-gonic/gin) | [`ginopenapi`](./ginopenapi) | `github.com/oaswrap/spec/adapter/ginopenapi` | Fast HTTP web framework with zero allocation |
 | [net/http](https://pkg.go.dev/net/http) | [`httpopenapi`](./httpopenapi) | `github.com/oaswrap/spec/adapter/httpopenapi` | Standard library HTTP package |
-| [HttpRouter](https://github.com/julienschmidt/httprouter) | [`httprouteropenapi`](./httprouteropenapi) | `github.com/oaswrap/spec/adapter/httprouteropenapi` | High performance HTTP request router |
 | [Gorilla Mux](https://github.com/gorilla/mux) | [`muxopenapi`](./muxopenapi) | `github.com/oaswrap/spec/adapter/muxopenapi` | Powerful HTTP router and URL matcher |

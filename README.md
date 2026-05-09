@@ -14,7 +14,7 @@ The library owns its OpenAPI model and schema reflection implementation. It does
 ## Why oaswrap/spec?
 
 - **Native OpenAPI builder**: OpenAPI paths, operations, components, validation, and schema reflection are implemented in this repository.
-- **Framework agnostic core**: Use `spec.NewRouter` for static generation, or use adapters for Chi, Echo, Gin, Fiber, net/http, Mux, and HTTPRouter.
+- **Framework agnostic core**: Use `spec.NewRouter` for static generation, or use adapters for Chi, Echo, Gin, Fiber, net/http, and Mux.
 - **Code-first route documentation**: Register routes and documentation together with Go functions and typed options.
 - **Version-aware output**: Generate OpenAPI `3.0.4` by default, with support for `3.1.2` and `3.2.0` features when selected.
 - **Direct model escape hatches**: Use typed `openapi` structs, `Extensions` for `x-*` fields, and `Extra` for official or future fields not wrapped by helper options yet.
@@ -122,7 +122,6 @@ type User struct {
 | Fiber v3 | [`fiberv3openapi`](/adapter/fiberv3openapi) |
 | Gin | [`ginopenapi`](/adapter/ginopenapi) |
 | net/http | [`httpopenapi`](/adapter/httpopenapi) |
-| HTTPRouter | [`httprouteropenapi`](/adapter/httprouteropenapi) |
 | Mux | [`muxopenapi`](/adapter/muxopenapi) |
 
 Use the core `spec` package for static generation and CI workflows. Use adapters when you want route registration, spec generation, and docs UI wiring in one framework-specific router.

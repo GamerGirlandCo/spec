@@ -20,7 +20,7 @@ Use `go test ./... -run TestName` for focused core tests, or run the same comman
 
 ## Coding Style & Naming Conventions
 
-Use standard Go formatting (`gofmt`) and idiomatic Go naming. Package names are short lowercase names such as `openapi`, `option`, or `parser`. Test files must use the `_test.go` suffix. Adapter directories follow the `<framework>openapi` pattern, for example `fiberopenapi` and `httprouteropenapi`. Keep public APIs documented when exported names are not self-explanatory.
+Use standard Go formatting (`gofmt`) and idiomatic Go naming. Package names are short lowercase names such as `openapi`, `option`, or `parser`. Test files must use the `_test.go` suffix. Adapter directories follow the `<framework>openapi` pattern, for example `fiberopenapi` and `ginopenapi`. Keep public APIs documented when exported names are not self-explanatory.
 
 ## Testing Guidelines
 

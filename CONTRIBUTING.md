@@ -65,7 +65,6 @@ adapter/
   fiberopenapi/        # Fiber adapter
   ginopenapi/          # Gin adapter
   httpopenapi/         # net/http adapter
-  httprouteropenapi/   # HttpRouter adapter
   muxopenapi/          # Gorilla Mux adapter
   ...
 ```
