@@ -386,12 +386,18 @@ func IsLocalReference(ref string, resources map[string]any) bool {
 		return false
 	}
 	base := urlWithoutFragment(parsed)
-	if _, ok := resources[base]; ok {
+	resource, ok := resources[base]
+	if !ok {
+		return false
+	}
+	if parsed.Fragment == "" {
 		return true
 	}
-	if parsed.Fragment != "" {
-		_, ok := resources[base+"#"+parsed.Fragment]
-		return ok
+	if _, ok = resources[base+"#"+parsed.Fragment]; ok {
+		return true
+	}
+	if strings.HasPrefix(parsed.Fragment, "/") {
+		return ResolveJSONPointer(resource, parsed.Fragment) != nil
 	}
 	return false
 }

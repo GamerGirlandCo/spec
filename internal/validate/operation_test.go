@@ -352,6 +352,41 @@ func TestValidateCallback_Errors(t *testing.T) {
 
 	err := r.Validate()
 	assertValidationContains(t, err, "must define at least one callback expression")
+
+	t.Run("NilExpressionPathItem", func(t *testing.T) {
+		r := spec.NewRouter()
+		r.Post("/sub", option.CustomizeOperation(func(op *openapi.Operation) {
+			op.Callbacks = map[string]*openapi.Callback{
+				"cb": {
+					Expressions: map[string]*openapi.PathItem{
+						"{$request.body#/callbackUrl}": nil,
+					},
+				},
+			}
+		}), option.Response(204, nil))
+
+		err := r.Validate()
+		assertValidationContains(t, err, `callbacks.cb.{$request.body#/callbackUrl} is required`)
+	})
+
+	t.Run("NilCallbackAndRefSiblings", func(t *testing.T) {
+		r := spec.NewRouter(option.WithOpenAPIVersion(openapi.Version304))
+		r.Post("/sub", option.CustomizeOperation(func(op *openapi.Operation) {
+			op.Callbacks = map[string]*openapi.Callback{
+				"nilCb": nil,
+				"refCb": {
+					Ref:     "#/components/callbacks/Base",
+					Summary: "legacy-sibling",
+				},
+			}
+		}), option.Response(204, nil))
+
+		err := r.Validate()
+		assertValidationContains(t, err,
+			"callbacks.nilCb is required",
+			"callbacks.refCb must not define siblings with $ref",
+		)
+	})
 }
 
 func TestValidateRequestBody_Errors(t *testing.T) {
@@ -390,6 +425,42 @@ func TestValidateHeader_Errors(t *testing.T) {
 		}))
 		err := r.Validate()
 		assertValidationContains(t, err, "headers.X-Trace must define schema or content")
+	})
+
+	t.Run("ComprehensiveHeaderRules", func(t *testing.T) {
+		r := spec.NewRouter(option.WithOpenAPIVersion(openapi.Version312))
+		r.Get("/headers", option.CustomizeOperation(func(op *openapi.Operation) {
+			op.Responses["200"] = &openapi.Response{
+				Description: "OK",
+				Headers: map[string]*openapi.Header{
+					"X-Mixed": {
+						Summary: "only-for-ref",
+						Schema:  &openapi.Schema{Type: "string"},
+						Content: map[string]*openapi.MediaType{
+							"text/plain":       {Schema: &openapi.Schema{Type: "string"}},
+							"application/json": {Schema: &openapi.Schema{Type: "string"}},
+						},
+						Example:       "one",
+						Examples:      map[string]*openapi.Example{"two": {Value: "two"}},
+						AllowReserved: true,
+					},
+					"X-Ref": {
+						Ref:      "#/components/headers/TraceID",
+						Required: true,
+					},
+				},
+			}
+		}))
+
+		err := r.Validate()
+		assertValidationContains(t, err,
+			"headers.X-Mixed.summary is only allowed with $ref",
+			"headers.X-Mixed schema and content are mutually exclusive",
+			"headers.X-Mixed content must contain only one media type",
+			"headers.X-Mixed example and examples are mutually exclusive",
+			"headers.X-Mixed allowReserved is not allowed for headers",
+			"headers.X-Ref must not define siblings with $ref",
+		)
 	})
 }
 

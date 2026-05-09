@@ -74,3 +74,63 @@ func TestBuilder_SecurityRequirement(t *testing.T) {
 	sr = SecurityRequirement("auth", nil)
 	assert.Equal(t, []string{}, sr["auth"])
 }
+
+func TestBuilder_AddOperationTo_QueryVersionGuard(t *testing.T) {
+	cfg := &openapi.Config{OpenAPIVersion: openapi.Version312}
+	doc := &openapi.Document{Paths: map[string]*openapi.PathItem{}}
+	b := NewBuilder(cfg, doc)
+
+	err := b.AddOperationTo("QUERY", "/search", nil, doc.Paths)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "requires OpenAPI 3.2.0")
+}
+
+func TestBuilder_AddOperationTo_HideOptionSkipsOperation(t *testing.T) {
+	cfg := &openapi.Config{OpenAPIVersion: openapi.Version320}
+	doc := &openapi.Document{Paths: map[string]*openapi.PathItem{}}
+	b := NewBuilder(cfg, doc)
+
+	err := b.AddOperation("GET", "/hidden", []option.OperationOption{option.Hidden()})
+	require.NoError(t, err)
+	assert.NotContains(t, doc.Paths, "/hidden")
+}
+
+func TestBuilder_EnsurePathParametersBehavior(t *testing.T) {
+	cfg := &openapi.Config{OpenAPIVersion: openapi.Version304}
+	doc := &openapi.Document{Paths: map[string]*openapi.PathItem{}}
+	b := NewBuilder(cfg, doc)
+
+	t.Run("auto-add missing path params and deduplicate", func(t *testing.T) {
+		op := &openapi.Operation{
+			Parameters: []*openapi.Parameter{
+				nil,
+				{
+					Name:     "id",
+					In:       string(openapi.ParameterInPath),
+					Required: true,
+					Schema:   &openapi.Schema{Type: "string"},
+				},
+			},
+		}
+		b.ensurePathParameters("/users/{id}/orders/{orderID}", op)
+		require.Len(t, op.Parameters, 3)
+		assert.Equal(t, "orderID", op.Parameters[2].Name)
+		assert.Equal(t, string(openapi.ParameterInPath), op.Parameters[2].In)
+		assert.True(t, op.Parameters[2].Required)
+	})
+
+	t.Run("skip when path parameter component ref exists", func(t *testing.T) {
+		op := &openapi.Operation{
+			Parameters: []*openapi.Parameter{{Ref: "#/components/parameters/UserID"}},
+		}
+		b.ensurePathParameters("/users/{id}", op)
+		require.Len(t, op.Parameters, 1)
+		assert.Equal(t, "#/components/parameters/UserID", op.Parameters[0].Ref)
+	})
+
+	t.Run("skip for non-http-style target", func(t *testing.T) {
+		op := &openapi.Operation{}
+		b.ensurePathParameters("user.created", op)
+		assert.Empty(t, op.Parameters)
+	})
+}

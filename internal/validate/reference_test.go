@@ -243,3 +243,23 @@ func TestExtraHelpers(t *testing.T) {
 	assert.True(t, validate.HasNonExtensionExtra(map[string]any{"invalid": true}))
 	assert.False(t, validate.HasNonExtensionExtra(map[string]any{"x-valid": true}))
 }
+
+func TestValidateReferenceTargets_InvalidURIReference(t *testing.T) {
+	doc := &openapi.Document{
+		OpenAPI: openapi.Version304,
+		Info:    openapi.Info{Title: "T", Version: "1.0.0"},
+		Paths: map[string]*openapi.PathItem{
+			"/x": {
+				Get: &openapi.Operation{
+					Responses: map[string]*openapi.Response{
+						"200": {Ref: "%zz"},
+					},
+				},
+			},
+		},
+	}
+
+	errs := validate.ValidateReferenceTargets(doc)
+	assert.NotEmpty(t, errs)
+	assert.Contains(t, errs[0].Error(), "must be a URI reference")
+}

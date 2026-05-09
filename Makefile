@@ -91,7 +91,11 @@ testcov: ## Run coverage using GOCOVERDIR + covdata (core + adapters)
 		mkdir -p "$$adapter_cov_dir"; \
 		(cd "adapter/$$a" && go test -cover ./... -args -test.gocoverdir="$$adapter_cov_dir"); \
 	done
-	@go tool covdata merge -i="$(CORE_COV_DIR),$(ADAPTER_COV_ROOT)" -o="$(MERGED_COV_DIR)"
+	@merge_inputs="$(CORE_COV_DIR)"; \
+	for a in $(ADAPTERS); do \
+		merge_inputs="$$merge_inputs,$(ADAPTER_COV_ROOT)/$$a"; \
+	done; \
+	go tool covdata merge -i="$$merge_inputs" -o="$(MERGED_COV_DIR)"
 	@go tool covdata percent -i="$(MERGED_COV_DIR)"
 	@go tool covdata textfmt -i="$(MERGED_COV_DIR)" -o="$(COVERAGE_DIR)/$(COVERAGE_FILE)"
 	@echo "$(GREEN)✅ Coverage profile written to $(COVERAGE_DIR)/$(COVERAGE_FILE)$(NC)"

@@ -1,9 +1,12 @@
 package validate
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/oaswrap/spec/openapi"
 )
 
 func TestNormalizeTemplatedPath(t *testing.T) {
@@ -89,4 +92,71 @@ func TestExtraHas(t *testing.T) {
 func TestWithoutFragment(t *testing.T) {
 	assert.Equal(t, "https://example.com/path", WithoutFragment("https://example.com/path#frag"))
 	assert.Equal(t, "https://example.com/path", WithoutFragment("https://example.com/path"))
+	assert.Equal(t, ":// bad", WithoutFragment(":// bad"))
+}
+
+func TestResolveURIReference_InvalidInput(t *testing.T) {
+	_, ok := ResolveURIReference("https://example.com", "://bad")
+	assert.False(t, ok)
+
+	_, ok = ResolveURIReference("://bad", "x")
+	assert.False(t, ok)
+}
+
+func TestRegisterSchemaResourceAndAnchor(t *testing.T) {
+	schema := &openapi.Schema{
+		ID:            "https://schemas.example.com/user",
+		Type:          "object",
+		Anchor:        "user-anchor",
+		DynamicAnchor: "user-dyn",
+	}
+
+	resources := map[string]any{}
+	RegisterSchemaResource(reflect.ValueOf(*schema), schema.ID, resources)
+	RegisterSchemaResource(reflect.ValueOf(*schema), schema.ID, resources) // idempotent
+
+	assert.Contains(t, resources, "https://schemas.example.com/user")
+	assert.Contains(t, resources, "https://schemas.example.com/user#user-anchor")
+	assert.Contains(t, resources, "https://schemas.example.com/user#user-dyn")
+	assert.Len(t, resources, 3)
+
+	// Empty anchor should be ignored.
+	emptySchema := openapi.Schema{}
+	RegisterSchemaAnchor(reflect.ValueOf(emptySchema), "", "Anchor", resources)
+	assert.Len(t, resources, 3)
+}
+
+func TestIsLocalReferenceAndReferenceTargetExists(t *testing.T) {
+	resources := map[string]any{
+		"https://example.com/schemas/user": map[string]any{
+			"properties": map[string]any{
+				"name": map[string]any{"type": "string"},
+			},
+		},
+		"https://example.com/schemas/user#UserAnchor": map[string]any{"type": "object"},
+		"": map[string]any{
+			"components": map[string]any{
+				"schemas": map[string]any{
+					"User": map[string]any{"type": "object"},
+				},
+			},
+		},
+	}
+
+	assert.True(t, IsLocalReference("https://example.com/schemas/user", resources))
+	assert.True(t, IsLocalReference("https://example.com/schemas/user#UserAnchor", resources))
+	assert.False(t, IsLocalReference("https://example.com/schemas/user#Missing", resources))
+	assert.False(t, IsLocalReference("://bad", resources))
+
+	assert.True(t, ReferenceTargetExists("https://example.com/schemas/user", resources))
+	assert.True(t, ReferenceTargetExists("https://example.com/schemas/user#UserAnchor", resources))
+	assert.True(t, ReferenceTargetExists("https://example.com/schemas/user#/properties/name", resources))
+	assert.False(t, ReferenceTargetExists("https://example.com/schemas/user#/properties/missing", resources))
+	assert.False(t, ReferenceTargetExists("https://example.com/schemas/user#Missing", resources))
+	assert.False(t, ReferenceTargetExists("://bad", resources))
+}
+
+func TestMarshalAny(t *testing.T) {
+	assert.Equal(t, map[string]any{"x": float64(1)}, MarshalAny(map[string]int{"x": 1}))
+	assert.Nil(t, MarshalAny(func() {}))
 }

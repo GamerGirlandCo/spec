@@ -3,6 +3,7 @@ package validate
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"reflect"
 	"strings"
 
@@ -44,7 +45,12 @@ func ValidateReferenceTargets(doc *openapi.Document) []error {
 			errs = append(errs, fmt.Errorf("%s $ref %q must be a URI reference", entry.context, ref))
 			continue
 		}
-		if !IsLocalReference(resolved, resources) {
+		parsed, err := url.Parse(resolved)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("%s $ref %q must be a URI reference", entry.context, ref))
+			continue
+		}
+		if _, ok := resources[urlWithoutFragment(parsed)]; !ok {
 			continue
 		}
 		if !ReferenceTargetExists(resolved, resources) {

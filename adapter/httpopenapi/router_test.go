@@ -590,3 +590,17 @@ func TestGenerator_WriteSchemaTo(t *testing.T) {
 	assert.NotEmpty(t, schemaData, "expected non-empty schema data")
 	assert.Contains(t, string(schemaData), "operationId: pingHandler", "expected operationId in written schema")
 }
+
+func TestRouter_ServeHTTP(t *testing.T) {
+	mux := http.NewServeMux()
+	r := httpopenapi.NewRouter(mux)
+
+	r.HandleFunc("GET /ping", pingHandler).With(option.OperationID("pingHandler"))
+
+	req := httptest.NewRequest(http.MethodGet, "/ping", nil)
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Contains(t, rec.Body.String(), "pong")
+}

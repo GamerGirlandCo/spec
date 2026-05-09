@@ -1,6 +1,7 @@
 package validate_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -104,4 +105,51 @@ func TestSchemaTypeIncludesArray(t *testing.T) {
 	assert.True(t, validate.SchemaTypeIncludesArray(&openapi.Schema{Type: []string{"object", "array"}}))
 	assert.True(t, validate.SchemaTypeIncludesArray(&openapi.Schema{Type: []any{"string", "array"}}))
 	assert.False(t, validate.SchemaTypeIncludesArray(&openapi.Schema{Type: []any{"string", 1}}))
+}
+
+func TestValidateSchema304Fields_Direct(t *testing.T) {
+	s := &openapi.Schema{
+		Schema:           "https://json-schema.org/draft/2020-12/schema",
+		Examples:         []any{"x"},
+		Type:             []string{"string"},
+		Extra:            map[string]any{"$schema": "x"},
+		ExclusiveMaximum: 1.2,
+		ExclusiveMinimum: 0.1,
+	}
+
+	errs := validate.ValidateSchema304Fields("schema", s)
+	assert.GreaterOrEqual(t, len(errs), 6)
+	assert.Contains(t, errs[0].Error(), "contains JSON Schema dialect fields")
+	assert.Contains(t, errs[1].Error(), "contains JSON Schema 2020-12 keywords")
+
+	var joined strings.Builder
+	for _, err := range errs {
+		joined.WriteString(err.Error() + "\n")
+	}
+	assert.Contains(t, joined.String(), "schema.type must be a string in OpenAPI 3.0.x")
+	assert.Contains(t, joined.String(), "schema.exclusiveMaximum must be a boolean in OpenAPI 3.0.x")
+	assert.Contains(t, joined.String(), "schema.exclusiveMinimum must be a boolean in OpenAPI 3.0.x")
+	assert.Contains(t, joined.String(), "contains Extra JSON Schema keywords")
+}
+
+func TestValidateSchema304Fields_TypeAnySlice(t *testing.T) {
+	errs := validate.ValidateSchema304Fields("schema", &openapi.Schema{
+		Type: []any{"string"},
+	})
+	assert.Len(t, errs, 1)
+	assert.Contains(t, errs[0].Error(), "schema.type must be a string in OpenAPI 3.0.x")
+}
+
+func TestValidateAnySchema_Direct(t *testing.T) {
+	errs := validate.ValidateAnySchema("schema", 123, openapi.Version304, map[*openapi.Schema]bool{})
+	assert.Empty(t, errs)
+
+	errs = validate.ValidateAnySchema(
+		"schema",
+		openapi.Schema{ReadOnly: true, WriteOnly: true},
+		openapi.Version304,
+		map[*openapi.Schema]bool{},
+	)
+	assert.Len(t, errs, 1)
+	assert.Contains(t, errs[0].Error(), "must not be both readOnly and writeOnly")
 }

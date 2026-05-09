@@ -456,6 +456,10 @@ func ValidateCallback(
 		errs = append(errs, fmt.Errorf("%s must define at least one callback expression", context))
 	}
 	for expression, pathItem := range callback.Expressions {
+		if pathItem == nil {
+			errs = append(errs, fmt.Errorf("%s.%s is required", context, expression))
+			continue
+		}
 		errs = append(
 			errs,
 			ValidatePathItemOperations(

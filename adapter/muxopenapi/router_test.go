@@ -330,6 +330,29 @@ func TestRouter_HandleFunc(t *testing.T) {
 	}
 }
 
+func TestRoute_HostSchemesSkipClean(t *testing.T) {
+	m := mux.NewRouter()
+	r := muxopenapi.NewRouter(m)
+
+	route := r.NewRoute().
+		Host("example.com").
+		Schemes("https").
+		Path("/ping").
+		Methods(http.MethodGet).
+		HandlerFunc(PingHandler).
+		Name("ping")
+
+	assert.False(t, route.SkipClean())
+	assert.Equal(t, "ping", route.GetName())
+
+	req := httptest.NewRequest(http.MethodGet, "https://example.com/ping", nil)
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.JSONEq(t, `{"message":"pong"}`, rec.Body.String())
+}
+
 func TestRouter_Handle(t *testing.T) {
 	methods := []string{"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE", "CONNECT"}
 	for _, method := range methods {
