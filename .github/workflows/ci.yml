@@ -49,7 +49,7 @@ jobs:
       run: make install-tools
 
     - name: ✅ Run Quality Checks
-      run: make check
+      run: make sync tidy lint
 
   # ========================================
   # Test Matrix
