@@ -23,6 +23,16 @@ func PingHandler(c *fiber.Ctx) error {
 	return c.SendString("pong")
 }
 
+func newTestRequest(t *testing.T, method, path string) *http.Request {
+	t.Helper()
+
+	req, err := http.NewRequest(method, path, nil)
+	require.NoError(t, err, "failed to create request")
+	req.Host = "example.com"
+
+	return req
+}
+
 func TestRouter_Spec(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -310,7 +320,7 @@ func TestRouter_Single(t *testing.T) {
 			fr := app.GetRoute("ping")
 			assert.NotEmpty(t, fr.Name, "expected route name to be set for %s %s", tt.method, tt.path)
 
-			req, _ := http.NewRequest(tt.method, tt.path, nil)
+			req := newTestRequest(t, tt.method, tt.path)
 			res, err := app.Test(req, -1)
 			require.NoError(t, err, "failed to test %s request", tt.method)
 			assert.Equal(t, http.StatusOK, res.StatusCode, "expected status OK for %s request", tt.method)
@@ -344,7 +354,7 @@ func TestRouter_Single(t *testing.T) {
 		app := fiber.New()
 		r := fiberopenapi.NewRouter(app)
 		r.Static("/static", "./testdata", fiber.Static{})
-		req, _ := http.NewRequest(http.MethodGet, "/static/petstore.yaml", nil)
+		req := newTestRequest(t, http.MethodGet, "/static/petstore.yaml")
 		res, err := app.Test(req, -1)
 		require.NoError(t, err, "failed to test static file request")
 		assert.Equal(t, http.StatusOK, res.StatusCode, "expected status OK for static file request")
@@ -367,7 +377,7 @@ func TestRouter_Group(t *testing.T) {
 			option.Summary("Ping Endpoint"),
 		)
 
-		req, _ := http.NewRequest(http.MethodGet, "/api/ping", nil)
+		req := newTestRequest(t, http.MethodGet, "/api/ping")
 		res, err := app.Test(req, -1)
 		require.NoError(t, err, "failed to test group route")
 		assert.Equal(t, http.StatusOK, res.StatusCode, "expected status OK for group route")
@@ -389,7 +399,7 @@ func TestRouter_Group(t *testing.T) {
 			)
 		})
 
-		req, _ := http.NewRequest(http.MethodGet, "/api/ping", nil)
+		req := newTestRequest(t, http.MethodGet, "/api/ping")
 		res, err := app.Test(req, -1)
 		require.NoError(t, err, "failed to test route")
 		assert.Equal(t, http.StatusOK, res.StatusCode, "expected status OK for route")
@@ -414,7 +424,7 @@ func TestRouter_Middleware(t *testing.T) {
 			return c.SendString("pong")
 		})
 
-		req, _ := http.NewRequest(http.MethodGet, "/ping", nil)
+		req := newTestRequest(t, http.MethodGet, "/ping")
 		res, err := app.Test(req, -1)
 		require.NoError(t, err, "failed to test middleware route")
 		assert.Equal(t, http.StatusOK, res.StatusCode, "expected status OK for middleware route")
@@ -431,7 +441,7 @@ func TestGenerator_Docs(t *testing.T) {
 	)
 
 	t.Run("should serve docs", func(t *testing.T) {
-		req, _ := http.NewRequest(http.MethodGet, "/docs", nil)
+		req := newTestRequest(t, http.MethodGet, "/docs")
 		res, err := app.Test(req, -1)
 		require.NoError(t, err, "failed to test docs route")
 		assert.Equal(t, http.StatusOK, res.StatusCode, "expected status OK for docs route")
@@ -446,7 +456,7 @@ func TestGenerator_Docs(t *testing.T) {
 		)
 	})
 	t.Run("should serve OpenAPI YAML", func(t *testing.T) {
-		req, _ := http.NewRequest(http.MethodGet, "/docs/openapi.yaml", nil)
+		req := newTestRequest(t, http.MethodGet, "/docs/openapi.yaml")
 		res, err := app.Test(req, -1)
 		require.NoError(t, err, "failed to test OpenAPI YAML route")
 		assert.Equal(t, http.StatusOK, res.StatusCode, "expected status OK for OpenAPI YAML route")
@@ -470,7 +480,7 @@ func TestGenerator_Assets(t *testing.T) {
 		option.OperationID("pingHandler"),
 	)
 
-	req, _ := http.NewRequest(http.MethodGet, "/docs/_assets/styles.min.css", nil)
+	req := newTestRequest(t, http.MethodGet, "/docs/_assets/styles.min.css")
 	res, err := app.Test(req, -1)
 	require.NoError(t, err, "failed to test embedded asset route")
 	assert.Equal(t, http.StatusOK, res.StatusCode, "expected status OK for embedded asset route")
@@ -489,14 +499,14 @@ func TestGenerator_DisableDocs(t *testing.T) {
 	)
 
 	t.Run("should not register docs route", func(t *testing.T) {
-		reqDocs, _ := http.NewRequest(http.MethodGet, "/docs", nil)
+		reqDocs := newTestRequest(t, http.MethodGet, "/docs")
 		resDocs, err := app.Test(reqDocs, -1)
 		require.NoError(t, err, "failed to test docs route")
 		assert.Equal(t, http.StatusNotFound, resDocs.StatusCode, "expected status Not Found for docs route")
 		_ = resDocs.Body.Close()
 	})
 	t.Run("should not register openapi.yaml route", func(t *testing.T) {
-		reqOpenAPI, _ := http.NewRequest(http.MethodGet, "/docs/openapi.yaml", nil)
+		reqOpenAPI := newTestRequest(t, http.MethodGet, "/docs/openapi.yaml")
 		resOpenAPI, err := app.Test(reqOpenAPI, -1)
 		require.NoError(t, err, "failed to test OpenAPI YAML route")
 		assert.Equal(t, http.StatusNotFound, resOpenAPI.StatusCode, "expected status Not Found for OpenAPI YAML route")

@@ -5,9 +5,10 @@
 PKG           := ./...
 COVERAGE_DIR  := coverage
 COVERAGE_FILE := coverage.out
-UNIT_COV_DIR  := $(COVERAGE_DIR)/unit
+CORE_COV_DIR  := $(COVERAGE_DIR)/core
+ADAPTER_COV_ROOT := $(COVERAGE_DIR)/adapters
 MERGED_COV_DIR := $(COVERAGE_DIR)/merged
-UNIT_COV_ABS := $(abspath $(UNIT_COV_DIR))
+CORE_COV_ABS := $(abspath $(CORE_COV_DIR))
 ADAPTERS      := chiopenapi echoopenapi fiberopenapi ginopenapi httpopenapi muxopenapi httprouteropenapi echov5openapi fiberv3openapi
 
 # Platform detection for sed compatibility
@@ -78,16 +79,19 @@ test-update: ## Update golden files for tests
 
 testcov: ## Run coverage using GOCOVERDIR + covdata (core + adapters)
 	@echo "$(BLUE)📊 Generating unit coverage with GOCOVERDIR...$(NC)"
-	@mkdir -p "$(UNIT_COV_DIR)" "$(MERGED_COV_DIR)"
-	@find "$(UNIT_COV_DIR)" -type f -delete
+	@mkdir -p "$(CORE_COV_DIR)" "$(ADAPTER_COV_ROOT)" "$(MERGED_COV_DIR)"
+	@find "$(CORE_COV_DIR)" -type f -delete
+	@find "$(ADAPTER_COV_ROOT)" -type f -delete
 	@find "$(MERGED_COV_DIR)" -type f -delete
 	@rm -f "$(COVERAGE_DIR)/$(COVERAGE_FILE)"
-	@go test -cover ./... -args -test.gocoverdir="$(UNIT_COV_ABS)"
+	@go test -cover ./... -args -test.gocoverdir="$(CORE_COV_ABS)"
 	@for a in $(ADAPTERS); do \
 		echo "$(BLUE)📈 Adapter $$a coverage...$(NC)"; \
-		(cd "adapter/$$a" && go test -cover ./... -args -test.gocoverdir="$(UNIT_COV_ABS)"); \
+		adapter_cov_dir="$(abspath $(ADAPTER_COV_ROOT))/$$a"; \
+		mkdir -p "$$adapter_cov_dir"; \
+		(cd "adapter/$$a" && go test -cover ./... -args -test.gocoverdir="$$adapter_cov_dir"); \
 	done
-	@go tool covdata merge -i="$(UNIT_COV_DIR)" -o="$(MERGED_COV_DIR)"
+	@go tool covdata merge -i="$(CORE_COV_DIR),$(ADAPTER_COV_ROOT)" -o="$(MERGED_COV_DIR)"
 	@go tool covdata percent -i="$(MERGED_COV_DIR)"
 	@go tool covdata textfmt -i="$(MERGED_COV_DIR)" -o="$(COVERAGE_DIR)/$(COVERAGE_FILE)"
 	@echo "$(GREEN)✅ Coverage profile written to $(COVERAGE_DIR)/$(COVERAGE_FILE)$(NC)"
