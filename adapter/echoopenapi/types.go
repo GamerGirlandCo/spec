@@ -4,6 +4,7 @@ import (
 	"io/fs"
 
 	"github.com/labstack/echo/v4"
+
 	"github.com/oaswrap/spec/option"
 )
 
@@ -60,6 +61,7 @@ type Router interface {
 	TRACE(path string, handler echo.HandlerFunc, m ...echo.MiddlewareFunc) Route
 
 	// CONNECT registers a new CONNECT route.
+	// CONNECT operations are emitted only for OpenAPI 3.2.0.
 	CONNECT(path string, handler echo.HandlerFunc, m ...echo.MiddlewareFunc) Route
 
 	// Add registers a new route with the given method, path, and handler.

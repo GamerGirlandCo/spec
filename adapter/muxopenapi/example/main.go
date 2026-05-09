@@ -7,8 +7,10 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/oaswrap/spec/adapter/muxopenapi"
+
 	"github.com/oaswrap/spec/option"
+
+	"github.com/oaswrap/spec/adapter/muxopenapi"
 )
 
 func main() {

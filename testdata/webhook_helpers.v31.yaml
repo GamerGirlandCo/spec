@@ -1,0 +1,16 @@
+openapi: 3.1.2
+info:
+  title: Webhook API
+  version: 1.0.0
+paths: {}
+webhooks:
+  cache.invalidate:
+    post:
+      responses:
+        "204":
+          description: No Content
+  user.created:
+    post:
+      responses:
+        "202":
+          description: Accepted

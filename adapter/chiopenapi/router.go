@@ -4,11 +4,14 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+
 	"github.com/oaswrap/spec"
 	specui "github.com/oaswrap/spec-ui"
-	"github.com/oaswrap/spec/adapter/chiopenapi/internal/constant"
+	"github.com/oaswrap/spec/openapi"
 	"github.com/oaswrap/spec/option"
 	"github.com/oaswrap/spec/pkg/mapper"
+
+	"github.com/oaswrap/spec/adapter/chiopenapi/internal/constant"
 )
 
 type router struct {
@@ -121,8 +124,8 @@ func (r *router) Mount(pattern string, h http.Handler) {
 
 func (r *router) Method(method, pattern string, h http.Handler) Route {
 	r.chiRouter.Method(method, pattern, h)
-	if method == http.MethodConnect {
-		// CONNECT method is not supported by OpenAPI, so we skip it
+	if method == http.MethodConnect && r.gen.Config().OpenAPIVersion != openapi.Version320 {
+		// CONNECT requires OpenAPI 3.2, so older specs skip it
 		return &route{}
 	}
 	sr := r.specRouter.Add(method, pattern)
@@ -132,8 +135,8 @@ func (r *router) Method(method, pattern string, h http.Handler) Route {
 
 func (r *router) MethodFunc(method, pattern string, h http.HandlerFunc) Route {
 	r.chiRouter.MethodFunc(method, pattern, h)
-	if method == http.MethodConnect {
-		// CONNECT method is not supported by OpenAPI, so we skip it
+	if method == http.MethodConnect && r.gen.Config().OpenAPIVersion != openapi.Version320 {
+		// CONNECT requires OpenAPI 3.2, so older specs skip it
 		return &route{}
 	}
 	sr := r.specRouter.Add(method, pattern)

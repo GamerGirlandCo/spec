@@ -1,0 +1,28 @@
+openapi: 3.2.0
+info:
+  title: API Documentation
+  version: 1.0.0
+paths:
+  /nested:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NestedRequest"
+      responses:
+        "204":
+          description: No Content
+components:
+  schemas:
+    NestedRequest:
+      type: object
+      properties:
+        level1:
+          type: object
+          properties:
+            level2:
+              type: object
+              properties:
+                level3:
+                  type: string

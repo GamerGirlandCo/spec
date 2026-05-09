@@ -2,6 +2,7 @@ package fiberopenapi
 
 import (
 	"github.com/gofiber/fiber/v2"
+
 	"github.com/oaswrap/spec/option"
 )
 
@@ -41,6 +42,7 @@ type Router interface {
 	// Delete registers a DELETE route.
 	Delete(path string, handler ...fiber.Handler) Route
 	// Connect registers a CONNECT route.
+	// CONNECT operations are emitted only for OpenAPI 3.2.0.
 	Connect(path string, handler ...fiber.Handler) Route
 	// Options registers an OPTIONS route.
 	Options(path string, handler ...fiber.Handler) Route

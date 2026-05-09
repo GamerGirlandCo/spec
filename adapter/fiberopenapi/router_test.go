@@ -1,7 +1,6 @@
 package fiberopenapi_test
 
 import (
-	"flag"
 	"io"
 	"net/http"
 	"os"
@@ -9,21 +8,30 @@ import (
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
-	stoplightemb "github.com/oaswrap/spec-ui/stoplightemb"
-	"github.com/oaswrap/spec/adapter/fiberopenapi"
-	"github.com/oaswrap/spec/openapi"
-	"github.com/oaswrap/spec/option"
-	"github.com/oaswrap/spec/pkg/dto"
-	"github.com/oaswrap/spec/pkg/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-)
 
-//nolint:gochecknoglobals // test flag for golden file updates
-var update = flag.Bool("update", false, "update golden files")
+	stoplightemb "github.com/oaswrap/spec-ui/stoplightemb"
+	"github.com/oaswrap/spec/internal/testutil"
+	"github.com/oaswrap/spec/internal/testutil/dto"
+	"github.com/oaswrap/spec/openapi"
+	"github.com/oaswrap/spec/option"
+
+	"github.com/oaswrap/spec/adapter/fiberopenapi"
+)
 
 func PingHandler(c *fiber.Ctx) error {
 	return c.SendString("pong")
+}
+
+func newTestRequest(t *testing.T, method, path string) *http.Request {
+	t.Helper()
+
+	req, err := http.NewRequest(method, path, nil)
+	require.NoError(t, err, "failed to create request")
+	req.Host = "example.com"
+
+	return req
 }
 
 func TestRouter_Spec(t *testing.T) {
@@ -36,7 +44,7 @@ func TestRouter_Spec(t *testing.T) {
 	}{
 		{
 			name:   "Pet Store API",
-			golden: "petstore.yaml",
+			golden: "petstore",
 			options: []option.OpenAPIOption{
 				option.WithDescription("This is a sample Petstore server."),
 				option.WithVersion("1.0.0"),
@@ -74,7 +82,7 @@ func TestRouter_Spec(t *testing.T) {
 				),
 				option.WithSecurity("petstore_auth", option.SecurityOAuth2(
 					openapi.OAuthFlows{
-						Implicit: &openapi.OAuthFlowsImplicit{
+						Implicit: &openapi.OAuthFlow{
 							AuthorizationURL: "https://petstore3.swagger.io/oauth/authorize",
 							Scopes: map[string]string{
 								"write:pets": "modify pets in your account",
@@ -247,12 +255,10 @@ func TestRouter_Spec(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			app := fiber.New()
 			opts := []option.OpenAPIOption{
+				option.WithOpenAPIVersion("3.0.3"),
 				option.WithTitle("Test API " + tt.name),
 				option.WithVersion("1.0.0"),
 				option.WithDescription("This is a test API for " + tt.name),
-				option.WithReflectorConfig(
-					option.RequiredPropByValidateTag(),
-				),
 			}
 			if len(tt.options) > 0 {
 				opts = append(opts, tt.options...)
@@ -275,18 +281,7 @@ func TestRouter_Spec(t *testing.T) {
 			schema, err := r.GenerateSchema()
 
 			require.NoError(t, err, "failed to generate OpenAPI schema")
-			goldenFile := filepath.Join("testdata", tt.golden)
-
-			if *update {
-				err = r.WriteSchemaTo(goldenFile)
-				require.NoError(t, err, "failed to write golden file")
-				t.Logf("Updated golden file: %s", goldenFile)
-			}
-
-			want, err := os.ReadFile(goldenFile)
-			require.NoError(t, err, "failed to read golden file %s", goldenFile)
-
-			testutil.EqualYAML(t, want, schema)
+			testutil.AssertGolden(t, schema, filepath.Join("testdata", tt.golden+".yaml"))
 		})
 	}
 }
@@ -326,7 +321,7 @@ func TestRouter_Single(t *testing.T) {
 			fr := app.GetRoute("ping")
 			assert.NotEmpty(t, fr.Name, "expected route name to be set for %s %s", tt.method, tt.path)
 
-			req, _ := http.NewRequest(tt.method, tt.path, nil)
+			req := newTestRequest(t, tt.method, tt.path)
 			res, err := app.Test(req, -1)
 			require.NoError(t, err, "failed to test %s request", tt.method)
 			assert.Equal(t, http.StatusOK, res.StatusCode, "expected status OK for %s request", tt.method)
@@ -360,7 +355,7 @@ func TestRouter_Single(t *testing.T) {
 		app := fiber.New()
 		r := fiberopenapi.NewRouter(app)
 		r.Static("/static", "./testdata", fiber.Static{})
-		req, _ := http.NewRequest(http.MethodGet, "/static/petstore.yaml", nil)
+		req := newTestRequest(t, http.MethodGet, "/static/petstore.yaml")
 		res, err := app.Test(req, -1)
 		require.NoError(t, err, "failed to test static file request")
 		assert.Equal(t, http.StatusOK, res.StatusCode, "expected status OK for static file request")
@@ -383,7 +378,7 @@ func TestRouter_Group(t *testing.T) {
 			option.Summary("Ping Endpoint"),
 		)
 
-		req, _ := http.NewRequest(http.MethodGet, "/api/ping", nil)
+		req := newTestRequest(t, http.MethodGet, "/api/ping")
 		res, err := app.Test(req, -1)
 		require.NoError(t, err, "failed to test group route")
 		assert.Equal(t, http.StatusOK, res.StatusCode, "expected status OK for group route")
@@ -405,7 +400,7 @@ func TestRouter_Group(t *testing.T) {
 			)
 		})
 
-		req, _ := http.NewRequest(http.MethodGet, "/api/ping", nil)
+		req := newTestRequest(t, http.MethodGet, "/api/ping")
 		res, err := app.Test(req, -1)
 		require.NoError(t, err, "failed to test route")
 		assert.Equal(t, http.StatusOK, res.StatusCode, "expected status OK for route")
@@ -430,7 +425,7 @@ func TestRouter_Middleware(t *testing.T) {
 			return c.SendString("pong")
 		})
 
-		req, _ := http.NewRequest(http.MethodGet, "/ping", nil)
+		req := newTestRequest(t, http.MethodGet, "/ping")
 		res, err := app.Test(req, -1)
 		require.NoError(t, err, "failed to test middleware route")
 		assert.Equal(t, http.StatusOK, res.StatusCode, "expected status OK for middleware route")
@@ -447,7 +442,7 @@ func TestGenerator_Docs(t *testing.T) {
 	)
 
 	t.Run("should serve docs", func(t *testing.T) {
-		req, _ := http.NewRequest(http.MethodGet, "/docs", nil)
+		req := newTestRequest(t, http.MethodGet, "/docs")
 		res, err := app.Test(req, -1)
 		require.NoError(t, err, "failed to test docs route")
 		assert.Equal(t, http.StatusOK, res.StatusCode, "expected status OK for docs route")
@@ -462,7 +457,7 @@ func TestGenerator_Docs(t *testing.T) {
 		)
 	})
 	t.Run("should serve OpenAPI YAML", func(t *testing.T) {
-		req, _ := http.NewRequest(http.MethodGet, "/docs/openapi.yaml", nil)
+		req := newTestRequest(t, http.MethodGet, "/docs/openapi.yaml")
 		res, err := app.Test(req, -1)
 		require.NoError(t, err, "failed to test OpenAPI YAML route")
 		assert.Equal(t, http.StatusOK, res.StatusCode, "expected status OK for OpenAPI YAML route")
@@ -473,7 +468,7 @@ func TestGenerator_Docs(t *testing.T) {
 		assert.Contains(
 			t,
 			string(body),
-			"openapi: 3.0.3",
+			"openapi: 3.0.4",
 			"expected OpenAPI version in response body for OpenAPI YAML route",
 		)
 	})
@@ -486,7 +481,7 @@ func TestGenerator_Assets(t *testing.T) {
 		option.OperationID("pingHandler"),
 	)
 
-	req, _ := http.NewRequest(http.MethodGet, "/docs/_assets/styles.min.css", nil)
+	req := newTestRequest(t, http.MethodGet, "/docs/_assets/styles.min.css")
 	res, err := app.Test(req, -1)
 	require.NoError(t, err, "failed to test embedded asset route")
 	assert.Equal(t, http.StatusOK, res.StatusCode, "expected status OK for embedded asset route")
@@ -505,14 +500,14 @@ func TestGenerator_DisableDocs(t *testing.T) {
 	)
 
 	t.Run("should not register docs route", func(t *testing.T) {
-		reqDocs, _ := http.NewRequest(http.MethodGet, "/docs", nil)
+		reqDocs := newTestRequest(t, http.MethodGet, "/docs")
 		resDocs, err := app.Test(reqDocs, -1)
 		require.NoError(t, err, "failed to test docs route")
 		assert.Equal(t, http.StatusNotFound, resDocs.StatusCode, "expected status Not Found for docs route")
 		_ = resDocs.Body.Close()
 	})
 	t.Run("should not register openapi.yaml route", func(t *testing.T) {
-		reqOpenAPI, _ := http.NewRequest(http.MethodGet, "/docs/openapi.yaml", nil)
+		reqOpenAPI := newTestRequest(t, http.MethodGet, "/docs/openapi.yaml")
 		resOpenAPI, err := app.Test(reqOpenAPI, -1)
 		require.NoError(t, err, "failed to test OpenAPI YAML route")
 		assert.Equal(t, http.StatusNotFound, resOpenAPI.StatusCode, "expected status Not Found for OpenAPI YAML route")

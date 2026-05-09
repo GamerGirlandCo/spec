@@ -46,7 +46,7 @@ func createRouter() spec.Generator {
 		),
 		option.WithSecurity("petstore_auth", option.SecurityOAuth2(
 			openapi.OAuthFlows{
-				Implicit: &openapi.OAuthFlowsImplicit{
+				Implicit: &openapi.OAuthFlow{
 					AuthorizationURL: "https://petstore3.swagger.io/oauth/authorize",
 					Scopes: map[string]string{
 						"write:pets": "modify pets in your account",

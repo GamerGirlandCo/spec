@@ -5,7 +5,11 @@
 PKG           := ./...
 COVERAGE_DIR  := coverage
 COVERAGE_FILE := coverage.out
-ADAPTERS      := chiopenapi echoopenapi fiberopenapi ginopenapi httpopenapi muxopenapi httprouteropenapi echov5openapi fiberv3openapi
+CORE_COV_DIR  := $(COVERAGE_DIR)/core
+ADAPTER_COV_ROOT := $(COVERAGE_DIR)/adapters
+MERGED_COV_DIR := $(COVERAGE_DIR)/merged
+CORE_COV_ABS := $(abspath $(CORE_COV_DIR))
+ADAPTERS      := chiopenapi echoopenapi fiberopenapi ginopenapi httpopenapi muxopenapi echov5openapi fiberv3openapi
 
 # Platform detection for sed compatibility
 # Using an immediately expanded variable for this is good practice.
@@ -24,8 +28,7 @@ BLUE   := \033[0;34m
 NC     := \033[0m # No Color
 
 # Tool versions
-GOLANGCI_LINT_VERSION := v2.11.4
-GOTESTSUM_VERSION     := v1.12.3
+GOLANGCI_LINT_VERSION := v2.12.2
 
 # Normalize VERSION input so targets accept both 1.2.3 and v1.2.3.
 # Pre-release versions are also supported, e.g. 0.4.0-rc.1 or v0.4.0-rc.1.
@@ -49,11 +52,11 @@ help: ## Show this help message
 
 test: ## Run all tests (core + adapters)
 	@echo "$(BLUE)🔍 Running core tests...$(NC)"
-	@gotestsum --format standard-quiet -- $(PKG) || (echo "$(RED)❌ Core tests failed$(NC)" && exit 1)
+	@go test $(PKG) || (echo "$(RED)❌ Core tests failed$(NC)" && exit 1)
 	@echo "$(GREEN)✅ Core tests passed$(NC)"
 	@for a in $(ADAPTERS); do \
 		echo "$(BLUE)🔍 Testing adapter $$a...$(NC)"; \
-		(cd "adapter/$$a" && gotestsum --format standard-quiet -- ./...) || (echo "$(RED)❌ Adapter $$a tests failed$(NC)" && exit 1); \
+		(cd "adapter/$$a" && go test ./...) || (echo "$(RED)❌ Adapter $$a tests failed$(NC)" && exit 1); \
 	done
 	@echo "$(GREEN)🎉 All tests passed!$(NC)"
 
@@ -61,40 +64,48 @@ test-adapter: ## Run tests for all adapters
 	@echo "$(BLUE)🔍 Running tests for all adapters...$(NC)"
 	@for a in $(ADAPTERS); do \
 		echo "$(BLUE)🔍 Testing adapter $$a...$(NC)"; \
-		(cd "adapter/$$a" && gotestsum --format standard-quiet -- ./...) || (echo "$(RED)❌ Adapter $$a tests failed$(NC)" && exit 1); \
+		(cd "adapter/$$a" && go test ./...) || (echo "$(RED)❌ Adapter $$a tests failed$(NC)" && exit 1); \
 	done
 	@echo "$(GREEN)🎉 All adapter tests passed!$(NC)"
 
 test-update: ## Update golden files for tests
 	@echo "$(YELLOW)🔍 Running core tests (updating golden files)...$(NC)"
-	@gotestsum --format standard-quiet -- -update $(PKG) || (echo "$(RED)❌ Core test update failed$(NC)" && exit 1)
+	@go test $(PKG) -args -update || (echo "$(RED)❌ Core test update failed$(NC)" && exit 1)
 	@for a in $(ADAPTERS); do \
 		echo "$(YELLOW)🔍 Updating adapter $$a golden files...$(NC)"; \
-		(cd "adapter/$$a" && gotestsum --format standard-quiet -- -update ./...) || (echo "$(RED)❌ Adapter $$a update failed$(NC)" && exit 1); \
+		(cd "adapter/$$a" && go test ./... -args -update) || (echo "$(RED)❌ Adapter $$a update failed$(NC)" && exit 1); \
 	done
 	@echo "$(GREEN)✅ All golden files updated!$(NC)"
 
-testcov: ## Run tests with coverage and generate reports
-	@echo "$(BLUE)📊 Generating coverage report...$(NC)"
-	@mkdir -p $(COVERAGE_DIR)
-	@gotestsum --format standard-quiet -- -covermode=atomic -coverprofile="$(COVERAGE_DIR)/$(COVERAGE_FILE)" $(PKG)
-
+testcov: ## Run coverage using GOCOVERDIR + covdata (core + adapters)
+	@echo "$(BLUE)📊 Generating unit coverage with GOCOVERDIR...$(NC)"
+	@mkdir -p "$(CORE_COV_DIR)" "$(ADAPTER_COV_ROOT)" "$(MERGED_COV_DIR)"
+	@find "$(CORE_COV_DIR)" -type f -delete
+	@find "$(ADAPTER_COV_ROOT)" -type f -delete
+	@find "$(MERGED_COV_DIR)" -type f -delete
+	@rm -f "$(COVERAGE_DIR)/$(COVERAGE_FILE)"
+	@go test -cover ./... -args -test.gocoverdir="$(CORE_COV_ABS)"
 	@for a in $(ADAPTERS); do \
-		echo "$(BLUE)📈 Adapter $$a coverage:$(NC)"; \
-		(cd "adapter/$$a" && gotestsum --format standard-quiet -- -covermode=atomic -coverprofile="../../$(COVERAGE_DIR)/$$a-$(COVERAGE_FILE)" ./...); \
-		if [ -f $(COVERAGE_DIR)/$$a-$(COVERAGE_FILE) ]; then \
-			tail -n +2 $(COVERAGE_DIR)/$$a-$(COVERAGE_FILE) >> $(COVERAGE_DIR)/coverage.out; \
-		fi; \
+		echo "$(BLUE)📈 Adapter $$a coverage...$(NC)"; \
+		adapter_cov_dir="$(abspath $(ADAPTER_COV_ROOT))/$$a"; \
+		mkdir -p "$$adapter_cov_dir"; \
+		(cd "adapter/$$a" && go test -cover ./... -args -test.gocoverdir="$$adapter_cov_dir"); \
 	done
-
-	@echo "$(BLUE)📊 Combined coverage report saved to $(COVERAGE_DIR)/$(COVERAGE_FILE)$(NC)"
+	@merge_inputs="$(CORE_COV_DIR)"; \
+	for a in $(ADAPTERS); do \
+		merge_inputs="$$merge_inputs,$(ADAPTER_COV_ROOT)/$$a"; \
+	done; \
+	go tool covdata merge -i="$$merge_inputs" -o="$(MERGED_COV_DIR)"
+	@go tool covdata percent -i="$(MERGED_COV_DIR)"
+	@go tool covdata textfmt -i="$(MERGED_COV_DIR)" -o="$(COVERAGE_DIR)/$(COVERAGE_FILE)"
+	@echo "$(GREEN)✅ Coverage profile written to $(COVERAGE_DIR)/$(COVERAGE_FILE)$(NC)"
 	@go tool cover -func="$(COVERAGE_DIR)/$(COVERAGE_FILE)"
 
 testcov-html: testcov ## Generate HTML coverage reports
 	@echo "$(BLUE)🌐 Generating HTML coverage reports...$(NC)"
-	@go tool cover -html="coverage/$(COVERAGE_FILE)" -o "coverage/coverage.html"
+	@go tool cover -html="$(COVERAGE_DIR)/$(COVERAGE_FILE)" -o "$(COVERAGE_DIR)/coverage.html"
 	@echo "$(GREEN)✅ HTML coverage reports generated!$(NC)"
-	@open coverage/coverage.html
+	@open "$(COVERAGE_DIR)/coverage.html"
 
 tidy: ## Tidy up Go modules for core and adapters
 	@echo "$(BLUE)🧹 Tidying core...$(NC)"
@@ -125,17 +136,26 @@ lint: ## Run linting
 	@echo "$(GREEN)✅ Core linting passed$(NC)"
 	@for a in $(ADAPTERS); do \
 		echo "$(BLUE)🔍 Linting adapter/$$a...$(NC)"; \
-		golangci-lint run ./adapter/$$a/... || \
+		(cd "adapter/$$a" && golangci-lint run ./...) || \
 			(echo "$(RED)❌ Adapter $$a linting failed$(NC)" && exit 1); \
 	done
 	@echo "$(GREEN)🎉 All linting passed!$(NC)"
+
+lint-fix: ## Run linting with auto-fix
+	@echo "$(BLUE)🔧 Running golangci-lint with auto-fix...$(NC)"
+	@golangci-lint run --fix || (echo "$(RED)❌ Lint fix failed$(NC)" && exit 1)
+	@for a in $(ADAPTERS); do \
+		echo "$(BLUE)🔧 Auto-fixing adapter/$$a...$(NC)"; \
+		(cd "adapter/$$a" && golangci-lint run --fix ./...) || \
+			(echo "$(RED)❌ Adapter $$a lint-fix failed$(NC)" && exit 1); \
+	done
+	@echo "$(GREEN)✅ Lint fixes applied!$(NC)"
 
 check: sync tidy lint test ## Run all local development checks
 	@echo "$(GREEN)🎉 All local development checks passed!$(NC)"
 
 install-tools: ## Install development tools
 	@echo "$(BLUE)📦 Installing development tools...$(NC)"
-	@go install gotest.tools/gotestsum@$(GOTESTSUM_VERSION)
 	@go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 	@echo "$(GREEN)✅ Tools installed successfully!$(NC)"
 

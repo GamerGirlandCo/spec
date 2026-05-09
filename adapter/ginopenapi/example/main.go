@@ -4,8 +4,10 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
-	"github.com/oaswrap/spec/adapter/ginopenapi"
+
 	"github.com/oaswrap/spec/option"
+
+	"github.com/oaswrap/spec/adapter/ginopenapi"
 )
 
 func main() {

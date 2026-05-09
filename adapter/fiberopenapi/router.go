@@ -3,13 +3,15 @@ package fiberopenapi
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
+
 	"github.com/oaswrap/spec"
 	specui "github.com/oaswrap/spec-ui"
-	"github.com/oaswrap/spec/adapter/fiberopenapi/internal/constant"
 	"github.com/oaswrap/spec/openapi"
 	"github.com/oaswrap/spec/option"
 	"github.com/oaswrap/spec/pkg/mapper"
 	"github.com/oaswrap/spec/pkg/parser"
+
+	"github.com/oaswrap/spec/adapter/fiberopenapi/internal/constant"
 )
 
 // NewGenerator creates a new OpenAPI generator with the specified Fiber router and options.
@@ -112,8 +114,8 @@ func (r *router) Add(method, path string, handler ...fiber.Handler) Route {
 	fr := r.fiberRouter.Add(method, path, handler...)
 	route := &route{fr: fr}
 
-	if method == fiber.MethodConnect {
-		// CONNECT method is not supported by OpenAPI, so we skip it
+	if method == fiber.MethodConnect && r.gen.Config().OpenAPIVersion != openapi.Version320 {
+		// CONNECT requires OpenAPI 3.2, so older specs skip it
 		return route
 	}
 	route.sr = r.specRouter.Add(method, path)

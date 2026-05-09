@@ -12,7 +12,7 @@ A lightweight adapter for the [gorilla/mux](https://pkg.go.dev/github.com/gorill
 - **🎯 Type Safety** — Full Go type safety for OpenAPI configuration
 - **🔧 Multiple UI Options** — Swagger UI, Stoplight Elements, ReDoc, Scalar or RapiDoc served automatically at `/docs`
 - **📄 YAML Export** — OpenAPI spec available at `/docs/openapi.yaml`
-- **🚀 Zero Overhead** — Minimal performance impact on your API
+- **🚀 Low Overhead** — Minimal runtime work beyond route registration and docs serving
 
 ## Installation
 
@@ -141,7 +141,7 @@ When you create a muxopenapi router, the following endpoints are automatically a
 If you want to disable the built-in UI, you can do so by passing `option.WithDisableDocs()` when creating the router:
 
 ```go
-r := muxopenapi.NewRouter(c,
+r := muxopenapi.NewRouter(mux,
     option.WithTitle("My API"),
     option.WithVersion("1.0.0"),
     option.WithDisableDocs(),
@@ -158,7 +158,7 @@ Choose from multiple UI options, powered by [`oaswrap/spec-ui`](https://github.c
 - **RapiDoc** — Highly customizable
 
 ```go
-r := muxopenapi.NewRouter(c,
+r := muxopenapi.NewRouter(mux,
 	option.WithTitle("My API"),
 	option.WithVersion("1.0.0"),
 	option.WithScalar(), // Use Scalar as the documentation UI
@@ -193,7 +193,7 @@ type CreateProductRequest struct {
 }
 ```
 
-For more struct tag options, see the [swaggest/openapi-go](https://github.com/swaggest/openapi-go?tab=readme-ov-file#features).
+Supported tags are implemented by oaswrap/spec directly. Common request tags include `json`, `form`, `path`, `query`, `header`, and `cookie`; common schema tags include `description`, `format`, `default`, `example`, `enum`, `minimum`, `maximum`, `minLength`, `maxLength`, `minItems`, `maxItems`, `nullable`, `deprecated`, `readOnly`, and `writeOnly`. See the root [Reflection Tags](../../README.md#reflection-tags) section for the complete list.
 
 ## Example
 
@@ -204,7 +204,7 @@ Check out the [examples directory](/adapter/muxopenapi/example) for more complet
 1. **Organize with Tags** — Group related operations using `option.Tags()`
 2. **Document Everything** — Use `option.Summary()` and `option.Description()` for all routes
 3. **Define Error Responses** — Include common error responses (400, 401, 404, 500)
-4. **Use Validation Tags** — Leverage struct tags for request validation documentation
+4. **Document Schema Constraints** — Use reflection tags to describe OpenAPI schema constraints; keep runtime validation in handlers or middleware
 5. **Security First** — Define and apply appropriate security schemes
 6. **Version Your API** — Use route groups for API versioning (`/api/v1`, `/api/v2`)
 

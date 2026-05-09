@@ -2,25 +2,23 @@ package httpopenapi_test
 
 import (
 	"encoding/json"
-	"flag"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
-	stoplightemb "github.com/oaswrap/spec-ui/stoplightemb"
-	"github.com/oaswrap/spec/adapter/httpopenapi"
-	"github.com/oaswrap/spec/openapi"
-	"github.com/oaswrap/spec/option"
-	"github.com/oaswrap/spec/pkg/dto"
-	"github.com/oaswrap/spec/pkg/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-)
 
-//nolint:gochecknoglobals // test flag for golden file updates
-var update = flag.Bool("update", false, "update golden files")
+	stoplightemb "github.com/oaswrap/spec-ui/stoplightemb"
+	"github.com/oaswrap/spec/internal/testutil"
+	"github.com/oaswrap/spec/internal/testutil/dto"
+	"github.com/oaswrap/spec/openapi"
+	"github.com/oaswrap/spec/option"
+
+	"github.com/oaswrap/spec/adapter/httpopenapi"
+)
 
 func TestRouter_Spec(t *testing.T) {
 	tests := []struct {
@@ -70,7 +68,7 @@ func TestRouter_Spec(t *testing.T) {
 				),
 				option.WithSecurity("petstore_auth", option.SecurityOAuth2(
 					openapi.OAuthFlows{
-						Implicit: &openapi.OAuthFlowsImplicit{
+						Implicit: &openapi.OAuthFlow{
 							AuthorizationURL: "https://petstore3.swagger.io/oauth/authorize",
 							Scopes: map[string]string{
 								"write:pets": "modify pets in your account",
@@ -205,6 +203,23 @@ func TestRouter_Spec(t *testing.T) {
 					option.Response(200, new(dto.PetUser)),
 					option.Response(404, nil),
 				)
+				user.HandleFunc("GET /login", nil).With(
+					option.OperationID("loginUser"),
+					option.Summary("Logs user into the system"),
+					option.Description("Logs user into the system."),
+					option.Request(new(struct {
+						Username string `query:"username"`
+						Password string `query:"password"`
+					})),
+					option.Response(200, new(string)),
+					option.Response(400, nil),
+				)
+				user.HandleFunc("GET /logout", nil).With(
+					option.OperationID("logoutUser"),
+					option.Summary("Logs out current logged in user session"),
+					option.Description("Logs out current logged in user session."),
+					option.Response(200, nil),
+				)
 				user.HandleFunc("PUT /{username}", nil).With(
 					option.OperationID("updateUser"),
 					option.Summary("Update an existing user"),
@@ -239,7 +254,6 @@ func TestRouter_Spec(t *testing.T) {
 				option.WithVersion("1.0.0"),
 				option.WithDescription("This is a test API for " + tt.name),
 				option.WithReflectorConfig(
-					option.RequiredPropByValidateTag(),
 					option.StripDefNamePrefix("GinopenapiTest"),
 				),
 			}
@@ -264,18 +278,7 @@ func TestRouter_Spec(t *testing.T) {
 			schema, err := r.GenerateSchema()
 
 			require.NoError(t, err, "failed to generate OpenAPI schema")
-			golden := filepath.Join("testdata", tt.golden+".yaml")
-
-			if *update {
-				err = r.WriteSchemaTo(golden)
-				require.NoError(t, err, "failed to write golden file")
-				t.Logf("Updated golden file: %s", golden)
-			}
-
-			want, err := os.ReadFile(golden)
-			require.NoError(t, err, "failed to read golden file %s", golden)
-
-			testutil.EqualYAML(t, want, schema)
+			testutil.AssertGolden(t, schema, filepath.Join("testdata", tt.golden+".yaml"))
 		})
 	}
 }
@@ -491,7 +494,7 @@ func TestGenerator_Docs(t *testing.T) {
 		assert.Equal(t, http.StatusOK, docsFileRec.Code)
 		assert.NotEmpty(t, docsFileRec.Body.String())
 		assert.Contains(t, docsFileRec.Header().Get("Content-Type"), "application/x-yaml")
-		assert.Contains(t, docsFileRec.Body.String(), "openapi: 3.0.3")
+		assert.Contains(t, docsFileRec.Body.String(), "openapi: 3.0.4")
 	})
 }
 
@@ -587,4 +590,18 @@ func TestGenerator_WriteSchemaTo(t *testing.T) {
 
 	assert.NotEmpty(t, schemaData, "expected non-empty schema data")
 	assert.Contains(t, string(schemaData), "operationId: pingHandler", "expected operationId in written schema")
+}
+
+func TestRouter_ServeHTTP(t *testing.T) {
+	mux := http.NewServeMux()
+	r := httpopenapi.NewRouter(mux)
+
+	r.HandleFunc("GET /ping", pingHandler).With(option.OperationID("pingHandler"))
+
+	req := httptest.NewRequest(http.MethodGet, "/ping", nil)
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Contains(t, rec.Body.String(), "pong")
 }

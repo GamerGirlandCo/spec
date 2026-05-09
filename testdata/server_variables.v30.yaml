@@ -1,0 +1,20 @@
+openapi: 3.0.4
+info:
+  title: Server Var API
+  version: 1.0.0
+servers:
+  - url: https://{environment}.example.com/v1
+    variables:
+      environment:
+        enum:
+          - production
+          - staging
+          - dev
+        default: production
+        description: API environment
+paths:
+  /ping:
+    get:
+      responses:
+        "204":
+          description: No Content

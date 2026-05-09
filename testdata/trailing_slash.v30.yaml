@@ -1,0 +1,10 @@
+openapi: 3.0.4
+info:
+  title: API Documentation
+  version: 1.0.0
+paths:
+  /ping:
+    get:
+      responses:
+        "204":
+          description: No Content

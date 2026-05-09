@@ -1,0 +1,26 @@
+openapi: 3.0.4
+info:
+  title: Users API
+  description: User account operations.
+  termsOfService: https://example.com/terms
+  contact:
+    name: API Team
+    email: api@example.com
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.2.3
+servers:
+  - url: https://api.example.com
+externalDocs:
+  description: API documentation
+  url: https://docs.example.com
+tags:
+  - name: users
+    description: User operations
+paths:
+  /ping:
+    get:
+      responses:
+        "204":
+          description: No Content

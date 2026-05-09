@@ -1,7 +1,6 @@
 package echoopenapi_test
 
 import (
-	"flag"
 	"fmt"
 	"net/http/httptest"
 	"os"
@@ -10,18 +9,17 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
-	stoplightemb "github.com/oaswrap/spec-ui/stoplightemb"
-	"github.com/oaswrap/spec/adapter/echoopenapi"
-	"github.com/oaswrap/spec/openapi"
-	"github.com/oaswrap/spec/option"
-	"github.com/oaswrap/spec/pkg/dto"
-	"github.com/oaswrap/spec/pkg/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-)
 
-//nolint:gochecknoglobals // test flag for golden file updates
-var update = flag.Bool("update", false, "update golden files")
+	stoplightemb "github.com/oaswrap/spec-ui/stoplightemb"
+	"github.com/oaswrap/spec/internal/testutil"
+	"github.com/oaswrap/spec/internal/testutil/dto"
+	"github.com/oaswrap/spec/openapi"
+	"github.com/oaswrap/spec/option"
+
+	"github.com/oaswrap/spec/adapter/echoopenapi"
+)
 
 type HelloRequest struct {
 	Name string `json:"name" query:"name"`
@@ -134,7 +132,7 @@ func TestRouter_Spec(t *testing.T) {
 				),
 				option.WithSecurity("petstore_auth", option.SecurityOAuth2(
 					openapi.OAuthFlows{
-						Implicit: &openapi.OAuthFlowsImplicit{
+						Implicit: &openapi.OAuthFlow{
 							AuthorizationURL: "https://petstore3.swagger.io/oauth/authorize",
 							Scopes: map[string]string{
 								"write:pets": "modify pets in your account",
@@ -182,14 +180,14 @@ func TestRouter_Spec(t *testing.T) {
 					})),
 					option.Response(200, new([]dto.Pet)),
 				)
-				pet.POST("/{petId}/uploadImage", nil).With(
+				pet.POST("/:petId/uploadImage", nil).With(
 					option.OperationID("uploadFile"),
 					option.Summary("Upload an image for a pet"),
 					option.Description("Uploads an image for a pet."),
 					option.Request(new(dto.UploadImageRequest)),
 					option.Response(200, new(dto.APIResponse)),
 				)
-				pet.GET("/{petId}", nil).With(
+				pet.GET("/:petId", nil).With(
 					option.OperationID("getPetById"),
 					option.Summary("Get pet by ID"),
 					option.Description("Retrieve a pet by its ID."),
@@ -198,14 +196,14 @@ func TestRouter_Spec(t *testing.T) {
 					})),
 					option.Response(200, new(dto.Pet)),
 				)
-				pet.POST("/{petId}", nil).With(
+				pet.POST("/:petId", nil).With(
 					option.OperationID("updatePetWithForm"),
 					option.Summary("Update pet with form"),
 					option.Description("Updates a pet in the store with form data."),
 					option.Request(new(dto.UpdatePetWithFormRequest)),
 					option.Response(200, nil),
 				)
-				pet.DELETE("/{petId}", nil).With(
+				pet.DELETE("/:petId", nil).With(
 					option.OperationID("deletePet"),
 					option.Summary("Delete a pet"),
 					option.Description("Delete a pet from the store by its ID."),
@@ -222,7 +220,7 @@ func TestRouter_Spec(t *testing.T) {
 					option.Request(new(dto.Order)),
 					option.Response(201, new(dto.Order)),
 				)
-				store.GET("/order/{orderId}", nil).With(
+				store.GET("/order/:orderId", nil).With(
 					option.OperationID("getOrderById"),
 					option.Summary("Get order by ID"),
 					option.Description("Retrieve an order by its ID."),
@@ -232,7 +230,7 @@ func TestRouter_Spec(t *testing.T) {
 					option.Response(200, new(dto.Order)),
 					option.Response(404, nil),
 				)
-				store.DELETE("/order/{orderId}", nil).With(
+				store.DELETE("/order/:orderId", nil).With(
 					option.OperationID("deleteOrder"),
 					option.Summary("Delete an order"),
 					option.Description("Delete an order by its ID."),
@@ -259,7 +257,7 @@ func TestRouter_Spec(t *testing.T) {
 					option.Request(new(dto.PetUser)),
 					option.Response(201, new(dto.PetUser)),
 				)
-				user.GET("/{username}", nil).With(
+				user.GET("/:username", nil).With(
 					option.OperationID("getUserByName"),
 					option.Summary("Get user by username"),
 					option.Description("Retrieve a user by their username."),
@@ -269,7 +267,7 @@ func TestRouter_Spec(t *testing.T) {
 					option.Response(200, new(dto.PetUser)),
 					option.Response(404, nil),
 				)
-				user.PUT("/{username}", nil).With(
+				user.PUT("/:username", nil).With(
 					option.OperationID("updateUser"),
 					option.Summary("Update an existing user"),
 					option.Description("Update the details of an existing user."),
@@ -281,7 +279,7 @@ func TestRouter_Spec(t *testing.T) {
 					option.Response(200, new(dto.PetUser)),
 					option.Response(404, nil),
 				)
-				user.DELETE("/{username}", nil).With(
+				user.DELETE("/:username", nil).With(
 					option.OperationID("deleteUser"),
 					option.Summary("Delete a user"),
 					option.Description("Delete a user from the store by their username."),
@@ -297,7 +295,10 @@ func TestRouter_Spec(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := echo.New()
-			r := echoopenapi.NewRouter(e, tt.opts...)
+			opts := append([]option.OpenAPIOption{
+				option.WithOpenAPIVersion("3.0.3"),
+			}, tt.opts...)
+			r := echoopenapi.NewRouter(e, opts...)
 			tt.setup(r)
 
 			err := r.Validate()
@@ -309,19 +310,9 @@ func TestRouter_Spec(t *testing.T) {
 
 			// Test the OpenAPI schema generation
 			schema, err := r.GenerateSchema()
-			require.NoError(t, err, "failed to generate schema")
 
-			golden := filepath.Join("testdata", tt.golden+".yaml")
-			if *update {
-				err = r.WriteSchemaTo(golden)
-				require.NoError(t, err, "failed to write golden file")
-				t.Logf("Updated golden file: %s", golden)
-			}
-
-			want, err := os.ReadFile(golden)
-			require.NoError(t, err, "failed to read golden file %s", golden)
-
-			testutil.EqualYAML(t, want, schema)
+			require.NoError(t, err, "failed to generate OpenAPI schema")
+			testutil.AssertGolden(t, schema, filepath.Join("testdata", tt.golden+".yaml"))
 		})
 	}
 }

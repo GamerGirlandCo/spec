@@ -2,7 +2,6 @@ package chiopenapi_test
 
 import (
 	"encoding/json"
-	"flag"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -10,18 +9,17 @@ import (
 	"testing"
 
 	"github.com/go-chi/chi/v5"
-	stoplightemb "github.com/oaswrap/spec-ui/stoplightemb"
-	"github.com/oaswrap/spec/adapter/chiopenapi"
-	"github.com/oaswrap/spec/openapi"
-	"github.com/oaswrap/spec/option"
-	"github.com/oaswrap/spec/pkg/dto"
-	"github.com/oaswrap/spec/pkg/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-)
 
-//nolint:gochecknoglobals // test flag for golden file updates
-var update = flag.Bool("update", false, "update golden files")
+	stoplightemb "github.com/oaswrap/spec-ui/stoplightemb"
+	"github.com/oaswrap/spec/internal/testutil"
+	"github.com/oaswrap/spec/internal/testutil/dto"
+	"github.com/oaswrap/spec/openapi"
+	"github.com/oaswrap/spec/option"
+
+	"github.com/oaswrap/spec/adapter/chiopenapi"
+)
 
 func TestRouter_Spec(t *testing.T) {
 	tests := []struct {
@@ -71,7 +69,7 @@ func TestRouter_Spec(t *testing.T) {
 				),
 				option.WithSecurity("petstore_auth", option.SecurityOAuth2(
 					openapi.OAuthFlows{
-						Implicit: &openapi.OAuthFlowsImplicit{
+						Implicit: &openapi.OAuthFlow{
 							AuthorizationURL: "https://petstore3.swagger.io/oauth/authorize",
 							Scopes: map[string]string{
 								"write:pets": "modify pets in your account",
@@ -204,6 +202,23 @@ func TestRouter_Spec(t *testing.T) {
 						option.Response(200, new(dto.PetUser)),
 						option.Response(404, nil),
 					)
+					r.Get("/login", nil).With(
+						option.OperationID("loginUser"),
+						option.Summary("Logs user into the system"),
+						option.Description("Logs user into the system."),
+						option.Request(new(struct {
+							Username string `query:"username"`
+							Password string `query:"password"`
+						})),
+						option.Response(200, new(string)),
+						option.Response(400, nil),
+					)
+					r.Get("/logout", nil).With(
+						option.OperationID("logoutUser"),
+						option.Summary("Logs out current logged in user session"),
+						option.Description("Logs out current logged in user session."),
+						option.Response(200, nil),
+					)
 					r.Put("/{username}", nil).With(
 						option.OperationID("updateUser"),
 						option.Summary("Update an existing user"),
@@ -239,7 +254,6 @@ func TestRouter_Spec(t *testing.T) {
 				option.WithVersion("1.0.0"),
 				option.WithDescription("This is a test API for " + tt.name),
 				option.WithReflectorConfig(
-					option.RequiredPropByValidateTag(),
 					option.StripDefNamePrefix("GinopenapiTest"),
 				),
 			}
@@ -264,18 +278,7 @@ func TestRouter_Spec(t *testing.T) {
 			schema, err := r.GenerateSchema()
 
 			require.NoError(t, err, "failed to generate OpenAPI schema")
-			golden := filepath.Join("testdata", tt.golden+".yaml")
-
-			if *update {
-				err = r.WriteSchemaTo(golden)
-				require.NoError(t, err, "failed to write golden file")
-				t.Logf("Updated golden file: %s", golden)
-			}
-
-			want, err := os.ReadFile(golden)
-			require.NoError(t, err, "failed to read golden file %s", golden)
-
-			testutil.EqualYAML(t, want, schema)
+			testutil.AssertGolden(t, schema, filepath.Join("testdata", tt.golden+".yaml"))
 		})
 	}
 }
@@ -572,7 +575,7 @@ func TestGenerator_Docs(t *testing.T) {
 		rr := httptest.NewRecorder()
 		c.ServeHTTP(rr, req)
 		assert.Equal(t, http.StatusOK, rr.Code, "expected status OK for /docs/openapi.yaml route")
-		assert.Contains(t, rr.Body.String(), "openapi: 3.0.3", "expected response body to contain 'openapi: 3.0.3'")
+		assert.Contains(t, rr.Body.String(), "openapi: 3.0.4", "expected response body to contain 'openapi: 3.0.4'")
 	})
 }
 
@@ -628,7 +631,7 @@ func TestGenerator_MarshalJSON(t *testing.T) {
 	schema, err := r.MarshalJSON()
 	require.NoError(t, err, "failed to marshal OpenAPI schema to JSON")
 	assert.NotEmpty(t, schema, "expected non-empty OpenAPI schema JSON")
-	assert.Contains(t, string(schema), `"openapi": "3.0.3"`, "expected OpenAPI version in schema JSON")
+	assert.Contains(t, string(schema), `"openapi": "3.0.4"`, "expected OpenAPI version in schema JSON")
 	assert.Contains(t, string(schema), `"title": "Chi OpenAPI"`, "expected title in schema JSON")
 }
 
@@ -647,7 +650,7 @@ func TestGenerator_MarshalYAML(t *testing.T) {
 	schema, err := r.MarshalYAML()
 	require.NoError(t, err, "failed to marshal OpenAPI schema to YAML")
 	assert.NotEmpty(t, schema, "expected non-empty OpenAPI schema YAML")
-	assert.Contains(t, string(schema), "openapi: 3.0.3", "expected OpenAPI version in schema YAML")
+	assert.Contains(t, string(schema), "openapi: 3.0.4", "expected OpenAPI version in schema YAML")
 	assert.Contains(t, string(schema), "title: Chi OpenAPI", "expected title in schema YAML")
 }
 
@@ -671,6 +674,6 @@ func TestGenerator_WriteSchemaTo(t *testing.T) {
 	schema, err := os.ReadFile(goldenPath)
 	require.NoError(t, err, "failed to read OpenAPI schema file")
 	assert.NotEmpty(t, schema, "expected non-empty OpenAPI schema file")
-	assert.Contains(t, string(schema), "openapi: 3.0.3", "expected OpenAPI version in schema file")
+	assert.Contains(t, string(schema), "openapi: 3.0.4", "expected OpenAPI version in schema file")
 	assert.Contains(t, string(schema), "title: Chi OpenAPI", "expected title in schema file")
 }

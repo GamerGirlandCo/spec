@@ -4,13 +4,15 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
 	"github.com/oaswrap/spec"
 	specui "github.com/oaswrap/spec-ui"
-	"github.com/oaswrap/spec/adapter/ginopenapi/internal/constant"
 	"github.com/oaswrap/spec/openapi"
 	"github.com/oaswrap/spec/option"
 	"github.com/oaswrap/spec/pkg/mapper"
 	"github.com/oaswrap/spec/pkg/parser"
+
+	"github.com/oaswrap/spec/adapter/ginopenapi/internal/constant"
 )
 
 // NewGenerator returns a new OpenAPI generator for Gin.
@@ -73,8 +75,8 @@ func (r *router) Handle(method string, path string, handlers ...gin.HandlerFunc)
 	gr := r.ginRouter.Handle(method, path, handlers...)
 	route := &route{ginRoute: gr}
 
-	if method == http.MethodConnect {
-		// CONNECT method is not supported by OpenAPI, so we skip it
+	if method == http.MethodConnect && r.gen.Config().OpenAPIVersion != openapi.Version320 {
+		// CONNECT requires OpenAPI 3.2, so older specs skip it
 		return route
 	}
 	route.specRoute = r.specRouter.Add(method, path)

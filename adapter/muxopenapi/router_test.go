@@ -2,26 +2,25 @@ package muxopenapi_test
 
 import (
 	"encoding/json"
-	"flag"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/gorilla/mux"
-	stoplightemb "github.com/oaswrap/spec-ui/stoplightemb"
-	"github.com/oaswrap/spec/adapter/muxopenapi"
-	"github.com/oaswrap/spec/openapi"
-	"github.com/oaswrap/spec/option"
-	"github.com/oaswrap/spec/pkg/dto"
-	"github.com/oaswrap/spec/pkg/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-)
 
-//nolint:gochecknoglobals // test flag for golden file updates
-var update = flag.Bool("update", false, "update golden files")
+	stoplightemb "github.com/oaswrap/spec-ui/stoplightemb"
+	"github.com/oaswrap/spec/internal/testutil"
+	"github.com/oaswrap/spec/internal/testutil/dto"
+	"github.com/oaswrap/spec/openapi"
+	"github.com/oaswrap/spec/option"
+
+	"github.com/oaswrap/spec/adapter/muxopenapi"
+)
 
 func TestRouter_Spec(t *testing.T) {
 	tests := []struct {
@@ -71,7 +70,7 @@ func TestRouter_Spec(t *testing.T) {
 				),
 				option.WithSecurity("petstore_auth", option.SecurityOAuth2(
 					openapi.OAuthFlows{
-						Implicit: &openapi.OAuthFlowsImplicit{
+						Implicit: &openapi.OAuthFlow{
 							AuthorizationURL: "https://petstore3.swagger.io/oauth/authorize",
 							Scopes: map[string]string{
 								"write:pets": "modify pets in your account",
@@ -88,7 +87,7 @@ func TestRouter_Spec(t *testing.T) {
 					option.GroupTags("pet"),
 					option.GroupSecurity("petstore_auth", "write:pets", "read:pets"),
 				)
-				pet.HandleFunc("/", nil).Methods("GET").With(
+				pet.HandleFunc("/", nil).Methods("PUT").With(
 					option.OperationID("updatePet"),
 					option.Summary("Update an existing pet"),
 					option.Description("Update the details of an existing pet in the store."),
@@ -208,6 +207,23 @@ func TestRouter_Spec(t *testing.T) {
 					option.Response(200, new(dto.PetUser)),
 					option.Response(404, nil),
 				)
+				user.HandleFunc("/login", nil).Methods("GET").With(
+					option.OperationID("loginUser"),
+					option.Summary("Logs user into the system"),
+					option.Description("Logs user into the system."),
+					option.Request(new(struct {
+						Username string `query:"username"`
+						Password string `query:"password"`
+					})),
+					option.Response(200, new(string)),
+					option.Response(400, nil),
+				)
+				user.HandleFunc("/logout", nil).Methods("GET").With(
+					option.OperationID("logoutUser"),
+					option.Summary("Logs out current logged in user session"),
+					option.Description("Logs out current logged in user session."),
+					option.Response(200, nil),
+				)
 				user.HandleFunc("/{username}", nil).Methods("PUT").With(
 					option.OperationID("updateUser"),
 					option.Summary("Update an existing user"),
@@ -242,7 +258,6 @@ func TestRouter_Spec(t *testing.T) {
 				option.WithVersion("1.0.0"),
 				option.WithDescription("This is a test API for " + tt.name),
 				option.WithReflectorConfig(
-					option.RequiredPropByValidateTag(),
 					option.StripDefNamePrefix("GinopenapiTest"),
 				),
 			}
@@ -267,18 +282,7 @@ func TestRouter_Spec(t *testing.T) {
 			schema, err := r.GenerateSchema()
 
 			require.NoError(t, err, "failed to generate OpenAPI schema")
-			golden := filepath.Join("testdata", tt.golden+".yaml")
-
-			if *update {
-				err = r.WriteSchemaTo(golden)
-				require.NoError(t, err, "failed to write golden file")
-				t.Logf("Updated golden file: %s", golden)
-			}
-
-			want, err := os.ReadFile(golden)
-			require.NoError(t, err, "failed to read golden file %s", golden)
-
-			testutil.EqualYAML(t, want, schema)
+			testutil.AssertGolden(t, schema, filepath.Join("testdata", tt.golden+".yaml"))
 		})
 	}
 }
@@ -325,6 +329,29 @@ func TestRouter_HandleFunc(t *testing.T) {
 			assert.Contains(t, string(schema), "/ping")
 		})
 	}
+}
+
+func TestRoute_HostSchemesSkipClean(t *testing.T) {
+	m := mux.NewRouter()
+	r := muxopenapi.NewRouter(m)
+
+	route := r.NewRoute().
+		Host("example.com").
+		Schemes("https").
+		Path("/ping").
+		Methods(http.MethodGet).
+		HandlerFunc(PingHandler).
+		Name("ping")
+
+	assert.False(t, route.SkipClean())
+	assert.Equal(t, "ping", route.GetName())
+
+	req := httptest.NewRequest(http.MethodGet, "https://example.com/ping", nil)
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.JSONEq(t, `{"message":"pong"}`, rec.Body.String())
 }
 
 func TestRouter_Handle(t *testing.T) {
@@ -524,7 +551,9 @@ func TestGenerator_Assets(t *testing.T) {
 	m := mux.NewRouter()
 	r := muxopenapi.NewRouter(m, option.WithUIOption(stoplightemb.WithUI()))
 
-	r.HandleFunc("/ping", PingHandler).Methods("GET").With(
+	r.HandleFunc("/ping", func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]string{"message": "pong"})
+	}).Methods("GET").With(
 		option.OperationID("pingHandler"),
 	)
 
@@ -602,5 +631,8 @@ func TestGenerator_WriteSchemaTo(t *testing.T) {
 	want, err := os.ReadFile(filePath)
 	require.NoError(t, err, "failed to read schema from file")
 
-	testutil.EqualYAML(t, want, schema)
+	diff := cmp.Diff(string(want), string(schema))
+	if diff != "" {
+		t.Errorf("OpenAPI schema mismatch (-want +got):\n%s", diff)
+	}
 }

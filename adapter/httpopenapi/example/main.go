@@ -6,8 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/oaswrap/spec/adapter/httpopenapi"
 	"github.com/oaswrap/spec/option"
+
+	"github.com/oaswrap/spec/adapter/httpopenapi"
 )
 
 func main() {

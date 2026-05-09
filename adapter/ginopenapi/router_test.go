@@ -1,7 +1,6 @@
 package ginopenapi_test
 
 import (
-	"flag"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -9,18 +8,17 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	stoplightemb "github.com/oaswrap/spec-ui/stoplightemb"
-	"github.com/oaswrap/spec/adapter/ginopenapi"
-	"github.com/oaswrap/spec/openapi"
-	"github.com/oaswrap/spec/option"
-	"github.com/oaswrap/spec/pkg/dto"
-	"github.com/oaswrap/spec/pkg/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-)
 
-//nolint:gochecknoglobals // test flag for golden file updates
-var update = flag.Bool("update", false, "update golden files")
+	stoplightemb "github.com/oaswrap/spec-ui/stoplightemb"
+	"github.com/oaswrap/spec/internal/testutil"
+	"github.com/oaswrap/spec/internal/testutil/dto"
+	"github.com/oaswrap/spec/openapi"
+	"github.com/oaswrap/spec/option"
+
+	"github.com/oaswrap/spec/adapter/ginopenapi"
+)
 
 func TestRouter_Spec(t *testing.T) {
 	gin.SetMode(gin.TestMode)
@@ -72,7 +70,7 @@ func TestRouter_Spec(t *testing.T) {
 				),
 				option.WithSecurity("petstore_auth", option.SecurityOAuth2(
 					openapi.OAuthFlows{
-						Implicit: &openapi.OAuthFlowsImplicit{
+						Implicit: &openapi.OAuthFlow{
 							AuthorizationURL: "https://petstore3.swagger.io/oauth/authorize",
 							Scopes: map[string]string{
 								"write:pets": "modify pets in your account",
@@ -241,14 +239,13 @@ func TestRouter_Spec(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			app := gin.Default()
+			app := gin.New()
 			opts := []option.OpenAPIOption{
 				option.WithOpenAPIVersion("3.0.3"),
 				option.WithTitle("Test API " + tt.name),
 				option.WithVersion("1.0.0"),
 				option.WithDescription("This is a test API for " + tt.name),
 				option.WithReflectorConfig(
-					option.RequiredPropByValidateTag(),
 					option.StripDefNamePrefix("GinopenapiTest"),
 				),
 			}
@@ -273,18 +270,7 @@ func TestRouter_Spec(t *testing.T) {
 			schema, err := r.GenerateSchema()
 
 			require.NoError(t, err, "failed to generate OpenAPI schema")
-			golden := filepath.Join("testdata", tt.golden+".yaml")
-
-			if *update {
-				err = r.WriteSchemaTo(golden)
-				require.NoError(t, err, "failed to write golden file")
-				t.Logf("Updated golden file: %s", golden)
-			}
-
-			want, err := os.ReadFile(golden)
-			require.NoError(t, err, "failed to read golden file %s", golden)
-
-			testutil.EqualYAML(t, want, schema)
+			testutil.AssertGolden(t, schema, filepath.Join("testdata", tt.golden+".yaml"))
 		})
 	}
 }
@@ -559,7 +545,7 @@ func TestGenerator_Docs(t *testing.T) {
 			"application/x-yaml",
 			"expected Content-Type to be application/x-yaml",
 		)
-		assert.Contains(t, rec.Body.String(), "openapi: 3.0.3", "expected OpenAPI version in response body")
+		assert.Contains(t, rec.Body.String(), "openapi: 3.0.4", "expected OpenAPI version in response body")
 	})
 }
 

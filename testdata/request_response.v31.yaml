@@ -1,0 +1,43 @@
+openapi: 3.1.2
+info:
+  title: Login API
+  version: 1.0.0
+paths:
+  /login:
+    post:
+      summary: Login
+      description: Login
+      operationId: login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+components:
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        password:
+          type: string
+          writeOnly: true
+        username:
+          type: string
+          minLength: 3
+    LoginResponse:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string

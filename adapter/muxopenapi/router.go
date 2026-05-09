@@ -4,11 +4,13 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+
 	"github.com/oaswrap/spec"
 	specui "github.com/oaswrap/spec-ui"
-	"github.com/oaswrap/spec/adapter/muxopenapi/internal/constant"
 	"github.com/oaswrap/spec/option"
 	"github.com/oaswrap/spec/pkg/mapper"
+
+	"github.com/oaswrap/spec/adapter/muxopenapi/internal/constant"
 )
 
 type router struct {

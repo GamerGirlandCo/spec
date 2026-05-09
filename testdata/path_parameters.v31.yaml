@@ -1,0 +1,36 @@
+openapi: 3.1.2
+info:
+  title: Users API
+  version: 1.0.0
+paths:
+  /users/{id}:
+    get:
+      summary: Get user
+      description: Get user
+      operationId: getUser
+      parameters:
+        - name: id
+          in: path
+          description: User identifier
+          required: true
+          schema:
+            description: User identifier
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+components:
+  schemas:
+    User:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+        name:
+          type: string

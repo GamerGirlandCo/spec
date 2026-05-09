@@ -1,0 +1,25 @@
+openapi: 3.1.2
+info:
+  title: API Documentation
+  version: 1.0.0
+paths:
+  /anonymous:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnonymousStructRequest"
+      responses:
+        "204":
+          description: No Content
+components:
+  schemas:
+    AnonymousStructRequest:
+      type: object
+      properties:
+        foo:
+          type: object
+          properties:
+            bar:
+              type: string

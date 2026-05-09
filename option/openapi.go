@@ -1,8 +1,6 @@
 package option
 
 import (
-	"log" //nolint:depguard // Use standard log package for simplicity.
-
 	specui "github.com/oaswrap/spec-ui"
 	"github.com/oaswrap/spec-ui/config"
 	"github.com/oaswrap/spec-ui/rapidoc"
@@ -11,96 +9,142 @@ import (
 	"github.com/oaswrap/spec-ui/stoplight"
 	"github.com/oaswrap/spec-ui/swaggerui"
 	"github.com/oaswrap/spec/openapi"
-	"github.com/oaswrap/spec/pkg/util"
 )
 
-// OpenAPIOption defines a function that applies configuration to an OpenAPI Config.
+// OpenAPIOption mutates root generator configuration.
 type OpenAPIOption func(*openapi.Config)
 
-// WithOpenAPIConfig creates a new OpenAPI configuration with the provided options.
-// It initializes the configuration with default values and applies the provided options.
+// WithOpenAPIConfig builds config with defaults and applies options in order.
+//
+// Example:
+//
+//	cfg := option.WithOpenAPIConfig(
+//		option.WithOpenAPIVersion(openapi.Version312),
+//		option.WithTitle("Payments API"),
+//		option.WithVersion("1.2.0"),
+//	)
 func WithOpenAPIConfig(opts ...OpenAPIOption) *openapi.Config {
 	cfg := &openapi.Config{
-		OpenAPIVersion: "3.0.3",
+		OpenAPIVersion: openapi.Version304,
 		Title:          "API Documentation",
-		Description:    nil,
-		Logger:         &noopLogger{},
+		Version:        "1.0.0",
 		DocsPath:       "/docs",
 		SpecPath:       "/docs/openapi.yaml",
 	}
-
 	for _, opt := range opts {
 		opt(cfg)
 	}
-
 	return cfg
 }
 
-// WithOpenAPIVersion sets the OpenAPI version for the documentation.
-//
-// The default version is "3.0.3".
-// Supported versions are "3.0.3" and "3.1.0".
+// WithOpenAPIVersion sets the OpenAPI document version.
 func WithOpenAPIVersion(version string) OpenAPIOption {
-	return func(c *openapi.Config) {
-		c.OpenAPIVersion = version
-	}
+	return func(c *openapi.Config) { c.OpenAPIVersion = version }
 }
 
-// WithTitle sets the title for the OpenAPI documentation.
+// WithSelf sets the OpenAPI 3.2.0 `$self` URI reference.
+// It is only valid when `openapi` is `3.2.0`.
+func WithSelf(self string) OpenAPIOption {
+	return func(c *openapi.Config) { c.Self = self }
+}
+
+// WithJSONSchemaDialect sets the root `jsonSchemaDialect`.
+// It is only valid for OpenAPI 3.1.x and 3.2.0.
+func WithJSONSchemaDialect(uri string) OpenAPIOption {
+	return func(c *openapi.Config) { c.JSONSchemaDialect = uri }
+}
+
+// WithTitle sets `info.title`.
 func WithTitle(title string) OpenAPIOption {
-	return func(c *openapi.Config) {
-		c.Title = title
-	}
+	return func(c *openapi.Config) { c.Title = title }
 }
 
-// WithVersion sets the version for the OpenAPI documentation.
+// WithInfoSummary sets `info.summary`.
+func WithInfoSummary(summary string) OpenAPIOption {
+	return func(c *openapi.Config) { c.InfoSummary = summary }
+}
+
+// WithVersion sets `info.version`.
 func WithVersion(version string) OpenAPIOption {
-	return func(c *openapi.Config) {
-		c.Version = version
-	}
+	return func(c *openapi.Config) { c.Version = version }
 }
 
-// WithDescription sets the description for the OpenAPI documentation.
+// WithDescription sets `info.description`.
 func WithDescription(description string) OpenAPIOption {
-	return func(c *openapi.Config) {
-		c.Description = &description
-	}
+	return func(c *openapi.Config) { c.Description = &description }
 }
 
-// WithContact sets the contact information for the OpenAPI documentation.
+// WithContact sets `info.contact`.
 func WithContact(contact openapi.Contact) OpenAPIOption {
-	return func(c *openapi.Config) {
-		c.Contact = &contact
-	}
+	return func(c *openapi.Config) { c.Contact = &contact }
 }
 
-// WithLicense sets the license information for the OpenAPI documentation.
+// WithLicense sets `info.license`.
 func WithLicense(license openapi.License) OpenAPIOption {
-	return func(c *openapi.Config) {
-		c.License = &license
-	}
+	return func(c *openapi.Config) { c.License = &license }
 }
 
-// WithTermsOfService sets the terms of service URL for the OpenAPI documentation.
+// WithTermsOfService sets `info.termsOfService`.
 func WithTermsOfService(terms string) OpenAPIOption {
-	return func(c *openapi.Config) {
-		c.TermsOfService = &terms
-	}
+	return func(c *openapi.Config) { c.TermsOfService = &terms }
 }
 
-// WithTags adds tags to the OpenAPI documentation.
+// WithTags appends root-level tags.
 func WithTags(tags ...openapi.Tag) OpenAPIOption {
+	return func(c *openapi.Config) { c.Tags = append(c.Tags, tags...) }
+}
+
+// TagOption mutates a root-level tag.
+type TagOption func(*openapi.Tag)
+
+// WithTag appends one root-level tag.
+func WithTag(name string, opts ...TagOption) OpenAPIOption {
 	return func(c *openapi.Config) {
-		c.Tags = append(c.Tags, tags...)
+		tag := openapi.Tag{Name: name}
+		for _, opt := range opts {
+			opt(&tag)
+		}
+		c.Tags = append(c.Tags, tag)
 	}
 }
 
-// WithServer adds a server to the OpenAPI documentation.
+// TagSummary sets tag summary.
+func TagSummary(summary string) TagOption {
+	return func(tag *openapi.Tag) { tag.Summary = summary }
+}
+
+// TagDescription sets tag description.
+func TagDescription(description string) TagOption {
+	return func(tag *openapi.Tag) { tag.Description = description }
+}
+
+// TagExternalDocs sets tag external documentation.
+func TagExternalDocs(url string, description ...string) TagOption {
+	return func(tag *openapi.Tag) {
+		docs := &openapi.ExternalDocs{URL: url}
+		if len(description) > 0 {
+			docs.Description = description[0]
+		}
+		tag.ExternalDocs = docs
+	}
+}
+
+// TagParent sets the OpenAPI 3.2.0 tag parent.
+// It is only valid when `openapi` is `3.2.0`.
+func TagParent(parent string) TagOption {
+	return func(tag *openapi.Tag) { tag.Parent = parent }
+}
+
+// TagKind sets the OpenAPI 3.2.0 tag kind.
+// It is only valid when `openapi` is `3.2.0`.
+func TagKind(kind string) TagOption {
+	return func(tag *openapi.Tag) { tag.Kind = kind }
+}
+
+// WithServer appends a root server and applies server options.
 func WithServer(url string, opts ...ServerOption) OpenAPIOption {
 	return func(c *openapi.Config) {
-		server := openapi.Server{
-			URL: url,
-		}
+		server := openapi.Server{URL: url}
 		for _, opt := range opts {
 			opt(&server)
 		}
@@ -108,53 +152,64 @@ func WithServer(url string, opts ...ServerOption) OpenAPIOption {
 	}
 }
 
-// WithExternalDocs sets the external documentation for the OpenAPI documentation.
+// WithExternalDocs sets root `externalDocs`.
 func WithExternalDocs(url string, description ...string) OpenAPIOption {
 	return func(c *openapi.Config) {
-		externalDocs := &openapi.ExternalDocs{
-			URL: url,
-		}
+		docs := &openapi.ExternalDocs{URL: url}
 		if len(description) > 0 {
-			externalDocs.Description = description[0]
+			docs.Description = description[0]
 		}
-		c.ExternalDocs = externalDocs
+		c.ExternalDocs = docs
 	}
 }
 
-// WithSecurity adds a security scheme to the OpenAPI documentation.
+// WithSecurity registers a reusable named security scheme.
 //
-// It can be used to define API key or HTTP Bearer authentication schemes.
+// Example:
+//
+//	r := spec.NewRouter(
+//		option.WithSecurity(
+//			"bearerAuth",
+//			option.SecurityHTTPBearer("bearer"),
+//		),
+//		option.WithGlobalSecurity("bearerAuth"),
+//	)
 func WithSecurity(name string, opts ...SecurityOption) OpenAPIOption {
 	return func(c *openapi.Config) {
-		securityConfig := &securityConfig{}
+		s := &securityConfig{}
 		for _, opt := range opts {
-			opt(securityConfig)
+			opt(s)
 		}
 		if c.SecuritySchemes == nil {
-			c.SecuritySchemes = make(map[string]*openapi.SecurityScheme)
+			c.SecuritySchemes = map[string]*openapi.SecurityScheme{}
 		}
-
-		switch {
-		case securityConfig.APIKey != nil:
-			c.SecuritySchemes[name] = &openapi.SecurityScheme{
-				Description: securityConfig.Description,
-				APIKey:      securityConfig.APIKey,
-			}
-		case securityConfig.HTTPBearer != nil:
-			c.SecuritySchemes[name] = &openapi.SecurityScheme{
-				Description: securityConfig.Description,
-				HTTPBearer:  securityConfig.HTTPBearer,
-			}
-		case securityConfig.Oauth2 != nil:
-			c.SecuritySchemes[name] = &openapi.SecurityScheme{
-				Description: securityConfig.Description,
-				OAuth2:      securityConfig.Oauth2,
-			}
+		scheme := s.scheme
+		if scheme != nil {
+			c.SecuritySchemes[name] = scheme
 		}
 	}
 }
 
-// WithReflectorConfig applies custom configurations to the OpenAPI reflector.
+// WithGlobalSecurity appends root security requirements.
+func WithGlobalSecurity(name string, scopes ...string) OpenAPIOption {
+	return func(c *openapi.Config) {
+		if scopes == nil {
+			scopes = []string{}
+		}
+		c.Security = append(c.Security, openapi.SecurityRequirement{name: scopes})
+	}
+}
+
+// WithReflectorConfig mutates schema reflection settings.
+//
+// Example:
+//
+//	r := spec.NewRouter(
+//		option.WithReflectorConfig(
+//			option.InlineRefs(),
+//			option.ParameterTagMapping(openapi.ParameterInPath, "uri"),
+//		),
+//	)
 func WithReflectorConfig(opts ...ReflectorOption) OpenAPIOption {
 	return func(c *openapi.Config) {
 		if c.ReflectorConfig == nil {
@@ -166,31 +221,169 @@ func WithReflectorConfig(opts ...ReflectorOption) OpenAPIOption {
 	}
 }
 
-// WithDisableDocs disables the OpenAPI documentation.
+// WithStripTrailingSlash toggles trimming of trailing slashes in route paths.
+func WithStripTrailingSlash(strip ...bool) OpenAPIOption {
+	return func(c *openapi.Config) { c.StripTrailingSlash = optional(true, strip...) }
+}
+
+// WithPathParser sets a custom route path parser.
+func WithPathParser(parser openapi.PathParser) OpenAPIOption {
+	return func(c *openapi.Config) { c.PathParser = parser }
+}
+
+// WithDocument applies a low-level mutation after routes and reflected schemas
+// have been added and before validation/serialization.
 //
-// If set to true, the OpenAPI documentation will not be served at the specified path.
-// By default, this is false, meaning the documentation is enabled.
+// Example:
+//
+//	r := spec.NewRouter(
+//		option.WithDocument(func(doc *openapi.Document) {
+//			doc.Extensions = map[string]any{"x-service": "billing"}
+//		}),
+//	)
+func WithDocument(fn func(*openapi.Document)) OpenAPIOption {
+	return func(c *openapi.Config) {
+		if fn != nil {
+			c.DocumentCustomizers = append(c.DocumentCustomizers, fn)
+		}
+	}
+}
+
+// WithComponentSchema registers a reusable schema component.
+func WithComponentSchema(name string, schema *openapi.Schema) OpenAPIOption {
+	return WithDocument(func(doc *openapi.Document) {
+		components := ensureComponents(doc)
+		if components.Schemas == nil {
+			components.Schemas = map[string]*openapi.Schema{}
+		}
+		components.Schemas[name] = schema
+	})
+}
+
+// WithComponentResponse registers a reusable response component.
+func WithComponentResponse(name string, response *openapi.Response) OpenAPIOption {
+	return WithDocument(func(doc *openapi.Document) {
+		components := ensureComponents(doc)
+		if components.Responses == nil {
+			components.Responses = map[string]*openapi.Response{}
+		}
+		components.Responses[name] = response
+	})
+}
+
+// WithComponentParameter registers a reusable parameter component.
+func WithComponentParameter(name string, parameter *openapi.Parameter) OpenAPIOption {
+	return WithDocument(func(doc *openapi.Document) {
+		components := ensureComponents(doc)
+		if components.Parameters == nil {
+			components.Parameters = map[string]*openapi.Parameter{}
+		}
+		components.Parameters[name] = parameter
+	})
+}
+
+// WithComponentExample registers a reusable example component.
+func WithComponentExample(name string, example *openapi.Example) OpenAPIOption {
+	return WithDocument(func(doc *openapi.Document) {
+		components := ensureComponents(doc)
+		if components.Examples == nil {
+			components.Examples = map[string]*openapi.Example{}
+		}
+		components.Examples[name] = example
+	})
+}
+
+// WithComponentRequestBody registers a reusable request body component.
+func WithComponentRequestBody(name string, requestBody *openapi.RequestBody) OpenAPIOption {
+	return WithDocument(func(doc *openapi.Document) {
+		components := ensureComponents(doc)
+		if components.RequestBodies == nil {
+			components.RequestBodies = map[string]*openapi.RequestBody{}
+		}
+		components.RequestBodies[name] = requestBody
+	})
+}
+
+// WithComponentHeader registers a reusable header component.
+func WithComponentHeader(name string, header *openapi.Header) OpenAPIOption {
+	return WithDocument(func(doc *openapi.Document) {
+		components := ensureComponents(doc)
+		if components.Headers == nil {
+			components.Headers = map[string]*openapi.Header{}
+		}
+		components.Headers[name] = header
+	})
+}
+
+// WithComponentSecurityScheme registers a reusable security scheme component.
+func WithComponentSecurityScheme(name string, scheme *openapi.SecurityScheme) OpenAPIOption {
+	return WithDocument(func(doc *openapi.Document) {
+		components := ensureComponents(doc)
+		if components.SecuritySchemes == nil {
+			components.SecuritySchemes = map[string]*openapi.SecurityScheme{}
+		}
+		components.SecuritySchemes[name] = scheme
+	})
+}
+
+// WithComponentLink registers a reusable link component.
+func WithComponentLink(name string, link *openapi.Link) OpenAPIOption {
+	return WithDocument(func(doc *openapi.Document) {
+		components := ensureComponents(doc)
+		if components.Links == nil {
+			components.Links = map[string]*openapi.Link{}
+		}
+		components.Links[name] = link
+	})
+}
+
+// WithComponentCallback registers a reusable callback component.
+func WithComponentCallback(name string, callback *openapi.Callback) OpenAPIOption {
+	return WithDocument(func(doc *openapi.Document) {
+		components := ensureComponents(doc)
+		if components.Callbacks == nil {
+			components.Callbacks = map[string]*openapi.Callback{}
+		}
+		components.Callbacks[name] = callback
+	})
+}
+
+// WithComponentPathItem registers a reusable path item component.
+func WithComponentPathItem(name string, pathItem *openapi.PathItem) OpenAPIOption {
+	return WithDocument(func(doc *openapi.Document) {
+		components := ensureComponents(doc)
+		if components.PathItems == nil {
+			components.PathItems = map[string]*openapi.PathItem{}
+		}
+		components.PathItems[name] = pathItem
+	})
+}
+
+// WithComponentMediaType registers a reusable media type component.
+// Media type components are only valid for OpenAPI 3.2.0.
+func WithComponentMediaType(name string, mediaType *openapi.MediaType) OpenAPIOption {
+	return WithDocument(func(doc *openapi.Document) {
+		components := ensureComponents(doc)
+		if components.MediaTypes == nil {
+			components.MediaTypes = map[string]*openapi.MediaType{}
+		}
+		components.MediaTypes[name] = mediaType
+	})
+}
+
+func ensureComponents(doc *openapi.Document) *openapi.Components {
+	if doc.Components == nil {
+		doc.Components = &openapi.Components{}
+	}
+	return doc.Components
+}
+
 func WithDisableDocs(disable ...bool) OpenAPIOption {
 	return func(c *openapi.Config) {
-		c.DisableDocs = util.Optional(true, disable...)
+		c.DisableDocs = optional(true, disable...)
 	}
 }
 
-// WithStripTrailingSlash removes trailing slashes from all registered operation paths
-// before they are written to the spec.
-//
-// For example, "/pet/" becomes "/pet".
-// The root path "/" is left unchanged.
-func WithStripTrailingSlash(strip ...bool) OpenAPIOption {
-	return func(c *openapi.Config) {
-		c.StripTrailingSlash = util.Optional(true, strip...)
-	}
-}
-
-// WithDocsPath sets the path for the OpenAPI documentation.
-//
-// This is the path where the OpenAPI documentation will be served.
-// The default path is "/docs".
 func WithDocsPath(path string) OpenAPIOption {
 	return func(c *openapi.Config) {
 		c.DocsPath = path
@@ -288,53 +481,3 @@ func WithRapiDoc(cfg ...config.RapiDoc) OpenAPIOption {
 		c.UIOption = rapidoc.WithUI(uiCfg)
 	}
 }
-
-// WithDebug enables or disables debug logging for OpenAPI operations.
-//
-// If debug is true, debug logging is enabled, otherwise it is disabled.
-// By default, debug logging is disabled.
-func WithDebug(debug ...bool) OpenAPIOption {
-	return func(c *openapi.Config) {
-		if util.Optional(true, debug...) {
-			c.Logger = log.Default()
-		} else {
-			c.Logger = &noopLogger{}
-		}
-	}
-}
-
-// WithPathParser sets a custom path parser for the OpenAPI documentation.
-//
-// The parser must convert framework-style paths to OpenAPI-style parameter syntax.
-// For example, a path like "/users/:id" should be converted to "/users/{id}".
-//
-// Example:
-//
-//	// myCustomParser implements PathParser and converts ":param" to "{param}".
-//	type myCustomParser struct {
-//		re *regexp.Regexp
-//	}
-//
-//	// newMyCustomParser creates an instance with a regexp for colon-prefixed params.
-//	func newMyCustomParser() *myCustomParser {
-//		return &myCustomParser{
-//			re: regexp.MustCompile(`:([a-zA-Z_][a-zA-Z0-9_]*)`),
-//		}
-//	}
-//
-//	// Parse replaces ":param" with "{param}" to match OpenAPI path syntax.
-//	func (p *myCustomParser) Parse(path string) (string, error) {
-//		return p.re.ReplaceAllString(path, "{$1}"), nil
-//	}
-//
-//	// Example usage:
-//	opt := option.WithPathParser(newMyCustomParser())
-func WithPathParser(parser openapi.PathParser) OpenAPIOption {
-	return func(c *openapi.Config) {
-		c.PathParser = parser
-	}
-}
-
-type noopLogger struct{}
-
-func (l noopLogger) Printf(_ string, _ ...any) {}

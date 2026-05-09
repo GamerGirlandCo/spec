@@ -2,6 +2,7 @@ package ginopenapi
 
 import (
 	"github.com/gin-gonic/gin"
+
 	"github.com/oaswrap/spec"
 	"github.com/oaswrap/spec/option"
 )

@@ -1,0 +1,55 @@
+openapi: 3.1.2
+info:
+  title: Binary API
+  version: 1.0.0
+paths:
+  /download:
+    get:
+      operationId: downloadFile
+      responses:
+        "200":
+          description: The image file
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+  /upload:
+    post:
+      operationId: uploadFile
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/UploadRequest"
+            encoding:
+              file:
+                contentType: image/png
+      responses:
+        "201":
+          description: File uploaded
+  /upload-raw:
+    post:
+      operationId: uploadRaw
+      requestBody:
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "204":
+          description: No Content
+components:
+  schemas:
+    UploadRequest:
+      type: object
+      properties:
+        file:
+          description: The file to upload
+          type: string
+          format: binary
+          contentEncoding: base64
+        fileName:
+          description: Optional file name
+          type: string

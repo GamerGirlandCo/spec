@@ -7,8 +7,10 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/oaswrap/spec/adapter/chiopenapi"
+
 	"github.com/oaswrap/spec/option"
+
+	"github.com/oaswrap/spec/adapter/chiopenapi"
 )
 
 func main() {

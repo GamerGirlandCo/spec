@@ -1,0 +1,44 @@
+openapi: 3.1.2
+info:
+  title: Compatibility API
+  version: 1.0.0
+paths:
+  /users/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          description: User identifier
+          required: true
+          schema:
+            description: User identifier
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+      x-operation: ok
+webhooks:
+  user.created:
+    post:
+      responses:
+        "202":
+          description: Accepted
+components:
+  schemas:
+    User:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+  securitySchemes:
+    mtls:
+      type: mutualTLS
+x-root: ok

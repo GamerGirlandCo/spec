@@ -1,0 +1,67 @@
+openapi: 3.2.0
+$self: https://api.example.com/openapi.yaml
+info:
+  title: OpenAPI 3.2 Features API
+  version: 1.0.0
+tags:
+  - name: commerce
+    summary: Commerce
+    description: Commerce APIs.
+    kind: nav
+  - name: payments
+    summary: Payments
+    description: Payment operations.
+    parent: commerce
+    kind: nav
+security:
+  - deviceAuth:
+      - payments:read
+paths:
+  /payments/{id}:
+    get:
+      tags:
+        - payments
+      parameters:
+        - name: id
+          in: path
+          description: User identifier
+          required: true
+          schema:
+            description: User identifier
+            type: string
+      responses:
+        "200":
+          summary: Payment found
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+              examples:
+                encoded-id:
+                  summary: Encoded identifier
+                  dataValue:
+                    id: pay_123
+                  serializedValue: "{\"id\":\"pay_123\"}"
+components:
+  schemas:
+    User:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+  securitySchemes:
+    deviceAuth:
+      type: oauth2
+      flows:
+        deviceAuthorization:
+          deviceAuthorizationUrl: https://auth.example.com/device
+          tokenUrl: https://auth.example.com/token
+          scopes:
+            payments:read: Read payments
+      oauth2MetadataUrl: https://auth.example.com/.well-known/oauth-authorization-server
+      deprecated: true

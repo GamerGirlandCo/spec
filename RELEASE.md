@@ -13,12 +13,12 @@ The project consists of:
 - **Core module**: `github.com/oaswrap/spec` - The main OpenAPI specification builder
 - **Adapter modules**: Framework-specific integrations
   - `github.com/oaswrap/spec/adapter/chiopenapi` - Chi framework adapter
-  - `github.com/oaswrap/spec/adapter/echoopenapi` - Echo framework adapter
+  - `github.com/oaswrap/spec/adapter/echoopenapi` - Echo v4 framework adapter
   - `github.com/oaswrap/spec/adapter/echov5openapi` - Echo v5 framework adapter
-  - `github.com/oaswrap/spec/adapter/fiberopenapi` - Fiber framework adapter
+  - `github.com/oaswrap/spec/adapter/fiberopenapi` - Fiber v2 framework adapter
+  - `github.com/oaswrap/spec/adapter/fiberv3openapi` - Fiber v3 framework adapter
   - `github.com/oaswrap/spec/adapter/ginopenapi` - Gin framework adapter
   - `github.com/oaswrap/spec/adapter/httpopenapi` - net/http adapter
-  - `github.com/oaswrap/spec/adapter/httprouteropenapi` - HttpRouter adapter
   - `github.com/oaswrap/spec/adapter/muxopenapi` - Gorilla Mux adapter
 
 ## Prerequisites

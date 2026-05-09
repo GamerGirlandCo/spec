@@ -3,9 +3,10 @@ package parser_test
 import (
 	"testing"
 
-	"github.com/oaswrap/spec/pkg/parser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/oaswrap/spec/pkg/parser"
 )
 
 func TestNewColonParamParser(t *testing.T) {
@@ -65,6 +66,16 @@ func TestColonParamParser_Parse(t *testing.T) {
 			name:     "parameter starting with underscore",
 			input:    "/users/:_id",
 			expected: "/users/{_id}",
+		},
+		{
+			name:     "named wildcard parameter",
+			input:    "/files/*filepath",
+			expected: "/files/{filepath}",
+		},
+		{
+			name:     "bare wildcard is left unchanged",
+			input:    "/files/*",
+			expected: "/files/*",
 		},
 	}
 

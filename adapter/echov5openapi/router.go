@@ -5,13 +5,15 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v5"
+
 	"github.com/oaswrap/spec"
 	specui "github.com/oaswrap/spec-ui"
-	"github.com/oaswrap/spec/adapter/echov5openapi/internal/constant"
 	"github.com/oaswrap/spec/openapi"
 	"github.com/oaswrap/spec/option"
 	"github.com/oaswrap/spec/pkg/mapper"
 	"github.com/oaswrap/spec/pkg/parser"
+
+	"github.com/oaswrap/spec/adapter/echov5openapi/internal/constant"
 )
 
 type router struct {
@@ -77,8 +79,8 @@ func (r *router) Add(method, path string, handler echo.HandlerFunc, m ...echo.Mi
 	echoRoute := r.echoGroup.Add(method, path, handler, m...)
 	route := &route{echoRoute: echoRoute}
 
-	if method == http.MethodConnect {
-		// CONNECT method is not supported by OpenAPI, so we skip it
+	if method == http.MethodConnect && r.gen.Config().OpenAPIVersion != openapi.Version320 {
+		// CONNECT requires OpenAPI 3.2, so older specs skip it
 		return route
 	}
 	route.specRoute = r.specRouter.Add(method, path)
