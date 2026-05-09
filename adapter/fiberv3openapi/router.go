@@ -126,8 +126,8 @@ func (r *router) Add(method, path string, handlers ...fiber.Handler) Route {
 	r.fiberRouter.Add([]string{method}, path, anyHandlers[0], anyHandlers[1:]...)
 
 	rt := &route{}
-	if method == fiber.MethodConnect {
-		// CONNECT method is not supported by OpenAPI, so we skip it
+	if method == fiber.MethodConnect && r.gen.Config().OpenAPIVersion != openapi.Version320 {
+		// CONNECT requires OpenAPI 3.2, so older specs skip it
 		return rt
 	}
 	rt.sr = r.specRouter.Add(method, path)

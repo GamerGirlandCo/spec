@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/oaswrap/spec"
+	"github.com/oaswrap/spec/openapi"
 	"github.com/oaswrap/spec/option"
 )
 
@@ -54,7 +55,8 @@ func (r *route) Host(tpl string) Route {
 
 func (r *route) Methods(methods ...string) Route {
 	r.muxRoute.Methods(methods...)
-	if len(methods) > 0 && methods[0] != http.MethodConnect {
+	if len(methods) > 0 &&
+		(methods[0] != http.MethodConnect || r.gen.Config().OpenAPIVersion == openapi.Version320) {
 		r.specRoute.Method(methods[0])
 	}
 	return r

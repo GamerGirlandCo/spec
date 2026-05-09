@@ -73,8 +73,8 @@ func (r *router) Add(method, path string, handler echo.HandlerFunc, m ...echo.Mi
 	echoRoute := r.echoGroup.Add(method, path, handler, m...)
 	route := &route{echoRoute: echoRoute}
 
-	if method == echo.CONNECT {
-		// CONNECT method is not supported by OpenAPI, so we skip it
+	if method == echo.CONNECT && r.gen.Config().OpenAPIVersion != openapi.Version320 {
+		// CONNECT requires OpenAPI 3.2, so older specs skip it
 		return route
 	}
 	route.specRoute = r.specRouter.Add(method, path)

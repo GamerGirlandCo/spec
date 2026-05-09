@@ -85,11 +85,13 @@ func TestRouter_OpenAPI320_Features(t *testing.T) {
 	)
 	r.Query("/search", option.Response(200, new([]User)))
 	r.Add("PURGE", "/cache", option.Response(204, nil))
+	r.Add(http.MethodConnect, "/tunnel", option.Response(204, nil))
 
 	doc := r.Document()
 	require.NoError(t, r.Validate())
 	assert.NotNil(t, doc.Paths["/search"].Query)
 	assert.NotNil(t, doc.Paths["/cache"].AdditionalOperations["PURGE"])
+	assert.NotNil(t, doc.Paths["/tunnel"].AdditionalOperations[http.MethodConnect])
 }
 
 func TestRouter_Webhooks_OpenAPI312(t *testing.T) {

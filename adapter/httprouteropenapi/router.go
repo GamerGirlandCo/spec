@@ -8,6 +8,7 @@ import (
 
 	"github.com/oaswrap/spec"
 	specui "github.com/oaswrap/spec-ui"
+	"github.com/oaswrap/spec/openapi"
 	"github.com/oaswrap/spec/option"
 	"github.com/oaswrap/spec/pkg/mapper"
 	"github.com/oaswrap/spec/pkg/parser"
@@ -104,7 +105,7 @@ func (r *router) Handle(method, path string, handle httprouter.Handle) Route {
 	path = r.pathOf(path)
 	r.router.Handle(method, path, handle)
 	rr := &route{}
-	if method != http.MethodConnect {
+	if method != http.MethodConnect || r.gen.Config().OpenAPIVersion == openapi.Version320 {
 		rr.specRoute = r.specRouter.Add(method, path)
 	}
 
@@ -120,7 +121,7 @@ func (r *router) Handler(method, path string, handler http.Handler) Route {
 	fullPath := r.pathOf(path)
 	r.router.Handler(method, fullPath, handler)
 	rr := &route{}
-	if method != http.MethodConnect {
+	if method != http.MethodConnect || r.gen.Config().OpenAPIVersion == openapi.Version320 {
 		rr.specRoute = r.specRouter.Add(method, fullPath)
 	}
 

@@ -67,6 +67,16 @@ func TestColonParamParser_Parse(t *testing.T) {
 			input:    "/users/:_id",
 			expected: "/users/{_id}",
 		},
+		{
+			name:     "named wildcard parameter",
+			input:    "/files/*filepath",
+			expected: "/files/{filepath}",
+		},
+		{
+			name:     "bare wildcard is left unchanged",
+			input:    "/files/*",
+			expected: "/files/*",
+		},
 	}
 
 	for _, tt := range tests {

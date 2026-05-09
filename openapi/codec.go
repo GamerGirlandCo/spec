@@ -170,7 +170,7 @@ func mapValueToSerializable(value reflect.Value, mode objectMode) any {
 }
 
 func sliceToSlice(value reflect.Value, mode objectMode) any {
-	if value.IsNil() {
+	if value.Kind() == reflect.Slice && value.IsNil() {
 		return nil
 	}
 	out := make([]any, 0, value.Len())

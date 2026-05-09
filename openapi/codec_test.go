@@ -166,4 +166,13 @@ func TestToSerializable(t *testing.T) {
 			assert.Equal(t, []any{"a", "b"}, slice)
 		}
 	})
+
+	t.Run("Array", func(t *testing.T) {
+		a := [2]string{"a", "b"}
+		res := toSerializable(reflect.ValueOf(a), objectJSON)
+		if assert.IsType(t, []any{}, res) {
+			array := res.([]any)
+			assert.Equal(t, []any{"a", "b"}, array)
+		}
+	})
 }

@@ -75,8 +75,8 @@ func (r *router) Handle(method string, path string, handlers ...gin.HandlerFunc)
 	gr := r.ginRouter.Handle(method, path, handlers...)
 	route := &route{ginRoute: gr}
 
-	if method == http.MethodConnect {
-		// CONNECT method is not supported by OpenAPI, so we skip it
+	if method == http.MethodConnect && r.gen.Config().OpenAPIVersion != openapi.Version320 {
+		// CONNECT requires OpenAPI 3.2, so older specs skip it
 		return route
 	}
 	route.specRoute = r.specRouter.Add(method, path)
