@@ -4,7 +4,7 @@ go 1.22
 
 require (
 	github.com/gorilla/mux v1.8.1
-	github.com/oaswrap/spec v0.4.2
+	github.com/oaswrap/spec v0.5.0-rc.1
 	github.com/oaswrap/spec/adapter/muxopenapi v0.3.1
 )
 
