@@ -98,6 +98,13 @@ func TestWithoutFragment(t *testing.T) {
 	assert.Equal(t, ":// bad", validate.WithoutFragment(":// bad"))
 }
 
+func TestMediaTypeAllowsNamedEncoding(t *testing.T) {
+	assert.True(t, validate.MediaTypeAllowsNamedEncoding(""))
+	assert.True(t, validate.MediaTypeAllowsNamedEncoding("multipart/form-data"))
+	assert.True(t, validate.MediaTypeAllowsNamedEncoding("application/x-www-form-urlencoded"))
+	assert.False(t, validate.MediaTypeAllowsNamedEncoding("application/json"))
+}
+
 func TestResolveURIReference_InvalidInput(t *testing.T) {
 	_, ok := validate.ResolveURIReference("https://example.com", "://bad")
 	assert.False(t, ok)

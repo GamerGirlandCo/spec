@@ -146,6 +146,22 @@ func TestReflector_Config(t *testing.T) {
 	})
 }
 
+func TestReflector_NilConfig(t *testing.T) {
+	r := reflect.NewReflector(&openapi.Config{})
+	assert.Nil(t, r.StripPrefixes())
+	assert.False(t, r.InlineRefs())
+}
+
+func TestReflector_StripPrefixes(t *testing.T) {
+	cfg := &openapi.Config{
+		ReflectorConfig: &openapi.ReflectorConfig{
+			StripDefNamePrefix: []string{"prefix_"},
+		},
+	}
+	r := reflect.NewReflector(cfg)
+	assert.Equal(t, []string{"prefix_"}, r.StripPrefixes())
+}
+
 func TestReflector_ParameterField_CustomMappingKeepsDefaultTag(t *testing.T) {
 	cfg := option.WithOpenAPIConfig(
 		option.WithReflectorConfig(option.ParameterTagMapping(openapi.ParameterInPath, "param")),

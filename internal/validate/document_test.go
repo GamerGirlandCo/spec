@@ -1,6 +1,7 @@
 package validate_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -138,6 +139,65 @@ func TestValidate_Document_OpenAPI312_RejectsEmptyMediaTypesField(t *testing.T) 
 
 	err := r.Validate()
 	assertValidationContains(t, err, "components.mediaTypes requires OpenAPI 3.2.0")
+}
+
+func TestValidateInfo(t *testing.T) {
+	t.Run("Summary30", func(t *testing.T) {
+		errs := validate.ValidateInfo(openapi.Info{Summary: "foo"}, openapi.Version304)
+		assertValidationErrorsContains(t, errs, "info.summary requires OpenAPI 3.1.x or 3.2.0")
+	})
+
+	t.Run("InvalidTOS", func(t *testing.T) {
+		tos := "://bad"
+		errs := validate.ValidateInfo(openapi.Info{TermsOfService: &tos}, openapi.Version312)
+		assertValidationErrorsContains(t, errs, "info.termsOfService must be a URI")
+	})
+
+	t.Run("ContactInvalidURL", func(t *testing.T) {
+		errs := validate.ValidateInfo(openapi.Info{
+			Contact: &openapi.Contact{URL: "://bad"},
+		}, openapi.Version312)
+		assertValidationErrorsContains(t, errs, "info.contact.url must be a URI")
+	})
+
+	t.Run("ContactInvalidEmail", func(t *testing.T) {
+		errs := validate.ValidateInfo(openapi.Info{
+			Contact: &openapi.Contact{Email: "not-an-email"},
+		}, openapi.Version312)
+		assertValidationErrorsContains(t, errs, "info.contact.email must be an email address")
+	})
+
+	t.Run("LicenseMissingName", func(t *testing.T) {
+		errs := validate.ValidateInfo(openapi.Info{
+			License: &openapi.License{},
+		}, openapi.Version312)
+		assertValidationErrorsContains(t, errs, "info.license.name is required")
+	})
+
+	t.Run("LicenseInvalidURL", func(t *testing.T) {
+		errs := validate.ValidateInfo(openapi.Info{
+			License: &openapi.License{Name: "MIT", URL: "://bad"},
+		}, openapi.Version312)
+		assertValidationErrorsContains(t, errs, "info.license.url must be a URI")
+	})
+
+	t.Run("LicenseIdentifier30", func(t *testing.T) {
+		errs := validate.ValidateInfo(openapi.Info{
+			License: &openapi.License{Name: "MIT", Identifier: "MIT"},
+		}, openapi.Version304)
+		assertValidationErrorsContains(t, errs, "info.license.identifier requires OpenAPI 3.1.x or 3.2.0")
+	})
+}
+
+func assertValidationErrorsContains(t *testing.T, errs []error, msg string) {
+	found := false
+	for _, e := range errs {
+		if strings.Contains(e.Error(), msg) {
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "expected error %q not found in %v", msg, errs)
 }
 
 func TestValidate_Document_AllowsComponentsWithoutPaths(t *testing.T) {

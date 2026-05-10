@@ -103,6 +103,12 @@ func TestValidatePathParams_Direct(t *testing.T) {
 	assert.Empty(t, errs)
 }
 
+func TestHasParameterRefSiblings(t *testing.T) {
+	assert.True(t, validate.HasParameterRefSiblings(&openapi.Parameter{Summary: "s"}, openapi.Version304))
+	assert.True(t, validate.HasParameterRefSiblings(&openapi.Parameter{Name: "n"}, openapi.Version312))
+	assert.False(t, validate.HasParameterRefSiblings(&openapi.Parameter{}, openapi.Version312))
+}
+
 func TestValidatePathItemOperations_AdditionalOpsRequires320(t *testing.T) {
 	item := &openapi.PathItem{
 		AdditionalOperations: map[string]*openapi.Operation{

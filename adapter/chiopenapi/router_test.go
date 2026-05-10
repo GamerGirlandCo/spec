@@ -677,3 +677,14 @@ func TestGenerator_WriteSchemaTo(t *testing.T) {
 	assert.Contains(t, string(schema), "openapi: 3.0.4", "expected OpenAPI version in schema file")
 	assert.Contains(t, string(schema), "title: Chi OpenAPI", "expected title in schema file")
 }
+
+func TestGenerator_ValidateReport(t *testing.T) {
+	c := chi.NewRouter()
+	r := chiopenapi.NewRouter(c,
+		option.WithContact(openapi.Contact{Name: "Support"}),
+		option.WithLicense(openapi.License{Name: "MIT"}),
+		option.WithServer("https://example.com"),
+	)
+	err := r.ValidateReport()
+	assert.NoError(t, err)
+}

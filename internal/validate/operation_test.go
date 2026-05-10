@@ -588,6 +588,42 @@ func TestValidateParameterSerializationHelper(t *testing.T) {
 	assert.Empty(t, errs)
 }
 
+func TestValidateParameters_Direct(t *testing.T) {
+	compParams := map[string]*openapi.Parameter{
+		"SharedID": {Name: "id", In: "path", Required: true},
+	}
+
+	t.Run("RequiredAndDuplicates", func(t *testing.T) {
+		params := []*openapi.Parameter{
+			nil,
+			{Ref: "#/components/parameters/SharedID"},
+			{Ref: "#/components/parameters/SharedID"},
+		}
+		errs := validate.ValidateParameters("context", params, openapi.Version312, compParams)
+		assert.Len(t, errs, 2)
+		assert.Contains(t, errs[0].Error(), "is required")
+		assert.Contains(t, errs[1].Error(), `duplicates parameter "id" in "path"`)
+	})
+
+	t.Run("RefSiblings", func(t *testing.T) {
+		params := []*openapi.Parameter{
+			{Ref: "#/components/parameters/SharedID", Description: "Illegal sibling"},
+		}
+		errs := validate.ValidateParameters("context", params, openapi.Version304, compParams)
+		assert.NotEmpty(t, errs)
+		assert.Contains(t, errs[0].Error(), "must not define siblings with $ref")
+	})
+
+	t.Run("DeprecatedWarning", func(t *testing.T) {
+		params := []*openapi.Parameter{
+			{Name: "old", In: "query", Deprecated: true, Schema: &openapi.Schema{Type: "string"}},
+		}
+		errs := validate.ValidateParameters("context", params, openapi.Version312, nil)
+		assert.Len(t, errs, 1)
+		assert.Contains(t, errs[0].Error(), "is deprecated")
+	})
+}
+
 func TestValidate_MutualTLSVersionGate(t *testing.T) {
 	t.Run("3.0.x rejects mutualTLS", func(t *testing.T) {
 		errs := validate.ValidateSecurityScheme("securitySchemes.mtls", &openapi.SecurityScheme{

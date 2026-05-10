@@ -588,3 +588,14 @@ func TestGeneratorMarshalJSON(t *testing.T) {
 	require.NoError(t, err, "failed to marshal OpenAPI schema to JSON")
 	assert.NotEmpty(t, jsonData, "expected non-empty JSON data")
 }
+
+func TestGenerator_ValidateReport(t *testing.T) {
+	app := fiber.New()
+	r := fiberopenapi.NewRouter(app,
+		option.WithContact(openapi.Contact{Name: "Support"}),
+		option.WithLicense(openapi.License{Name: "MIT"}),
+		option.WithServer("https://example.com"),
+	)
+	err := r.ValidateReport()
+	assert.NoError(t, err)
+}

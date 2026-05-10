@@ -605,3 +605,14 @@ func TestRouter_ServeHTTP(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Contains(t, rec.Body.String(), "pong")
 }
+
+func TestGenerator_ValidateReport(t *testing.T) {
+	mux := http.NewServeMux()
+	r := httpopenapi.NewRouter(mux,
+		option.WithContact(openapi.Contact{Name: "Support"}),
+		option.WithLicense(openapi.License{Name: "MIT"}),
+		option.WithServer("https://example.com"),
+	)
+	err := r.ValidateReport()
+	assert.NoError(t, err)
+}

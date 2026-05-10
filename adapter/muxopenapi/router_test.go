@@ -636,3 +636,151 @@ func TestGenerator_WriteSchemaTo(t *testing.T) {
 		t.Errorf("OpenAPI schema mismatch (-want +got):\n%s", diff)
 	}
 }
+
+func TestRouter_ExtraMethods(t *testing.T) {
+	muxRouter := mux.NewRouter()
+	r := muxopenapi.NewRouter(muxRouter)
+
+	t.Run("Host", func(t *testing.T) {
+		route := r.Host("example.com")
+		assert.NotNil(t, route)
+	})
+
+	t.Run("Methods", func(t *testing.T) {
+		route := r.Methods("GET", "POST")
+		assert.NotNil(t, route)
+	})
+
+	t.Run("Name", func(t *testing.T) {
+		route := r.Name("test-route")
+		assert.NotNil(t, route)
+	})
+
+	t.Run("Path", func(t *testing.T) {
+		route := r.Path("/test-path")
+		assert.NotNil(t, route)
+	})
+
+	t.Run("PathPrefix", func(t *testing.T) {
+		route := r.PathPrefix("/api")
+		assert.NotNil(t, route)
+	})
+
+	t.Run("Queries", func(t *testing.T) {
+		route := r.Queries("foo", "bar")
+		assert.NotNil(t, route)
+	})
+
+	t.Run("Schemes", func(t *testing.T) {
+		route := r.Schemes("https")
+		assert.NotNil(t, route)
+	})
+
+	t.Run("SkipClean", func(t *testing.T) {
+		router := r.SkipClean(true)
+		assert.Equal(t, r, router)
+	})
+
+	t.Run("StrictSlash", func(t *testing.T) {
+		router := r.StrictSlash(true)
+		assert.Equal(t, r, router)
+	})
+
+	t.Run("UseEncodedPath", func(t *testing.T) {
+		router := r.UseEncodedPath()
+		assert.Equal(t, r, router)
+	})
+
+	t.Run("With", func(t *testing.T) {
+		router := r.With(option.GroupTags("extra"))
+		assert.NotNil(t, router)
+	})
+
+	t.Run("ValidateReport", func(t *testing.T) {
+		r2 := muxopenapi.NewRouter(mux.NewRouter(),
+			option.WithContact(openapi.Contact{Name: "Support"}),
+			option.WithLicense(openapi.License{Name: "MIT"}),
+			option.WithServer("https://example.com"),
+		)
+		err := r2.ValidateReport()
+		assert.NoError(t, err)
+	})
+}
+
+func TestRouter_ServeHTTP(t *testing.T) {
+	muxRouter := mux.NewRouter()
+	r := muxopenapi.NewRouter(muxRouter)
+	r.HandleFunc("/ping", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("pong"))
+	}).Methods(http.MethodGet)
+
+	req := httptest.NewRequest(http.MethodGet, "/ping", nil)
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, "pong", rec.Body.String())
+}
+
+func TestRoute_AdditionalMethods(t *testing.T) {
+	muxRouter := mux.NewRouter()
+	r := muxopenapi.NewRouter(muxRouter)
+	route := r.NewRoute()
+
+	t.Run("Handler", func(t *testing.T) {
+		route.Handler(http.HandlerFunc(PingHandler))
+		assert.NotNil(t, route.GetHandler())
+	})
+
+	t.Run("HandlerFunc", func(t *testing.T) {
+		route.HandlerFunc(PingHandler)
+		assert.NotNil(t, route.GetHandler())
+	})
+
+	t.Run("Headers", func(_ *testing.T) {
+		route.Headers("X-Test", "Value")
+	})
+
+	t.Run("Host", func(_ *testing.T) {
+		route.Host("example.com")
+	})
+
+	t.Run("Methods", func(_ *testing.T) {
+		route.Methods("GET")
+	})
+
+	t.Run("Name", func(t *testing.T) {
+		route.Name("my-route")
+		assert.Equal(t, "my-route", route.GetName())
+	})
+
+	t.Run("Path", func(_ *testing.T) {
+		route.Path("/my-path")
+	})
+
+	t.Run("PathPrefix", func(_ *testing.T) {
+		route.PathPrefix("/my-prefix")
+	})
+
+	t.Run("Queries", func(_ *testing.T) {
+		route.Queries("a", "b")
+	})
+
+	t.Run("Schemes", func(_ *testing.T) {
+		route.Schemes("http")
+	})
+
+	t.Run("SkipClean", func(_ *testing.T) {
+		route.SkipClean()
+	})
+
+	t.Run("Subrouter", func(t *testing.T) {
+		sub := route.Subrouter()
+		assert.NotNil(t, sub)
+	})
+
+	t.Run("With", func(_ *testing.T) {
+		route.With(option.Description("desc"))
+	})
+}

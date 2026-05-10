@@ -682,3 +682,14 @@ func TestGenerator_MarshalJSON(t *testing.T) {
 	assert.NotEmpty(t, schema, "expected non-empty OpenAPI schema in JSON format")
 	assert.Contains(t, string(schema), `"openapi":`, "expected OpenAPI schema to contain 'openapi' field")
 }
+
+func TestGenerator_ValidateReport(t *testing.T) {
+	app := gin.New()
+	r := ginopenapi.NewRouter(app,
+		option.WithContact(openapi.Contact{Name: "Support"}),
+		option.WithLicense(openapi.License{Name: "MIT"}),
+		option.WithServer("https://example.com"),
+	)
+	err := r.ValidateReport()
+	assert.NoError(t, err)
+}
