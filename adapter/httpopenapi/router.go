@@ -7,12 +7,12 @@ import (
 
 	"github.com/oaswrap/spec"
 	specui "github.com/oaswrap/spec-ui"
-	"github.com/oaswrap/spec/openapi"
 	"github.com/oaswrap/spec/option"
 	"github.com/oaswrap/spec/pkg/mapper"
 
 	"github.com/oaswrap/spec/adapter/httpopenapi/internal/constant"
 	"github.com/oaswrap/spec/adapter/httpopenapi/internal/parser"
+	"github.com/oaswrap/spec/internal/validate"
 )
 
 type router struct {
@@ -79,7 +79,7 @@ func (r *router) HandleFunc(pattern string, handler func(http.ResponseWriter, *h
 	route := &route{}
 	routePattern, err := parser.ParseRoutePattern(pattern)
 	if err != nil || routePattern.Method == "" ||
-		(routePattern.Method == http.MethodConnect && r.gen.Config().OpenAPIVersion != openapi.Version320) {
+		!validate.AllowsOperationMethod(r.gen.Config().OpenAPIVersion, routePattern.Method) {
 		return route
 	}
 	route.specRoute = r.specRouter.Add(routePattern.Method, routePattern.Path)
@@ -95,7 +95,7 @@ func (r *router) Handle(pattern string, handler http.Handler) Route {
 	route := &route{}
 	routePattern, err := parser.ParseRoutePattern(pattern)
 	if err != nil || routePattern.Method == "" ||
-		(routePattern.Method == http.MethodConnect && r.gen.Config().OpenAPIVersion != openapi.Version320) {
+		!validate.AllowsOperationMethod(r.gen.Config().OpenAPIVersion, routePattern.Method) {
 		return route
 	}
 	route.specRoute = r.specRouter.Add(routePattern.Method, routePattern.Path)

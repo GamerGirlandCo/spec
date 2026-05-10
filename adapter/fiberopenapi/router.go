@@ -12,6 +12,7 @@ import (
 	"github.com/oaswrap/spec/pkg/parser"
 
 	"github.com/oaswrap/spec/adapter/fiberopenapi/internal/constant"
+	"github.com/oaswrap/spec/internal/validate"
 )
 
 // NewGenerator creates a new OpenAPI generator with the specified Fiber router and options.
@@ -114,8 +115,7 @@ func (r *router) Add(method, path string, handler ...fiber.Handler) Route {
 	fr := r.fiberRouter.Add(method, path, handler...)
 	route := &route{fr: fr}
 
-	if method == fiber.MethodConnect && r.gen.Config().OpenAPIVersion != openapi.Version320 {
-		// CONNECT requires OpenAPI 3.2, so older specs skip it
+	if !validate.AllowsOperationMethod(r.gen.Config().OpenAPIVersion, method) {
 		return route
 	}
 	route.sr = r.specRouter.Add(method, path)

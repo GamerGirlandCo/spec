@@ -9,8 +9,36 @@ import (
 	"github.com/oaswrap/spec/openapi"
 )
 
-//nolint:gocognit,funlen // validates top-level document rules in one traversal for coherent errors.
+//nolint:gocognit // orchestrates validation by delegating checks in stable order.
 func ValidateDocument(doc *openapi.Document, version string) []error {
+	var errs []error
+	errs = append(errs, validateDocumentVersionFields(doc, version)...)
+	errs = append(errs, validateDocumentInfo(doc, version)...)
+	errs = append(errs, validateDocumentTopLevelRequirements(doc, version)...)
+	errs = append(errs, validateDocumentServersAndExternalDocs(doc, version)...)
+
+	securitySchemes, componentParameters := resolveDocumentSecurityMaps(doc)
+	errs = append(errs, ValidateSecurityRequirements("security", doc.Security, securitySchemes, version)...)
+
+	operationIDs := map[string]string{}
+	errs = append(errs, validateDocumentPathsAndWebhooks(
+		doc,
+		version,
+		operationIDs,
+		securitySchemes,
+		componentParameters,
+	)...)
+	errs = append(errs, validateDocumentComponentsTagsRefs(
+		doc,
+		version,
+		operationIDs,
+		securitySchemes,
+		componentParameters,
+	)...)
+	return errs
+}
+
+func validateDocumentVersionFields(doc *openapi.Document, version string) []error {
 	var errs []error
 	if doc.OpenAPI != "" && doc.OpenAPI != version {
 		errs = append(errs, Errorf("openapi must be %s, got %s", version, doc.OpenAPI))
@@ -24,6 +52,11 @@ func ValidateDocument(doc *openapi.Document, version string) []error {
 	if doc.JSONSchemaDialect != "" && !IsURIReference(doc.JSONSchemaDialect) {
 		errs = append(errs, Errorf("jsonSchemaDialect must be a URI"))
 	}
+	return errs
+}
+
+func validateDocumentInfo(doc *openapi.Document, version string) []error {
+	var errs []error
 	if doc.Info.Title == "" {
 		errs = append(errs, Errorf("info.title is required"))
 	}
@@ -31,6 +64,11 @@ func ValidateDocument(doc *openapi.Document, version string) []error {
 		errs = append(errs, Errorf("info.version is required"))
 	}
 	errs = append(errs, ValidateInfo(doc.Info, version)...)
+	return errs
+}
+
+func validateDocumentTopLevelRequirements(doc *openapi.Document, version string) []error {
+	var errs []error
 	if reflect.IsOpenAPI30(version) && doc.Paths == nil {
 		errs = append(errs, Errorf("paths is required"))
 	}
@@ -47,6 +85,11 @@ func ValidateDocument(doc *openapi.Document, version string) []error {
 			errs = append(errs, Errorf("one of paths, components, or webhooks is required"))
 		}
 	}
+	return errs
+}
+
+func validateDocumentServersAndExternalDocs(doc *openapi.Document, version string) []error {
+	var errs []error
 	if len(doc.Servers) == 0 {
 		errs = append(errs, Infof("servers array is empty"))
 	}
@@ -60,14 +103,27 @@ func ValidateDocument(doc *openapi.Document, version string) []error {
 	if doc.ExternalDocs != nil && doc.ExternalDocs.URL != "" && !IsURIReference(doc.ExternalDocs.URL) {
 		errs = append(errs, Errorf("externalDocs.url must be a URI"))
 	}
+	return errs
+}
+
+func resolveDocumentSecurityMaps(doc *openapi.Document) (map[string]*openapi.SecurityScheme, map[string]*openapi.Parameter) {
 	securitySchemes := map[string]*openapi.SecurityScheme{}
 	componentParameters := map[string]*openapi.Parameter{}
 	if doc.Components != nil {
 		securitySchemes = doc.Components.SecuritySchemes
 		componentParameters = doc.Components.Parameters
 	}
-	errs = append(errs, ValidateSecurityRequirements("security", doc.Security, securitySchemes, version)...)
-	operationIDs := map[string]string{}
+	return securitySchemes, componentParameters
+}
+
+func validateDocumentPathsAndWebhooks(
+	doc *openapi.Document,
+	version string,
+	operationIDs map[string]string,
+	securitySchemes map[string]*openapi.SecurityScheme,
+	componentParameters map[string]*openapi.Parameter,
+) []error {
+	var errs []error
 	normalizedPaths := map[string]string{}
 	for path, item := range doc.Paths {
 		if normalized := NormalizeTemplatedPath(path); normalized != path {
@@ -77,32 +133,38 @@ func ValidateDocument(doc *openapi.Document, version string) []error {
 				normalizedPaths[normalized] = path
 			}
 		}
-		errs = append(
-			errs,
-			ValidatePathItem(path, item, version, operationIDs, securitySchemes, componentParameters)...)
+		errs = append(errs, ValidatePathItem(path, item, version, operationIDs, securitySchemes, componentParameters)...)
 	}
 	for name, item := range doc.Webhooks {
-		errs = append(
-			errs,
-			ValidatePathItemOperations(
-				"webhooks."+name,
-				item,
-				version,
-				operationIDs,
-				securitySchemes,
-				componentParameters,
-			)...)
+		errs = append(errs, ValidatePathItemOperations(
+			"webhooks."+name,
+			item,
+			version,
+			operationIDs,
+			securitySchemes,
+			componentParameters,
+		)...)
 	}
+	return errs
+}
+
+func validateDocumentComponentsTagsRefs(
+	doc *openapi.Document,
+	version string,
+	operationIDs map[string]string,
+	securitySchemes map[string]*openapi.SecurityScheme,
+	componentParameters map[string]*openapi.Parameter,
+) []error {
+	var errs []error
 	if doc.Components != nil {
-		errs = append(
-			errs,
-			ValidateComponents(doc.Components, version, operationIDs, securitySchemes, componentParameters)...)
+		errs = append(errs, ValidateComponents(doc.Components, version, operationIDs, securitySchemes, componentParameters)...)
 	}
 	errs = append(errs, ValidateTags(doc.Tags, version)...)
 	errs = append(errs, ValidateReferenceTargets(doc)...)
 	return errs
 }
 
+//nolint:funlen // straightforward validation rules for tag object and children.
 func ValidateTags(tags []openapi.Tag, version string) []error {
 	var errs []error
 	tagByName := make(map[string]int, len(tags))

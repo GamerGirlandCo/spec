@@ -332,12 +332,13 @@ func TestRouter_Single(t *testing.T) {
 				require.NoError(t, err, "failed to read response body for %s request", tt.method)
 				assert.Equal(t, "pong", string(body), "expected response body to be 'pong' for %s request", tt.method)
 			}
-			if tt.method == "CONNECT" {
-				return // CONNECT method is not supported by OpenAPI, so we skip it
-			}
-
 			schema, err := r.GenerateSchema()
 			require.NoError(t, err, "failed to generate OpenAPI schema for %s request", tt.method)
+
+			if tt.method == "CONNECT" {
+				assert.NotContains(t, string(schema), "operationId: ping")
+				return
+			}
 			assert.NotEmpty(t, schema, "expected non-empty OpenAPI schema for %s request", tt.method)
 
 			// Check if the route is registered in the OpenAPI schema

@@ -331,6 +331,25 @@ func TestRouter_Single(t *testing.T) {
 			assert.Contains(t, string(schema), "operationId: ping", "expected operationId in schema for %s", tt.method)
 		})
 	}
+
+	t.Run("CONNECT omitted from schema before OpenAPI 3.2", func(t *testing.T) {
+		app := gin.New()
+		r := ginopenapi.NewRouter(app)
+
+		r.Handle(http.MethodConnect, "/ping", PingHandler).With(
+			option.OperationID("ping-connect"),
+		)
+
+		req, _ := http.NewRequest(http.MethodConnect, "/ping", nil)
+		rec := httptest.NewRecorder()
+		app.ServeHTTP(rec, req)
+		assert.Equal(t, http.StatusOK, rec.Code, "expected status code 200 for CONNECT")
+
+		schema, err := r.GenerateSchema()
+		require.NoError(t, err, "failed to generate OpenAPI schema for CONNECT")
+		assert.NotContains(t, string(schema), "operationId: ping-connect")
+	})
+
 	t.Run("Static", func(t *testing.T) {
 		// Create temp dir
 		tmpDir := t.TempDir()

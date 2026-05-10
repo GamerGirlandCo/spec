@@ -6,7 +6,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/oaswrap/spec"
-	"github.com/oaswrap/spec/openapi"
+	"github.com/oaswrap/spec/internal/validate"
 	"github.com/oaswrap/spec/option"
 )
 
@@ -55,8 +55,7 @@ func (r *route) Host(tpl string) Route {
 
 func (r *route) Methods(methods ...string) Route {
 	r.muxRoute.Methods(methods...)
-	if len(methods) > 0 &&
-		(methods[0] != http.MethodConnect || r.gen.Config().OpenAPIVersion == openapi.Version320) {
+	if len(methods) > 0 && validate.AllowsOperationMethod(r.gen.Config().OpenAPIVersion, methods[0]) {
 		r.specRoute.Method(methods[0])
 	}
 	return r

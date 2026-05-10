@@ -14,6 +14,7 @@ import (
 	"github.com/oaswrap/spec/pkg/parser"
 
 	"github.com/oaswrap/spec/adapter/echov5openapi/internal/constant"
+	"github.com/oaswrap/spec/internal/validate"
 )
 
 type router struct {
@@ -79,8 +80,7 @@ func (r *router) Add(method, path string, handler echo.HandlerFunc, m ...echo.Mi
 	echoRoute := r.echoGroup.Add(method, path, handler, m...)
 	route := &route{echoRoute: echoRoute}
 
-	if method == http.MethodConnect && r.gen.Config().OpenAPIVersion != openapi.Version320 {
-		// CONNECT requires OpenAPI 3.2, so older specs skip it
+	if !validate.AllowsOperationMethod(r.gen.Config().OpenAPIVersion, method) {
 		return route
 	}
 	route.specRoute = r.specRouter.Add(method, path)

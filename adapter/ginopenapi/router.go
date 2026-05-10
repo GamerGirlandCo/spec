@@ -13,6 +13,7 @@ import (
 	"github.com/oaswrap/spec/pkg/parser"
 
 	"github.com/oaswrap/spec/adapter/ginopenapi/internal/constant"
+	"github.com/oaswrap/spec/internal/validate"
 )
 
 // NewGenerator returns a new OpenAPI generator for Gin.
@@ -75,8 +76,7 @@ func (r *router) Handle(method string, path string, handlers ...gin.HandlerFunc)
 	gr := r.ginRouter.Handle(method, path, handlers...)
 	route := &route{ginRoute: gr}
 
-	if method == http.MethodConnect && r.gen.Config().OpenAPIVersion != openapi.Version320 {
-		// CONNECT requires OpenAPI 3.2, so older specs skip it
+	if !validate.AllowsOperationMethod(r.gen.Config().OpenAPIVersion, method) {
 		return route
 	}
 	route.specRoute = r.specRouter.Add(method, path)
