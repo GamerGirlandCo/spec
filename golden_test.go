@@ -60,6 +60,13 @@ type NestedRequest struct {
 	} `json:"level1"`
 }
 
+type QueryStringRequest struct {
+	Payload struct {
+		Search string `json:"search"`
+		Limit  int    `json:"limit"`
+	} `querystring:"payload"`
+}
+
 type mockPathParser struct{}
 
 func (mockPathParser) Parse(path string) (string, error) {
@@ -394,6 +401,12 @@ func TestGoldenOpenAPI320Features(t *testing.T) {
 			}
 			resp.Content["application/json"] = mt
 		}),
+	)
+
+	r.Get("/search",
+		option.Tags("commerce"),
+		option.Request(new(QueryStringRequest)),
+		option.Response(200, new([]User)),
 	)
 
 	schema, err := r.GenerateSchema("yaml")
