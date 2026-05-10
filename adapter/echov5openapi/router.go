@@ -8,13 +8,11 @@ import (
 
 	"github.com/oaswrap/spec"
 	specui "github.com/oaswrap/spec-ui"
+	"github.com/oaswrap/spec/internal/mapper"
+	"github.com/oaswrap/spec/internal/validate"
 	"github.com/oaswrap/spec/openapi"
 	"github.com/oaswrap/spec/option"
-	"github.com/oaswrap/spec/pkg/mapper"
 	"github.com/oaswrap/spec/pkg/parser"
-
-	"github.com/oaswrap/spec/adapter/echov5openapi/internal/constant"
-	"github.com/oaswrap/spec/internal/validate"
 )
 
 type router struct {
@@ -35,9 +33,9 @@ func NewRouter(e *echo.Echo, opts ...option.OpenAPIOption) Generator {
 // It initializes the OpenAPI configuration and sets up the necessary routes for serving.
 func NewGenerator(e *echo.Echo, opts ...option.OpenAPIOption) Generator {
 	defaultOpts := []option.OpenAPIOption{
-		option.WithTitle(constant.DefaultTitle),
-		option.WithDescription(constant.DefaultDescription),
-		option.WithVersion(constant.DefaultVersion),
+		option.WithTitle("Echo OpenAPI"),
+		option.WithDescription("OpenAPI documentation for Echo applications"),
+		option.WithVersion("1.0.0"),
 		option.WithPathParser(parser.NewColonParamParser()),
 		option.WithStoplightElements(),
 		option.WithCacheAge(0),

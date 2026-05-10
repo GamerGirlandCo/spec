@@ -7,10 +7,8 @@ import (
 
 	"github.com/oaswrap/spec"
 	specui "github.com/oaswrap/spec-ui"
+	"github.com/oaswrap/spec/internal/mapper"
 	"github.com/oaswrap/spec/option"
-	"github.com/oaswrap/spec/pkg/mapper"
-
-	"github.com/oaswrap/spec/adapter/muxopenapi/internal/constant"
 )
 
 type router struct {
@@ -33,9 +31,9 @@ func NewRouter(mux *mux.Router, opts ...option.OpenAPIOption) Generator {
 // It initializes the OpenAPI configuration and sets up the necessary routes for serving.
 func NewGenerator(mux *mux.Router, opts ...option.OpenAPIOption) Generator {
 	defaultOpts := []option.OpenAPIOption{
-		option.WithTitle(constant.DefaultTitle),
-		option.WithDescription(constant.DefaultDescription),
-		option.WithVersion(constant.DefaultVersion),
+		option.WithTitle("Mux OpenAPI"),
+		option.WithDescription("OpenAPI documentation for Mux applications"),
+		option.WithVersion("1.0.0"),
 		option.WithStoplightElements(),
 		option.WithCacheAge(0),
 	}

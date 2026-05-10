@@ -7,10 +7,10 @@ webhooks:
   cache.invalidate:
     post:
       responses:
-        "204":
+        '204':
           description: No Content
   user.created:
     post:
       responses:
-        "202":
+        '202':
           description: Accepted

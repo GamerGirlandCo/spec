@@ -6,30 +6,30 @@ paths:
   /profile:
     get:
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ProfileResponse"
+                $ref: '#/components/schemas/ProfileResponse'
   /user:
     get:
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BaseResponseUser"
+                $ref: '#/components/schemas/BaseResponseUser'
   /users:
     post:
       responses:
-        "201":
+        '201':
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BaseResponseUserList"
+                $ref: '#/components/schemas/BaseResponseUserList'
 components:
   schemas:
     BaseResponseUser:
@@ -54,7 +54,7 @@ components:
         data:
           type: array
           items:
-            $ref: "#/components/schemas/User"
+            $ref: '#/components/schemas/User'
         message:
           type: string
         success:

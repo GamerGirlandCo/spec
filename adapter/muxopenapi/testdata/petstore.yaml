@@ -39,14 +39,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/DtoPet"
+              $ref: '#/components/schemas/DtoPet'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DtoPet"
+                $ref: '#/components/schemas/DtoPet'
       security:
         - petstore_auth:
             - write:pets
@@ -61,14 +61,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/DtoPet"
+              $ref: '#/components/schemas/DtoPet'
       responses:
-        "201":
+        '201':
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DtoPet"
+                $ref: '#/components/schemas/DtoPet'
       security:
         - petstore_auth:
             - write:pets
@@ -92,7 +92,7 @@ paths:
           schema:
             type: string
       responses:
-        "204":
+        '204':
           description: No Content
       security:
         - petstore_auth:
@@ -115,14 +115,14 @@ paths:
               - pending
               - sold
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/DtoPet"
+                  $ref: '#/components/schemas/DtoPet'
       security:
         - petstore_auth:
             - write:pets
@@ -142,14 +142,14 @@ paths:
             items:
               type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/DtoPet"
+                  $ref: '#/components/schemas/DtoPet'
       security:
         - petstore_auth:
             - write:pets
@@ -169,12 +169,12 @@ paths:
             type: integer
             format: int32
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DtoPet"
+                $ref: '#/components/schemas/DtoPet'
       security:
         - petstore_auth:
             - write:pets
@@ -193,7 +193,7 @@ paths:
             type: integer
             format: int32
       responses:
-        "200":
+        '200':
           description: OK
       security:
         - petstore_auth:
@@ -218,12 +218,12 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DtoAPIResponse"
+                $ref: '#/components/schemas/DtoAPIResponse'
       security:
         - petstore_auth:
             - write:pets
@@ -239,14 +239,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/DtoOrder"
+              $ref: '#/components/schemas/DtoOrder'
       responses:
-        "201":
+        '201':
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DtoOrder"
+                $ref: '#/components/schemas/DtoOrder'
   /store/order/{orderId}:
     get:
       tags:
@@ -262,13 +262,13 @@ paths:
             type: integer
             format: int32
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DtoOrder"
-        "404":
+                $ref: '#/components/schemas/DtoOrder'
+        '404':
           description: Not Found
     delete:
       tags:
@@ -284,7 +284,7 @@ paths:
             type: integer
             format: int32
       responses:
-        "204":
+        '204':
           description: No Content
   /user:
     post:
@@ -297,14 +297,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/DtoPetUser"
+              $ref: '#/components/schemas/DtoPetUser'
       responses:
-        "201":
+        '201':
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DtoPetUser"
+                $ref: '#/components/schemas/DtoPetUser'
   /user/createWithList:
     post:
       tags:
@@ -318,9 +318,9 @@ paths:
             schema:
               type: array
               items:
-                $ref: "#/components/schemas/DtoPetUser"
+                $ref: '#/components/schemas/DtoPetUser'
       responses:
-        "201":
+        '201':
           description: Created
   /user/login:
     get:
@@ -339,13 +339,13 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 type: string
-        "400":
+        '400':
           description: Bad Request
   /user/logout:
     get:
@@ -355,7 +355,7 @@ paths:
       description: Logs out current logged in user session.
       operationId: logoutUser
       responses:
-        "200":
+        '200':
           description: OK
   /user/{username}:
     get:
@@ -371,13 +371,13 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DtoPetUser"
-        "404":
+                $ref: '#/components/schemas/DtoPetUser'
+        '404':
           description: Not Found
     put:
       tags:
@@ -420,13 +420,13 @@ paths:
                 username:
                   type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DtoPetUser"
-        "404":
+                $ref: '#/components/schemas/DtoPetUser'
+        '404':
           description: Not Found
     delete:
       tags:
@@ -441,7 +441,7 @@ paths:
           schema:
             type: string
       responses:
-        "204":
+        '204':
           description: No Content
 components:
   schemas:
@@ -507,7 +507,7 @@ components:
         tags:
           type: array
           items:
-            $ref: "#/components/schemas/DtoTag"
+            $ref: '#/components/schemas/DtoTag'
         type:
           type: string
     DtoPetUser:

@@ -10,14 +10,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ComplexRequest"
+              $ref: '#/components/schemas/ComplexRequest'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ComplexResponse"
+                $ref: '#/components/schemas/ComplexResponse'
 components:
   schemas:
     ComplexRequest:

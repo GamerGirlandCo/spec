@@ -10,14 +10,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ComplexRequest"
+              $ref: '#/components/schemas/ComplexRequest'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ComplexResponse"
+                $ref: '#/components/schemas/ComplexResponse'
 components:
   schemas:
     ComplexRequest:
@@ -54,7 +54,7 @@ components:
         nullable:
           type:
             - string
-            - "null"
+            - 'null'
         number:
           type: number
           format: double
@@ -62,7 +62,7 @@ components:
         object:
           type:
             - object
-            - "null"
+            - 'null'
           properties:
             foo:
               type: string
@@ -108,7 +108,7 @@ components:
             nullable:
               type:
                 - string
-                - "null"
+                - 'null'
             number:
               type: number
               format: double
@@ -116,7 +116,7 @@ components:
             object:
               type:
                 - object
-                - "null"
+                - 'null'
               properties:
                 foo:
                   type: string

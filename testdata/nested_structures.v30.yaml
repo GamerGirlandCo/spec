@@ -9,9 +9,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/NestedRequest"
+              $ref: '#/components/schemas/NestedRequest'
       responses:
-        "204":
+        '204':
           description: No Content
 components:
   schemas:

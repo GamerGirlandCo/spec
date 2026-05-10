@@ -7,11 +7,9 @@ import (
 
 	"github.com/oaswrap/spec"
 	specui "github.com/oaswrap/spec-ui"
-	"github.com/oaswrap/spec/option"
-	"github.com/oaswrap/spec/pkg/mapper"
-
-	"github.com/oaswrap/spec/adapter/chiopenapi/internal/constant"
+	"github.com/oaswrap/spec/internal/mapper"
 	"github.com/oaswrap/spec/internal/validate"
+	"github.com/oaswrap/spec/option"
 )
 
 type router struct {
@@ -34,9 +32,9 @@ func NewRouter(r chi.Router, opts ...option.OpenAPIOption) Generator {
 // It initializes the OpenAPI configuration and sets up the necessary handlers for OpenAPI documentation.
 func NewGenerator(r chi.Router, opts ...option.OpenAPIOption) Generator {
 	defaultOpts := []option.OpenAPIOption{
-		option.WithTitle(constant.DefaultTitle),
-		option.WithDescription(constant.DefaultDescription),
-		option.WithVersion(constant.DefaultVersion),
+		option.WithTitle("Chi OpenAPI"),
+		option.WithDescription("OpenAPI documentation for Chi applications"),
+		option.WithVersion("1.0.0"),
 		option.WithStoplightElements(),
 		option.WithCacheAge(0),
 	}

@@ -39,14 +39,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Fiberv3openapi_testPet"
+              $ref: '#/components/schemas/Fiberv3openapi_testPet'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Fiberv3openapi_testPet"
+                $ref: '#/components/schemas/Fiberv3openapi_testPet'
       security:
         - petstore_auth:
             - write:pets
@@ -61,14 +61,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Fiberv3openapi_testPet"
+              $ref: '#/components/schemas/Fiberv3openapi_testPet'
       responses:
-        "201":
+        '201':
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Fiberv3openapi_testPet"
+                $ref: '#/components/schemas/Fiberv3openapi_testPet'
       security:
         - petstore_auth:
             - write:pets
@@ -90,14 +90,14 @@ paths:
               - pending
               - sold
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Fiberv3openapi_testPet"
+                  $ref: '#/components/schemas/Fiberv3openapi_testPet'
       security:
         - petstore_auth:
             - write:pets
@@ -117,14 +117,14 @@ paths:
             items:
               type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Fiberv3openapi_testPet"
+                  $ref: '#/components/schemas/Fiberv3openapi_testPet'
       security:
         - petstore_auth:
             - write:pets
@@ -144,12 +144,12 @@ paths:
             type: integer
             format: int32
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Fiberv3openapi_testPet"
+                $ref: '#/components/schemas/Fiberv3openapi_testPet'
       security:
         - petstore_auth:
             - write:pets
@@ -168,7 +168,7 @@ paths:
             type: integer
             format: int32
       responses:
-        "200":
+        '200':
           description: OK
       security:
         - petstore_auth:
@@ -192,7 +192,7 @@ paths:
           schema:
             type: string
       responses:
-        "204":
+        '204':
           description: No Content
       security:
         - petstore_auth:
@@ -217,12 +217,12 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Fiberv3openapi_testAPIResponse"
+                $ref: '#/components/schemas/Fiberv3openapi_testAPIResponse'
       security:
         - petstore_auth:
             - write:pets
@@ -238,14 +238,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Fiberv3openapi_testOrder"
+              $ref: '#/components/schemas/Fiberv3openapi_testOrder'
       responses:
-        "201":
+        '201':
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Fiberv3openapi_testOrder"
+                $ref: '#/components/schemas/Fiberv3openapi_testOrder'
   /store/order/{orderId}:
     get:
       tags:
@@ -261,13 +261,13 @@ paths:
             type: integer
             format: int32
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Fiberv3openapi_testOrder"
-        "404":
+                $ref: '#/components/schemas/Fiberv3openapi_testOrder'
+        '404':
           description: Not Found
     delete:
       tags:
@@ -283,7 +283,7 @@ paths:
             type: integer
             format: int32
       responses:
-        "204":
+        '204':
           description: No Content
   /user:
     post:
@@ -296,14 +296,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Fiberv3openapi_testPetUser"
+              $ref: '#/components/schemas/Fiberv3openapi_testPetUser'
       responses:
-        "201":
+        '201':
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Fiberv3openapi_testPetUser"
+                $ref: '#/components/schemas/Fiberv3openapi_testPetUser'
   /user/createWithList:
     post:
       tags:
@@ -317,9 +317,9 @@ paths:
             schema:
               type: array
               items:
-                $ref: "#/components/schemas/Fiberv3openapi_testPetUser"
+                $ref: '#/components/schemas/Fiberv3openapi_testPetUser'
       responses:
-        "201":
+        '201':
           description: Created
   /user/{username}:
     get:
@@ -335,13 +335,13 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Fiberv3openapi_testPetUser"
-        "404":
+                $ref: '#/components/schemas/Fiberv3openapi_testPetUser'
+        '404':
           description: Not Found
     put:
       tags:
@@ -384,13 +384,13 @@ paths:
                 username:
                   type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Fiberv3openapi_testPetUser"
-        "404":
+                $ref: '#/components/schemas/Fiberv3openapi_testPetUser'
+        '404':
           description: Not Found
     delete:
       tags:
@@ -405,7 +405,7 @@ paths:
           schema:
             type: string
       responses:
-        "204":
+        '204':
           description: No Content
 components:
   schemas:
@@ -471,7 +471,7 @@ components:
         tags:
           type: array
           items:
-            $ref: "#/components/schemas/Fiberv3openapi_testTag"
+            $ref: '#/components/schemas/Fiberv3openapi_testTag'
         type:
           type: string
     Fiberv3openapi_testPetUser:

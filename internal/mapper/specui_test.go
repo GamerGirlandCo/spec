@@ -7,8 +7,8 @@ import (
 
 	"github.com/oaswrap/spec"
 	"github.com/oaswrap/spec-ui/config"
+	"github.com/oaswrap/spec/internal/mapper"
 	"github.com/oaswrap/spec/option"
-	"github.com/oaswrap/spec/pkg/mapper"
 )
 
 func TestSpecUIOpts(t *testing.T) {

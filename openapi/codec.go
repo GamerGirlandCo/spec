@@ -23,6 +23,7 @@ func MarshalYAML(value any) ([]byte, error) {
 		toSerializable(reflect.ValueOf(value), objectYAML),
 		yaml.Indent(yamlIndent),
 		yaml.IndentSequence(true),
+		yaml.UseSingleQuote(true),
 	)
 }
 

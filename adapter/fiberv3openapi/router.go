@@ -6,13 +6,11 @@ import (
 
 	"github.com/oaswrap/spec"
 	specui "github.com/oaswrap/spec-ui"
+	"github.com/oaswrap/spec/internal/mapper"
+	"github.com/oaswrap/spec/internal/validate"
 	"github.com/oaswrap/spec/openapi"
 	"github.com/oaswrap/spec/option"
-	"github.com/oaswrap/spec/pkg/mapper"
 	"github.com/oaswrap/spec/pkg/parser"
-
-	"github.com/oaswrap/spec/adapter/fiberv3openapi/internal/constant"
-	"github.com/oaswrap/spec/internal/validate"
 )
 
 // NewGenerator creates a new OpenAPI generator with the specified Fiber v3 router and options.
@@ -27,9 +25,9 @@ func NewGenerator(r fiber.Router, opts ...option.OpenAPIOption) Generator {
 // It initializes the OpenAPI generator and sets up the necessary routes for OpenAPI documentation.
 func NewRouter(r fiber.Router, opts ...option.OpenAPIOption) Generator {
 	defaultOpts := []option.OpenAPIOption{
-		option.WithTitle(constant.DefaultTitle),
-		option.WithDescription(constant.DefaultDescription),
-		option.WithVersion(constant.DefaultVersion),
+		option.WithTitle("Fiber v3 OpenAPI"),
+		option.WithDescription("OpenAPI documentation for Fiber v3 applications"),
+		option.WithVersion("1.0.0"),
 		option.WithPathParser(parser.NewColonParamParser()),
 		option.WithStoplightElements(),
 		option.WithCacheAge(0),

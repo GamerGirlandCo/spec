@@ -9,9 +9,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AnonymousStructRequest"
+              $ref: '#/components/schemas/AnonymousStructRequest'
       responses:
-        "204":
+        '204':
           description: No Content
 components:
   schemas:

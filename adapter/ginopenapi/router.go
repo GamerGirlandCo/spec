@@ -7,13 +7,11 @@ import (
 
 	"github.com/oaswrap/spec"
 	specui "github.com/oaswrap/spec-ui"
+	"github.com/oaswrap/spec/internal/mapper"
+	"github.com/oaswrap/spec/internal/validate"
 	"github.com/oaswrap/spec/openapi"
 	"github.com/oaswrap/spec/option"
-	"github.com/oaswrap/spec/pkg/mapper"
 	"github.com/oaswrap/spec/pkg/parser"
-
-	"github.com/oaswrap/spec/adapter/ginopenapi/internal/constant"
-	"github.com/oaswrap/spec/internal/validate"
 )
 
 // NewGenerator returns a new OpenAPI generator for Gin.
@@ -28,9 +26,9 @@ func NewGenerator(ginRouter gin.IRouter, opts ...option.OpenAPIOption) Generator
 // It configures the OpenAPI generator and attaches the routes for serving docs.
 func NewRouter(ginRouter gin.IRouter, opts ...option.OpenAPIOption) Generator {
 	defaultOpts := []option.OpenAPIOption{
-		option.WithTitle(constant.DefaultTitle),
-		option.WithDescription(constant.DefaultDescription),
-		option.WithVersion(constant.DefaultVersion),
+		option.WithTitle("Gin OpenAPI"),
+		option.WithDescription("OpenAPI documentation for Gin applications"),
+		option.WithVersion("1.0.0"),
 		option.WithPathParser(parser.NewColonParamParser()),
 		option.WithStoplightElements(),
 		option.WithCacheAge(0),

@@ -14,20 +14,20 @@ paths:
           schema:
             description: User identifier
             type: string
-        - $ref: "#/components/parameters/TraceID"
+        - $ref: '#/components/parameters/TraceID'
           description: Request trace identifier.
       requestBody:
-        $ref: "#/components/requestBodies/UserBody"
+        $ref: '#/components/requestBodies/UserBody'
         description: Reusable user payload.
       responses:
-        "200":
-          $ref: "#/components/responses/UserResponse"
+        '200':
+          $ref: '#/components/responses/UserResponse'
           description: Reusable user response.
-        "204":
+        '204':
           description: No content
           links:
             findUser:
-              $ref: "#/components/links/FindUser"
+              $ref: '#/components/links/FindUser'
               description: Reusable follow-up link.
 components:
   schemas:
@@ -46,7 +46,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/User"
+            $ref: '#/components/schemas/User'
   parameters:
     TraceID:
       name: traceId
@@ -64,7 +64,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/User"
+            $ref: '#/components/schemas/User'
   links:
     FindUser:
       operationId: findUser

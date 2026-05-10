@@ -7,7 +7,7 @@ paths:
     get:
       operationId: downloadFile
       responses:
-        "200":
+        '200':
           description: The image file
           content:
             image/png:
@@ -21,12 +21,12 @@ paths:
         content:
           multipart/form-data:
             schema:
-              $ref: "#/components/schemas/UploadRequest"
+              $ref: '#/components/schemas/UploadRequest'
             encoding:
               file:
                 contentType: image/png
       responses:
-        "201":
+        '201':
           description: File uploaded
   /upload-raw:
     post:
@@ -38,7 +38,7 @@ paths:
               type: string
               format: binary
       responses:
-        "204":
+        '204':
           description: No Content
 components:
   schemas:
