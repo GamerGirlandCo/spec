@@ -56,7 +56,7 @@ test: ## Run all tests (core + adapters)
 	@echo "$(GREEN)✅ Core tests passed$(NC)"
 	@for a in $(ADAPTERS); do \
 		echo "$(BLUE)🔍 Testing adapter $$a...$(NC)"; \
-		(cd "adapter/$$a" && go test ./...) || (echo "$(RED)❌ Adapter $$a tests failed$(NC)" && exit 1); \
+		(cd "adapter/$$a" && go test ./...) || { echo "$(RED)❌ Adapter $$a tests failed$(NC)"; exit 1; }; \
 	done
 	@echo "$(GREEN)🎉 All tests passed!$(NC)"
 
@@ -64,16 +64,16 @@ test-adapter: ## Run tests for all adapters
 	@echo "$(BLUE)🔍 Running tests for all adapters...$(NC)"
 	@for a in $(ADAPTERS); do \
 		echo "$(BLUE)🔍 Testing adapter $$a...$(NC)"; \
-		(cd "adapter/$$a" && go test ./...) || (echo "$(RED)❌ Adapter $$a tests failed$(NC)" && exit 1); \
+		(cd "adapter/$$a" && go test ./...) || { echo "$(RED)❌ Adapter $$a tests failed$(NC)"; exit 1; }; \
 	done
 	@echo "$(GREEN)🎉 All adapter tests passed!$(NC)"
 
 test-update: ## Update golden files for tests
 	@echo "$(YELLOW)🔍 Running core tests (updating golden files)...$(NC)"
-	@go test $(PKG) -args -update || (echo "$(RED)❌ Core test update failed$(NC)" && exit 1)
+	@go test . -args -update || (echo "$(RED)❌ Core test update failed$(NC)" && exit 1)
 	@for a in $(ADAPTERS); do \
 		echo "$(YELLOW)🔍 Updating adapter $$a golden files...$(NC)"; \
-		(cd "adapter/$$a" && go test ./... -args -update) || (echo "$(RED)❌ Adapter $$a update failed$(NC)" && exit 1); \
+		(cd "adapter/$$a" && go test . -args -update) || { echo "$(RED)❌ Adapter $$a update failed$(NC)"; exit 1; }; \
 	done
 	@echo "$(GREEN)✅ All golden files updated!$(NC)"
 
@@ -137,7 +137,7 @@ lint: ## Run linting
 	@for a in $(ADAPTERS); do \
 		echo "$(BLUE)🔍 Linting adapter/$$a...$(NC)"; \
 		(cd "adapter/$$a" && golangci-lint run ./...) || \
-			(echo "$(RED)❌ Adapter $$a linting failed$(NC)" && exit 1); \
+			{ echo "$(RED)❌ Adapter $$a linting failed$(NC)"; exit 1; }; \
 	done
 	@echo "$(GREEN)🎉 All linting passed!$(NC)"
 
@@ -147,7 +147,7 @@ lint-fix: ## Run linting with auto-fix
 	@for a in $(ADAPTERS); do \
 		echo "$(BLUE)🔧 Auto-fixing adapter/$$a...$(NC)"; \
 		(cd "adapter/$$a" && golangci-lint run --fix ./...) || \
-			(echo "$(RED)❌ Adapter $$a lint-fix failed$(NC)" && exit 1); \
+			{ echo "$(RED)❌ Adapter $$a lint-fix failed$(NC)"; exit 1; }; \
 	done
 	@echo "$(GREEN)✅ Lint fixes applied!$(NC)"
 
