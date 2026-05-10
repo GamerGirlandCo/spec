@@ -38,6 +38,18 @@ func assertHasError(t *testing.T, errs []error, message string) {
 	t.Errorf("expected error containing %q, got: %v", message, errs)
 }
 
+func assertHasWarning(t *testing.T, errs []error, message string) {
+	t.Helper()
+	for _, err := range errs {
+		var valErr *validate.Error
+		isWarning := errors.As(err, &valErr) && valErr.Severity == validate.SeverityWarning
+		if isWarning && strings.Contains(err.Error(), message) {
+			return
+		}
+	}
+	t.Errorf("expected warning containing %q, got: %v", message, errs)
+}
+
 func assertNoStrictErrors(t *testing.T, errs []error) {
 	t.Helper()
 	for _, err := range errs {

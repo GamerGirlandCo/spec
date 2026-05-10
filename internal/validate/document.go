@@ -15,6 +15,9 @@ func ValidateDocument(doc *openapi.Document, version string) []error {
 	if doc.OpenAPI != "" && doc.OpenAPI != version {
 		errs = append(errs, Errorf("openapi must be %s, got %s", version, doc.OpenAPI))
 	}
+	if doc.Self != "" && version != openapi.Version320 {
+		errs = append(errs, Errorf("$self requires OpenAPI 3.2.0"))
+	}
 	if doc.Self != "" && !IsURIReference(doc.Self) {
 		errs = append(errs, Errorf("$self must be a URI reference"))
 	}
@@ -48,9 +51,9 @@ func ValidateDocument(doc *openapi.Document, version string) []error {
 		errs = append(errs, Infof("servers array is empty"))
 	}
 	for i := range doc.Servers {
-		errs = append(errs, ValidateServer(fmt.Sprintf("servers[%d]", i), &doc.Servers[i])...)
+		errs = append(errs, ValidateServer(fmt.Sprintf("servers[%d]", i), &doc.Servers[i], version)...)
 	}
-	errs = append(errs, ValidateServerNames(doc.Servers)...)
+	errs = append(errs, ValidateServerNames(doc.Servers, version)...)
 	if doc.ExternalDocs != nil && doc.ExternalDocs.URL == "" {
 		errs = append(errs, Errorf("externalDocs.url is required"))
 	}
@@ -188,11 +191,14 @@ func ValidateInfo(info openapi.Info, version string) []error {
 	return errs
 }
 
-func ValidateServerNames(servers []openapi.Server) []error {
+func ValidateServerNames(servers []openapi.Server, version string) []error {
 	var errs []error
 	serverNames := map[string]int{}
 	for i, server := range servers {
 		if server.Name != "" {
+			if version != openapi.Version320 {
+				errs = append(errs, Errorf("servers[%d].name requires OpenAPI 3.2.0", i))
+			}
 			if previous, exists := serverNames[server.Name]; exists {
 				errs = append(errs,
 					Errorf("servers[%d].name %q duplicates servers[%d].name", i, server.Name, previous))
@@ -204,7 +210,8 @@ func ValidateServerNames(servers []openapi.Server) []error {
 	return errs
 }
 
-func ValidateServer(context string, server *openapi.Server) []error {
+//nolint:gocognit // straightforward validation rules for the server object.
+func ValidateServer(context string, server *openapi.Server, version string) []error {
 	var errs []error
 	if server == nil {
 		return nil
@@ -214,12 +221,34 @@ func ValidateServer(context string, server *openapi.Server) []error {
 	} else if !IsServerURL(server.URL) {
 		errs = append(errs, Errorf("%s.url must not contain a query or fragment", context))
 	}
+	if version == openapi.Version320 && server.URL != "" {
+		seen := map[string]int{}
+		for _, m := range pathParamRe.FindAllStringSubmatch(server.URL, -1) {
+			seen[m[1]]++
+		}
+		for varName, count := range seen {
+			if count > 1 {
+				errs = append(errs, Errorf("%s.url variable {%s} must not appear more than once", context, varName))
+			}
+		}
+	}
 	for name, variable := range server.Variables {
 		if variable.Default == "" {
 			errs = append(errs, Errorf("%s.variables.%s.default is required", context, name))
 		}
-		if len(variable.Enum) > 0 && !slices.Contains(variable.Enum, variable.Default) {
-			errs = append(errs, Errorf("%s.variables.%s.default must be one of enum values", context, name))
+		if variable.Enum != nil && len(variable.Enum) == 0 {
+			if IsOpenAPI31(version) || IsOpenAPI32(version) {
+				errs = append(errs, Errorf("%s.variables.%s.enum must not be empty", context, name))
+			} else {
+				errs = append(errs, Warningf("%s.variables.%s.enum should not be empty", context, name))
+			}
+		}
+		if len(variable.Enum) > 0 && variable.Default != "" && !slices.Contains(variable.Enum, variable.Default) {
+			if IsOpenAPI31(version) || IsOpenAPI32(version) {
+				errs = append(errs, Errorf("%s.variables.%s.default must be one of enum values", context, name))
+			} else {
+				errs = append(errs, Warningf("%s.variables.%s.default should be one of enum values", context, name))
+			}
 		}
 	}
 	return errs

@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/oaswrap/spec"
+	"github.com/oaswrap/spec/internal/validate"
 	"github.com/oaswrap/spec/openapi"
 	"github.com/oaswrap/spec/option"
 )
@@ -173,9 +174,25 @@ func TestValidate_Document_URIFields(t *testing.T) {
 
 	err := r.Validate()
 	assertValidationContains(t, err,
+		"$self requires OpenAPI 3.2.0",
 		"$self must be a URI reference",
 		"tags[0].externalDocs.url must be a URI",
 	)
+}
+
+func TestValidate_Document_Self_AllowedIn320(t *testing.T) {
+	errs := validate.ValidateDocument(&openapi.Document{
+		OpenAPI: openapi.Version320,
+		Self:    "https://api.example.com/openapi.json",
+		Info:    openapi.Info{Title: "Test", Version: "1.0.0"},
+		Paths:   map[string]*openapi.PathItem{},
+	}, openapi.Version320)
+	// $self should not trigger a version error for 3.2.0
+	for _, e := range errs {
+		if e.Error() == "$self requires OpenAPI 3.2.0" {
+			t.Fatalf("unexpected $self version error in 3.2.0")
+		}
+	}
 }
 
 func TestValidate_Document_AllowsEmptyPathsIn312(t *testing.T) {
@@ -259,22 +276,86 @@ func TestValidate_Document_Server(t *testing.T) {
 	})
 
 	t.Run("Invalid Variables", func(t *testing.T) {
-		r := spec.NewRouter(
-			option.WithServer("https://{host}", option.ServerVariables(map[string]openapi.ServerVariable{
+		// Default router uses 3.0.x where SHOULD applies — expect a warning, not an error.
+		errs := validate.ValidateServer("servers[0]", &openapi.Server{
+			URL: "https://{host}",
+			Variables: map[string]openapi.ServerVariable{
 				"host": {Default: ""},
 				"port": {Default: "80", Enum: []string{"8080"}},
-			})),
-		)
-		err := r.Validate()
-		assertValidationContains(t, err,
-			"servers[0].variables.host.default is required",
-			"servers[0].variables.port.default must be one of enum values",
-		)
+			},
+		}, openapi.Version304)
+		assertHasError(t, errs, "servers[0].variables.host.default is required")
+		assertHasWarning(t, errs, "servers[0].variables.port.default should be one of enum values")
+	})
+
+	t.Run("Invalid Variables 3.1+", func(t *testing.T) {
+		// In 3.1+ MUST applies — expect an error.
+		errs := validate.ValidateServer("servers[0]", &openapi.Server{
+			URL: "https://{host}",
+			Variables: map[string]openapi.ServerVariable{
+				"port": {Default: "80", Enum: []string{"8080"}},
+			},
+		}, openapi.Version312)
+		assertHasError(t, errs, "servers[0].variables.port.default must be one of enum values")
 	})
 
 	t.Run("QueryOrFragment", func(t *testing.T) {
 		r := spec.NewRouter(option.WithServer("/v1?x=1"))
 		err := r.Validate()
 		assertValidationContains(t, err, "servers[0].url must not contain a query or fragment")
+	})
+}
+
+func TestValidate_Server_EmptyEnum(t *testing.T) {
+	t.Run("3.1+ empty enum is an error", func(t *testing.T) {
+		for _, version := range []string{openapi.Version312, openapi.Version320} {
+			r := spec.NewRouter(
+				option.WithOpenAPIVersion(version),
+				option.WithServer("https://{env}.example.com", option.ServerVariables(map[string]openapi.ServerVariable{
+					"env": {Default: "prod", Enum: []string{}},
+				})),
+			)
+			err := r.Validate()
+			assertValidationContains(t, err, "enum must not be empty")
+		}
+	})
+
+	t.Run("3.0 empty enum is a warning only", func(t *testing.T) {
+		errs := validate.ValidateServer("servers[0]", &openapi.Server{
+			URL: "https://{env}.example.com",
+			Variables: map[string]openapi.ServerVariable{
+				"env": {Default: "prod", Enum: []string{}},
+			},
+		}, openapi.Version304)
+		assertHasWarning(t, errs, "should not be empty")
+	})
+}
+
+func TestValidate_Server_DuplicateVariableInURL(t *testing.T) {
+	r := spec.NewRouter(
+		option.WithOpenAPIVersion(openapi.Version320),
+		option.WithServer("https://{env}.{env}.example.com", option.ServerVariables(map[string]openapi.ServerVariable{
+			"env": {Default: "prod"},
+		})),
+	)
+	err := r.Validate()
+	assertValidationContains(t, err, "variable {env} must not appear more than once")
+}
+
+func TestValidate_Server_NameVersionGate(t *testing.T) {
+	t.Run("3.2.0 allows server name", func(t *testing.T) {
+		errs := validate.ValidateServerNames([]openapi.Server{
+			{URL: "https://api.example.com", Name: "production"},
+		}, openapi.Version320)
+		assertNoStrictErrors(t, errs)
+	})
+
+	t.Run("pre-3.2.0 rejects server name", func(t *testing.T) {
+		for _, version := range []string{openapi.Version304, openapi.Version312} {
+			errs := validate.ValidateServerNames([]openapi.Server{
+				{URL: "https://api.example.com", Name: "production"},
+			}, version)
+			assertHasError(t, errs, "servers[0].name requires OpenAPI 3.2.0")
+		}
 	})
 }

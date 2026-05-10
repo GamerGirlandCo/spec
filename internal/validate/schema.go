@@ -21,6 +21,10 @@ func ValidateSchema(context string, schema *openapi.Schema, version string, visi
 	if schema.Deprecated {
 		errs = append(errs, Warningf("%s is deprecated", context))
 	}
+	if (IsOpenAPI31(version) || IsOpenAPI32(version)) && schema.Example != nil {
+		errs = append(errs,
+			Warningf("%s.example is deprecated in OpenAPI 3.1.x and 3.2.0; use examples instead", context))
+	}
 	if reflect.IsOpenAPI30(version) {
 		if schema.Ref != "" && HasSchemaRefSiblings(schema) {
 			errs = append(errs, Errorf("%s must not define siblings with $ref in OpenAPI 3.0.x", context))
@@ -29,6 +33,15 @@ func ValidateSchema(context string, schema *openapi.Schema, version string, visi
 			errs = append(errs, Errorf("%s must not be both readOnly and writeOnly", context))
 		}
 		errs = append(errs, ValidateSchema304Fields(context, schema)...)
+	}
+	if (IsOpenAPI31(version) || IsOpenAPI32(version)) && schema.Nullable {
+		errs = append(
+			errs,
+			Errorf(
+				"%s.nullable is not supported in OpenAPI 3.1.x or 3.2.0; use type: [\"string\", \"null\"] instead",
+				context,
+			),
+		)
 	}
 	if version != openapi.Version320 {
 		if schema.Discriminator != nil &&
@@ -218,6 +231,17 @@ func ValidateDiscriminator(context string, schema *openapi.Schema, version strin
 			errs,
 			Errorf(
 				"%s.discriminator.defaultMapping is required when discriminator property %q is optional",
+				context,
+				schema.Discriminator.PropertyName,
+			),
+		)
+	}
+	if (reflect.IsOpenAPI30(version) || IsOpenAPI31(version)) && schema.Discriminator.PropertyName != "" &&
+		!slices.Contains(schema.Required, schema.Discriminator.PropertyName) {
+		errs = append(
+			errs,
+			Warningf(
+				"%s.discriminator.propertyName %q should be listed in the schema's required fields",
 				context,
 				schema.Discriminator.PropertyName,
 			),

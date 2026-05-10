@@ -28,6 +28,15 @@ func ValidateParameterSerialization(context string, param *openapi.Parameter, ve
 	if param.AllowEmptyValue && param.In != string(openapi.ParameterInQuery) {
 		errs = append(errs, Errorf("%s allowEmptyValue is only allowed for query parameters", context))
 	}
+	if param.AllowEmptyValue && param.In == string(openapi.ParameterInQuery) && IsOpenAPI32(version) {
+		errs = append(
+			errs,
+			Warningf(
+				"%s allowEmptyValue is deprecated in OpenAPI 3.2.0 and will be removed in a later version",
+				context,
+			),
+		)
+	}
 	if param.Style == "" {
 		return errs
 	}

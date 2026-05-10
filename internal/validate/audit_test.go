@@ -99,7 +99,7 @@ func TestValidate_ForbiddenHeaderNames(t *testing.T) {
 		}
 		errs := validate.ValidateResponse("resp", resp, openapi.Version320)
 		assert.NotEmpty(t, errs)
-		assertHasError(t, errs, "contains forbidden header \"Content-Type\"")
+		assertHasWarning(t, errs, "is ignored by the OpenAPI spec")
 	})
 }
 

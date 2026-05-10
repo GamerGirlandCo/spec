@@ -39,7 +39,7 @@ func ValidatePathItemOperations(
 		return errs
 	}
 	for i := range item.Servers {
-		errs = append(errs, ValidateServer(fmt.Sprintf("%s.servers[%d]", context, i), &item.Servers[i])...)
+		errs = append(errs, ValidateServer(fmt.Sprintf("%s.servers[%d]", context, i), &item.Servers[i], version)...)
 	}
 	errs = append(errs, ValidateParameters(context+".parameters", item.Parameters, version, componentParameters)...)
 	if version != openapi.Version320 {

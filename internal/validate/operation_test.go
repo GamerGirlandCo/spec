@@ -1,6 +1,7 @@
 package validate_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -90,7 +91,9 @@ func TestValidateMediaTypeEncodingAllowsFormAndMultipart(t *testing.T) {
 			doc.Paths["/form"].Post.RequestBody = &openapi.RequestBody{
 				Content: map[string]openapi.MediaType{
 					"application/x-www-form-urlencoded": {
-						Schema:   &openapi.Schema{Type: "object"},
+						Schema: &openapi.Schema{Type: "object", Properties: map[string]*openapi.Schema{
+							"field": {Type: "string"},
+						}},
 						Encoding: map[string]*openapi.Encoding{"field": {ContentType: "text/plain"}},
 					},
 					"multipart/mixed": {
@@ -583,4 +586,153 @@ func TestValidateParameterSerializationHelper(t *testing.T) {
 		In: string(openapi.ParameterInQuery),
 	}, openapi.Version304)
 	assert.Empty(t, errs)
+}
+
+func TestValidate_MutualTLSVersionGate(t *testing.T) {
+	t.Run("3.0.x rejects mutualTLS", func(t *testing.T) {
+		errs := validate.ValidateSecurityScheme("securitySchemes.mtls", &openapi.SecurityScheme{
+			Type: "mutualTLS",
+		}, openapi.Version304)
+		assertHasError(t, errs, "mutualTLS requires OpenAPI 3.1.x or 3.2.0")
+	})
+
+	t.Run("3.1.x allows mutualTLS", func(t *testing.T) {
+		errs := validate.ValidateSecurityScheme("securitySchemes.mtls", &openapi.SecurityScheme{
+			Type: "mutualTLS",
+		}, openapi.Version312)
+		assertNoStrictErrors(t, errs)
+	})
+
+	t.Run("3.2.0 allows mutualTLS", func(t *testing.T) {
+		errs := validate.ValidateSecurityScheme("securitySchemes.mtls", &openapi.SecurityScheme{
+			Type: "mutualTLS",
+		}, openapi.Version320)
+		assertNoStrictErrors(t, errs)
+	})
+}
+
+func TestValidate_ContentTypeHeader_IsWarning(t *testing.T) {
+	resp := &openapi.Response{
+		Description: "OK",
+		Headers: map[string]*openapi.Header{
+			"Content-Type": {Schema: &openapi.Schema{Type: "string"}},
+		},
+	}
+	errs := validate.ValidateResponse("responses.200", resp, openapi.Version304)
+	assertHasWarning(t, errs, "is ignored by the OpenAPI spec")
+	assertNoStrictErrors(t, errs)
+}
+
+func TestValidate_EncodingSchemaProperties(t *testing.T) {
+	t.Run("3.1.x errors when encoding key not in schema", func(t *testing.T) {
+		mt := &openapi.MediaType{
+			Schema: &openapi.Schema{
+				Type: "object",
+				Properties: map[string]*openapi.Schema{
+					"file": {Type: "string"},
+				},
+			},
+			Encoding: map[string]*openapi.Encoding{
+				"unknown": {ContentType: "application/octet-stream"},
+			},
+		}
+		errs := validate.ValidateMediaType(
+			"requestBody.content.multipart/form-data", "multipart/form-data", mt, openapi.Version312)
+		assertHasError(t, errs, "must correspond to a schema property")
+	})
+
+	t.Run("3.2.0 errors when encoding key not in schema", func(t *testing.T) {
+		mt := &openapi.MediaType{
+			Schema: &openapi.Schema{
+				Type: "object",
+				Properties: map[string]*openapi.Schema{
+					"file": {Type: "string"},
+				},
+			},
+			Encoding: map[string]*openapi.Encoding{
+				"unknown": {ContentType: "application/octet-stream"},
+			},
+		}
+		errs := validate.ValidateMediaType(
+			"requestBody.content.multipart/form-data", "multipart/form-data", mt, openapi.Version320)
+		assertHasError(t, errs, "must correspond to a schema property")
+	})
+
+	t.Run("encoding key matching schema property is valid", func(t *testing.T) {
+		mt := &openapi.MediaType{
+			Schema: &openapi.Schema{
+				Type: "object",
+				Properties: map[string]*openapi.Schema{
+					"file": {Type: "string"},
+				},
+			},
+			Encoding: map[string]*openapi.Encoding{
+				"file": {ContentType: "application/octet-stream"},
+			},
+		}
+		errs := validate.ValidateMediaType(
+			"requestBody.content.multipart/form-data", "multipart/form-data", mt, openapi.Version320)
+		assertNoStrictErrors(t, errs)
+	})
+}
+
+func TestValidate_AllowReserved_Header(t *testing.T) {
+	t.Run("pre-3.2.0 rejects allowReserved in headers", func(t *testing.T) {
+		for _, version := range []string{openapi.Version304, openapi.Version312} {
+			hdr := &openapi.Header{Schema: &openapi.Schema{Type: "string"}, AllowReserved: true}
+			errs := validate.ValidateHeader("headers.X-Custom", hdr, version)
+			assertHasError(t, errs, "allowReserved is not allowed for headers")
+		}
+	})
+
+	t.Run("3.2.0 allows allowReserved in headers", func(t *testing.T) {
+		hdr := &openapi.Header{Schema: &openapi.Schema{Type: "string"}, AllowReserved: true}
+		errs := validate.ValidateHeader("headers.X-Custom", hdr, openapi.Version320)
+		assertNoStrictErrors(t, errs)
+	})
+}
+
+func TestValidate_AllowEmptyValue_Deprecated320(t *testing.T) {
+	t.Run("3.2.0 warns when allowEmptyValue is used in query param", func(t *testing.T) {
+		param := &openapi.Parameter{
+			Name:            "q",
+			In:              "query",
+			AllowEmptyValue: true,
+			Schema:          &openapi.Schema{Type: "string"},
+		}
+		errs := validate.ValidateParameters("op", []*openapi.Parameter{param}, openapi.Version320, nil)
+		assertHasWarning(t, errs, "allowEmptyValue is deprecated in OpenAPI 3.2.0")
+	})
+
+	t.Run("pre-3.2.0 does not warn for allowEmptyValue", func(t *testing.T) {
+		param := &openapi.Parameter{
+			Name:            "q",
+			In:              "query",
+			AllowEmptyValue: true,
+			Schema:          &openapi.Schema{Type: "string"},
+		}
+		errs := validate.ValidateParameters("op", []*openapi.Parameter{param}, openapi.Version312, nil)
+		for _, e := range errs {
+			if strings.Contains(e.Error(), "deprecated") {
+				t.Fatalf("unexpected deprecation warning for 3.1.x: %v", e)
+			}
+		}
+	})
+}
+
+func TestValidate_EncodingHeaders_ContentType(t *testing.T) {
+	t.Run("Content-Type in encoding.headers emits a warning", func(t *testing.T) {
+		enc := &openapi.Encoding{
+			Headers: map[string]*openapi.Header{
+				"Content-Type": {Schema: &openapi.Schema{Type: "string"}},
+			},
+		}
+		errs := validate.ValidateEncoding(
+			"requestBody.content.multipart/form-data.encoding.file",
+			"multipart/form-data",
+			enc,
+			openapi.Version312,
+		)
+		assertHasWarning(t, errs, "is described separately and is ignored")
+	})
 }

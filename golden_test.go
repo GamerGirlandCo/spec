@@ -269,7 +269,7 @@ func TestGolden(t *testing.T) {
 		},
 		{
 			name:     "compatibility_extensions",
-			versions: []string{openapi.Version304, openapi.Version312},
+			versions: []string{openapi.Version312},
 			opts: []option.OpenAPIOption{
 				option.WithTitle("Compatibility API"),
 				option.WithVersion("1.0.0"),

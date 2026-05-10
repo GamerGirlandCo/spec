@@ -43,7 +43,7 @@ func ValidateOperation(
 		errs = append(errs, Errorf("%s responses is required", context))
 	}
 	for i := range op.Servers {
-		errs = append(errs, ValidateServer(fmt.Sprintf("%s.servers[%d]", context, i), &op.Servers[i])...)
+		errs = append(errs, ValidateServer(fmt.Sprintf("%s.servers[%d]", context, i), &op.Servers[i], version)...)
 	}
 	if op.ExternalDocs != nil && op.ExternalDocs.URL == "" {
 		errs = append(errs, Errorf("%s.externalDocs.url is required", context))
@@ -253,7 +253,7 @@ func ValidateResponse(context string, response *openapi.Response, version string
 	}
 	for name, header := range response.Headers {
 		if strings.EqualFold(name, "Content-Type") {
-			errs = append(errs, Errorf("%s.headers contains forbidden header %q", context, name))
+			errs = append(errs, Warningf("%s.headers %q is ignored by the OpenAPI spec; omit it", context, name))
 		}
 		errs = append(errs, ValidateHeader(context+".headers."+name, header, version)...)
 	}
@@ -298,7 +298,7 @@ func ValidateHeader(context string, header *openapi.Header, version string) []er
 	if header.AllowEmptyValue {
 		errs = append(errs, Errorf("%s allowEmptyValue is not allowed for headers", context))
 	}
-	if header.AllowReserved {
+	if header.AllowReserved && !IsOpenAPI32(version) {
 		errs = append(errs, Errorf("%s allowReserved is not allowed for headers", context))
 	}
 	if header.Style != "" && header.Style != "simple" {
@@ -369,6 +369,13 @@ func ValidateMediaType(context, mediaTypeName string, mediaType *openapi.MediaTy
 	errs = append(
 		errs,
 		ValidateSchema(context+".itemSchema", mediaType.ItemSchema, version, map[*openapi.Schema]bool{})...)
+	if mediaType.Schema != nil && mediaType.Schema.Ref == "" && len(mediaType.Encoding) > 0 {
+		for name := range mediaType.Encoding {
+			if _, exists := mediaType.Schema.Properties[name]; !exists {
+				errs = append(errs, Errorf("%s.encoding.%s must correspond to a schema property", context, name))
+			}
+		}
+	}
 	for name, encoding := range mediaType.Encoding {
 		errs = append(errs, ValidateEncoding(context+".encoding."+name, mediaTypeName, encoding, version)...)
 	}
@@ -413,6 +420,16 @@ func ValidateEncoding(context, mediaTypeName string, encoding *openapi.Encoding,
 		}
 	}
 	for name, header := range encoding.Headers {
+		if strings.EqualFold(name, "Content-Type") {
+			errs = append(
+				errs,
+				Warningf(
+					"%s.headers %q is described separately and is ignored; use encoding.contentType instead",
+					context,
+					name,
+				),
+			)
+		}
 		errs = append(errs, ValidateHeader(context+".headers."+name, header, version)...)
 	}
 	for name, nested := range encoding.Encoding {
@@ -558,6 +575,7 @@ func ValidateSecurityRequirements(
 	return errs
 }
 
+//nolint:gocognit // security scheme validation aggregates many independent spec constraints across multiple types.
 func ValidateSecurityScheme(context string, scheme *openapi.SecurityScheme, version string) []error {
 	var errs []error
 	if scheme == nil {
@@ -577,6 +595,9 @@ func ValidateSecurityScheme(context string, scheme *openapi.SecurityScheme, vers
 			errs,
 			Errorf("%s.type must be one of apiKey, http, mutualTLS, oauth2, or openIdConnect", context),
 		)
+	}
+	if scheme.Type == "mutualTLS" && reflect.IsOpenAPI30(version) {
+		errs = append(errs, Errorf("%s.type mutualTLS requires OpenAPI 3.1.x or 3.2.0", context))
 	}
 	if version != openapi.Version320 &&
 		(scheme.OAuth2MetadataURL != "" || scheme.Deprecated || ExtraHas(scheme.Extra, "oauth2MetadataUrl", "deprecated")) {
