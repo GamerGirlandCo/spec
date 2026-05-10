@@ -9,7 +9,6 @@ import (
 	"github.com/oaswrap/spec/openapi"
 )
 
-//nolint:gocognit // orchestrates validation by delegating checks in stable order.
 func ValidateDocument(doc *openapi.Document, version string) []error {
 	var errs []error
 	errs = append(errs, validateDocumentVersionFields(doc, version)...)
@@ -106,7 +105,9 @@ func validateDocumentServersAndExternalDocs(doc *openapi.Document, version strin
 	return errs
 }
 
-func resolveDocumentSecurityMaps(doc *openapi.Document) (map[string]*openapi.SecurityScheme, map[string]*openapi.Parameter) {
+func resolveDocumentSecurityMaps(
+	doc *openapi.Document,
+) (map[string]*openapi.SecurityScheme, map[string]*openapi.Parameter) {
 	securitySchemes := map[string]*openapi.SecurityScheme{}
 	componentParameters := map[string]*openapi.Parameter{}
 	if doc.Components != nil {
@@ -133,7 +134,9 @@ func validateDocumentPathsAndWebhooks(
 				normalizedPaths[normalized] = path
 			}
 		}
-		errs = append(errs, ValidatePathItem(path, item, version, operationIDs, securitySchemes, componentParameters)...)
+		errs = append(errs, ValidatePathItem(
+			path, item, version, operationIDs, securitySchemes, componentParameters,
+		)...)
 	}
 	for name, item := range doc.Webhooks {
 		errs = append(errs, ValidatePathItemOperations(
@@ -157,14 +160,15 @@ func validateDocumentComponentsTagsRefs(
 ) []error {
 	var errs []error
 	if doc.Components != nil {
-		errs = append(errs, ValidateComponents(doc.Components, version, operationIDs, securitySchemes, componentParameters)...)
+		errs = append(errs, ValidateComponents(
+			doc.Components, version, operationIDs, securitySchemes, componentParameters,
+		)...)
 	}
 	errs = append(errs, ValidateTags(doc.Tags, version)...)
 	errs = append(errs, ValidateReferenceTargets(doc)...)
 	return errs
 }
 
-//nolint:funlen // straightforward validation rules for tag object and children.
 func ValidateTags(tags []openapi.Tag, version string) []error {
 	var errs []error
 	tagByName := make(map[string]int, len(tags))
