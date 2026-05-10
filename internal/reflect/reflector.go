@@ -141,8 +141,12 @@ func (r *Reflector) ParameterSchema(field reflect.StructField, in, name string) 
 		Deprecated:  BoolTag(field.Tag.Get("deprecated")),
 	}
 	if in == string(openapi.ParameterInQueryString) {
+		mediaType := field.Tag.Get("mediaType")
+		if mediaType == "" {
+			mediaType = "application/x-www-form-urlencoded"
+		}
 		param.Content = map[string]*openapi.MediaType{
-			"application/x-www-form-urlencoded": {
+			mediaType: {
 				Schema: schema,
 			},
 		}

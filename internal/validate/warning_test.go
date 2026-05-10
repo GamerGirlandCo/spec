@@ -1,23 +1,25 @@
-package validate
+package validate_test
 
 import (
 	"errors"
 	"testing"
 
+	"github.com/oaswrap/spec/internal/validate"
+
 	"github.com/oaswrap/spec/openapi"
 )
 
 func checkWarning(err error, expectedMessage string) bool {
-	var vErr *Error
-	if errors.As(err, &vErr) && vErr.Severity == SeverityWarning {
+	var vErr *validate.Error
+	if errors.As(err, &vErr) && vErr.Severity == validate.SeverityWarning {
 		return vErr.Error() == expectedMessage
 	}
 	return false
 }
 
 func checkInfo(err error, expectedMessage string) bool {
-	var vErr *Error
-	if errors.As(err, &vErr) && vErr.Severity == SeverityInfo {
+	var vErr *validate.Error
+	if errors.As(err, &vErr) && vErr.Severity == validate.SeverityInfo {
 		return vErr.Error() == expectedMessage
 	}
 	return false
@@ -32,7 +34,7 @@ func TestValidateWarnings(t *testing.T) {
 				Version: "1.0",
 			},
 		}
-		errs := ValidateDocument(doc, openapi.Version310)
+		errs := validate.ValidateDocument(doc, openapi.Version310)
 
 		hasContactInfo := false
 		hasLicenseInfo := false
@@ -65,7 +67,7 @@ func TestValidateWarnings(t *testing.T) {
 				"200": {Description: "OK"},
 			},
 		}
-		errs := ValidateOperation("test", op, openapi.Version310, map[string]string{}, nil, nil)
+		errs := validate.ValidateOperation("test", op, openapi.Version310, map[string]string{}, nil, nil)
 
 		hasSummaryWarning := false
 		hasDescriptionWarning := false
@@ -114,7 +116,7 @@ func TestValidateWarnings(t *testing.T) {
 				},
 			},
 		}
-		errs := ValidateOperation("test", op, openapi.Version310, nil, nil, nil)
+		errs := validate.ValidateOperation("test", op, openapi.Version310, nil, nil, nil)
 
 		hasOpDeprecation := false
 		hasParamDeprecation := false
@@ -139,7 +141,7 @@ func TestValidateWarnings(t *testing.T) {
 			Type:       "string",
 			Deprecated: true,
 		}
-		errs := ValidateSchema("test-schema", schema, openapi.Version310, map[*openapi.Schema]bool{})
+		errs := validate.ValidateSchema("test-schema", schema, openapi.Version310, map[*openapi.Schema]bool{})
 
 		hasSchemaDeprecation := false
 		for _, err := range errs {

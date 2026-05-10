@@ -332,7 +332,10 @@ func ValidateMediaType(context, mediaTypeName string, mediaType *openapi.MediaTy
 	if len(mediaType.Encoding) > 0 && !MediaTypeAllowsNamedEncoding(mediaTypeName) {
 		errs = append(
 			errs,
-			Errorf("%s.encoding requires multipart or application/x-www-form-urlencoded media type", context),
+			Warningf(
+				"%s.encoding is ignored unless media type is multipart or application/x-www-form-urlencoded",
+				context,
+			),
 		)
 	}
 	if len(mediaType.PrefixEncoding) > 0 && !MediaTypeIsMultipart(mediaTypeName) {
@@ -402,8 +405,8 @@ func ValidateEncoding(context, mediaTypeName string, encoding *openapi.Encoding,
 		!MediaTypeAllowsNamedEncoding(mediaTypeName) {
 		errs = append(
 			errs,
-			Errorf(
-				"%s style, explode, and allowReserved require multipart or application/x-www-form-urlencoded media type",
+			Warningf(
+				"%s style, explode, and allowReserved are ignored unless media type is multipart or application/x-www-form-urlencoded",
 				context,
 			),
 		)
@@ -606,7 +609,7 @@ func ValidateSecurityScheme(context string, scheme *openapi.SecurityScheme, vers
 	if scheme.Deprecated && version == openapi.Version320 {
 		errs = append(errs, Warningf("%s is deprecated", context))
 	}
-	metadataURL, metadataURLPresent := securitySchemeOAuth2MetadataURL(scheme)
+	metadataURL, metadataURLPresent := SecuritySchemeOAuth2MetadataURL(scheme)
 	if metadataURLPresent {
 		if scheme.Type != "oauth2" {
 			errs = append(errs, Errorf("%s.oauth2MetadataUrl is only allowed for oauth2 security schemes", context))
@@ -686,7 +689,7 @@ func ValidateOAuthFlows(context string, flows *openapi.OAuthFlows, version strin
 	return errs
 }
 
-func securitySchemeOAuth2MetadataURL(scheme *openapi.SecurityScheme) (string, bool) {
+func SecuritySchemeOAuth2MetadataURL(scheme *openapi.SecurityScheme) (string, bool) {
 	if scheme.OAuth2MetadataURL != "" {
 		return scheme.OAuth2MetadataURL, true
 	}

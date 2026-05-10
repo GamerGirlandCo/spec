@@ -32,6 +32,34 @@ func TestReflector_ParameterSchema(t *testing.T) {
 	assert.Equal(t, "string", p.Schema.Type)
 }
 
+func TestReflector_ParameterSchema_QueryString(t *testing.T) {
+	cfg := &openapi.Config{OpenAPIVersion: openapi.Version320}
+	r := reflect.NewReflector(cfg)
+
+	t.Run("DefaultMediaType", func(t *testing.T) {
+		type QS struct {
+			Q string `querystring:"q"`
+		}
+		f, _ := std_reflect.TypeFor[QS]().FieldByName("Q")
+		p := r.ParameterSchema(f, string(openapi.ParameterInQueryString), "q")
+		assert.Nil(t, p.Schema)
+		if assert.Contains(t, p.Content, "application/x-www-form-urlencoded") {
+			assert.Equal(t, "string", p.Content["application/x-www-form-urlencoded"].Schema.Type)
+		}
+	})
+
+	t.Run("OverrideViaTag", func(t *testing.T) {
+		type QS struct {
+			Q string `querystring:"q" mediaType:"application/json"`
+		}
+		f, _ := std_reflect.TypeFor[QS]().FieldByName("Q")
+		p := r.ParameterSchema(f, string(openapi.ParameterInQueryString), "q")
+		assert.Nil(t, p.Schema)
+		assert.Contains(t, p.Content, "application/json")
+		assert.NotContains(t, p.Content, "application/x-www-form-urlencoded")
+	})
+}
+
 func TestReflector_SchemaForValue(t *testing.T) {
 	cfg := &openapi.Config{OpenAPIVersion: openapi.Version304}
 	r := reflect.NewReflector(cfg)

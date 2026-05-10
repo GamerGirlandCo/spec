@@ -1,8 +1,10 @@
-package validate
+package validate_test
 
 import (
 	"reflect"
 	"testing"
+
+	"github.com/oaswrap/spec/internal/validate"
 
 	"github.com/stretchr/testify/assert"
 
@@ -10,21 +12,21 @@ import (
 )
 
 func TestNormalizeTemplatedPath(t *testing.T) {
-	assert.Equal(t, "/users/{}", NormalizeTemplatedPath("/users/{id}"))
-	assert.Equal(t, "/orgs/{}/repos/{}", NormalizeTemplatedPath("/orgs/{org}/repos/{repo}"))
-	assert.Equal(t, "/static", NormalizeTemplatedPath("/static"))
+	assert.Equal(t, "/users/{}", validate.NormalizeTemplatedPath("/users/{id}"))
+	assert.Equal(t, "/orgs/{}/repos/{}", validate.NormalizeTemplatedPath("/orgs/{org}/repos/{repo}"))
+	assert.Equal(t, "/static", validate.NormalizeTemplatedPath("/static"))
 }
 
 func TestMediaTypeBase(t *testing.T) {
-	assert.Equal(t, "application/json", MediaTypeBase("application/json"))
-	assert.Equal(t, "application/json", MediaTypeBase("application/json; charset=utf-8"))
-	assert.Equal(t, "application/json", MediaTypeBase("  APPLICATION/JSON  ; foo=bar"))
+	assert.Equal(t, "application/json", validate.MediaTypeBase("application/json"))
+	assert.Equal(t, "application/json", validate.MediaTypeBase("application/json; charset=utf-8"))
+	assert.Equal(t, "application/json", validate.MediaTypeBase("  APPLICATION/JSON  ; foo=bar"))
 }
 
 func TestMediaTypeIsMultipart(t *testing.T) {
-	assert.True(t, MediaTypeIsMultipart("multipart/form-data"))
-	assert.True(t, MediaTypeIsMultipart("multipart/mixed"))
-	assert.False(t, MediaTypeIsMultipart("application/json"))
+	assert.True(t, validate.MediaTypeIsMultipart("multipart/form-data"))
+	assert.True(t, validate.MediaTypeIsMultipart("multipart/mixed"))
+	assert.False(t, validate.MediaTypeIsMultipart("application/json"))
 }
 
 func TestResolveJSONPointer(t *testing.T) {
@@ -38,33 +40,33 @@ func TestResolveJSONPointer(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, root, ResolveJSONPointer(root, ""))
-	assert.Equal(t, root["foo"], ResolveJSONPointer(root, "/foo"))
-	assert.Equal(t, "bar", ResolveJSONPointer(root, "/foo/0"))
-	assert.Equal(t, "baz", ResolveJSONPointer(root, "/foo/1"))
-	assert.Nil(t, ResolveJSONPointer(root, "/foo/2"))
-	assert.Equal(t, 1, ResolveJSONPointer(root, "/qux/a~1b"))
-	assert.Equal(t, 3, ResolveJSONPointer(root, "/qux/e~0f"))
+	assert.Equal(t, root, validate.ResolveJSONPointer(root, ""))
+	assert.Equal(t, root["foo"], validate.ResolveJSONPointer(root, "/foo"))
+	assert.Equal(t, "bar", validate.ResolveJSONPointer(root, "/foo/0"))
+	assert.Equal(t, "baz", validate.ResolveJSONPointer(root, "/foo/1"))
+	assert.Nil(t, validate.ResolveJSONPointer(root, "/foo/2"))
+	assert.Equal(t, 1, validate.ResolveJSONPointer(root, "/qux/a~1b"))
+	assert.Equal(t, 3, validate.ResolveJSONPointer(root, "/qux/e~0f"))
 }
 
 func TestIsNonRelativeURI(t *testing.T) {
-	assert.True(t, IsNonRelativeURI("https://example.com"))
-	assert.True(t, IsNonRelativeURI("https://example.com#frag"))
-	assert.True(t, IsNonRelativeURI("mailto:foo@example.com"))
-	assert.False(t, IsNonRelativeURI("/local/path"))
-	assert.False(t, IsNonRelativeURI("relative"))
+	assert.True(t, validate.IsNonRelativeURI("https://example.com"))
+	assert.True(t, validate.IsNonRelativeURI("https://example.com#frag"))
+	assert.True(t, validate.IsNonRelativeURI("mailto:foo@example.com"))
+	assert.False(t, validate.IsNonRelativeURI("/local/path"))
+	assert.False(t, validate.IsNonRelativeURI("relative"))
 }
 
 func TestIsHTTPSURI(t *testing.T) {
-	assert.True(t, IsHTTPSURI("https://example.com"))
-	assert.False(t, IsHTTPSURI("http://example.com"))
-	assert.False(t, IsHTTPSURI("ftp://example.com"))
+	assert.True(t, validate.IsHTTPSURI("https://example.com"))
+	assert.False(t, validate.IsHTTPSURI("http://example.com"))
+	assert.False(t, validate.IsHTTPSURI("ftp://example.com"))
 }
 
 func TestIsURIReference(t *testing.T) {
-	assert.True(t, IsURIReference("https://example.com"))
-	assert.True(t, IsURIReference("/path"))
-	assert.False(t, IsURIReference("not a uri with spaces"))
+	assert.True(t, validate.IsURIReference("https://example.com"))
+	assert.True(t, validate.IsURIReference("/path"))
+	assert.False(t, validate.IsURIReference("not a uri with spaces"))
 }
 
 func TestResolveURIReference(t *testing.T) {
@@ -77,7 +79,7 @@ func TestResolveURIReference(t *testing.T) {
 		{"https://example.com/a/b", "/c", "https://example.com/c"},
 	}
 	for _, tt := range tests {
-		got, ok := ResolveURIReference(tt.base, tt.ref)
+		got, ok := validate.ResolveURIReference(tt.base, tt.ref)
 		assert.True(t, ok)
 		assert.Equal(t, tt.expected, got)
 	}
@@ -85,22 +87,22 @@ func TestResolveURIReference(t *testing.T) {
 
 func TestExtraHas(t *testing.T) {
 	extra := map[string]any{"foo": 1, "bar": 2}
-	assert.True(t, ExtraHas(extra, "foo"))
-	assert.True(t, ExtraHas(extra, "baz", "bar"))
-	assert.False(t, ExtraHas(extra, "qux"))
+	assert.True(t, validate.ExtraHas(extra, "foo"))
+	assert.True(t, validate.ExtraHas(extra, "baz", "bar"))
+	assert.False(t, validate.ExtraHas(extra, "qux"))
 }
 
 func TestWithoutFragment(t *testing.T) {
-	assert.Equal(t, "https://example.com/path", WithoutFragment("https://example.com/path#frag"))
-	assert.Equal(t, "https://example.com/path", WithoutFragment("https://example.com/path"))
-	assert.Equal(t, ":// bad", WithoutFragment(":// bad"))
+	assert.Equal(t, "https://example.com/path", validate.WithoutFragment("https://example.com/path#frag"))
+	assert.Equal(t, "https://example.com/path", validate.WithoutFragment("https://example.com/path"))
+	assert.Equal(t, ":// bad", validate.WithoutFragment(":// bad"))
 }
 
 func TestResolveURIReference_InvalidInput(t *testing.T) {
-	_, ok := ResolveURIReference("https://example.com", "://bad")
+	_, ok := validate.ResolveURIReference("https://example.com", "://bad")
 	assert.False(t, ok)
 
-	_, ok = ResolveURIReference("://bad", "x")
+	_, ok = validate.ResolveURIReference("://bad", "x")
 	assert.False(t, ok)
 }
 
@@ -113,8 +115,8 @@ func TestRegisterSchemaResourceAndAnchor(t *testing.T) {
 	}
 
 	resources := map[string]any{}
-	RegisterSchemaResource(reflect.ValueOf(*schema), schema.ID, resources)
-	RegisterSchemaResource(reflect.ValueOf(*schema), schema.ID, resources) // idempotent
+	validate.RegisterSchemaResource(reflect.ValueOf(*schema), schema.ID, resources)
+	validate.RegisterSchemaResource(reflect.ValueOf(*schema), schema.ID, resources) // idempotent
 
 	assert.Contains(t, resources, "https://schemas.example.com/user")
 	assert.Contains(t, resources, "https://schemas.example.com/user#user-anchor")
@@ -123,7 +125,7 @@ func TestRegisterSchemaResourceAndAnchor(t *testing.T) {
 
 	// Empty anchor should be ignored.
 	emptySchema := openapi.Schema{}
-	RegisterSchemaAnchor(reflect.ValueOf(emptySchema), "", "Anchor", resources)
+	validate.RegisterSchemaAnchor(reflect.ValueOf(emptySchema), "", "Anchor", resources)
 	assert.Len(t, resources, 3)
 }
 
@@ -144,20 +146,20 @@ func TestIsLocalReferenceAndReferenceTargetExists(t *testing.T) {
 		},
 	}
 
-	assert.True(t, IsLocalReference("https://example.com/schemas/user", resources))
-	assert.True(t, IsLocalReference("https://example.com/schemas/user#UserAnchor", resources))
-	assert.False(t, IsLocalReference("https://example.com/schemas/user#Missing", resources))
-	assert.False(t, IsLocalReference("://bad", resources))
+	assert.True(t, validate.IsLocalReference("https://example.com/schemas/user", resources))
+	assert.True(t, validate.IsLocalReference("https://example.com/schemas/user#UserAnchor", resources))
+	assert.False(t, validate.IsLocalReference("https://example.com/schemas/user#Missing", resources))
+	assert.False(t, validate.IsLocalReference("://bad", resources))
 
-	assert.True(t, ReferenceTargetExists("https://example.com/schemas/user", resources))
-	assert.True(t, ReferenceTargetExists("https://example.com/schemas/user#UserAnchor", resources))
-	assert.True(t, ReferenceTargetExists("https://example.com/schemas/user#/properties/name", resources))
-	assert.False(t, ReferenceTargetExists("https://example.com/schemas/user#/properties/missing", resources))
-	assert.False(t, ReferenceTargetExists("https://example.com/schemas/user#Missing", resources))
-	assert.False(t, ReferenceTargetExists("://bad", resources))
+	assert.True(t, validate.ReferenceTargetExists("https://example.com/schemas/user", resources))
+	assert.True(t, validate.ReferenceTargetExists("https://example.com/schemas/user#UserAnchor", resources))
+	assert.True(t, validate.ReferenceTargetExists("https://example.com/schemas/user#/properties/name", resources))
+	assert.False(t, validate.ReferenceTargetExists("https://example.com/schemas/user#/properties/missing", resources))
+	assert.False(t, validate.ReferenceTargetExists("https://example.com/schemas/user#Missing", resources))
+	assert.False(t, validate.ReferenceTargetExists("://bad", resources))
 }
 
 func TestMarshalAny(t *testing.T) {
-	assert.Equal(t, map[string]any{"x": float64(1)}, MarshalAny(map[string]int{"x": 1}))
-	assert.Nil(t, MarshalAny(func() {}))
+	assert.Equal(t, map[string]any{"x": float64(1)}, validate.MarshalAny(map[string]int{"x": 1}))
+	assert.Nil(t, validate.MarshalAny(func() {}))
 }

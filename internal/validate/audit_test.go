@@ -122,7 +122,7 @@ func TestValidate_EncodingContext(t *testing.T) {
 	}
 	errs := validate.ValidateMediaType("mt", "application/json", mediaType, openapi.Version320)
 	assert.NotEmpty(t, errs)
-	assertHasError(t, errs, "requires multipart or application/x-www-form-urlencoded")
+	assertHasError(t, errs, "ignored unless media type is multipart or application/x-www-form-urlencoded")
 }
 
 func TestOptions_320NewFields(t *testing.T) {
