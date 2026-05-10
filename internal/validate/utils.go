@@ -2,7 +2,6 @@ package validate
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/url"
 	"reflect"
 	"regexp"
@@ -27,13 +26,13 @@ func NormalizeTemplatedPath(path string) string {
 func ValidateParameterSerialization(context string, param *openapi.Parameter, version string) []error {
 	var errs []error
 	if param.AllowEmptyValue && param.In != string(openapi.ParameterInQuery) {
-		errs = append(errs, fmt.Errorf("%s allowEmptyValue is only allowed for query parameters", context))
+		errs = append(errs, Errorf("%s allowEmptyValue is only allowed for query parameters", context))
 	}
 	if param.Style == "" {
 		return errs
 	}
 	if !ValidParameterStyle(param.In, param.Style, version) {
-		errs = append(errs, fmt.Errorf("%s.style %q is not allowed for %s parameters", context, param.Style, param.In))
+		errs = append(errs, Errorf("%s.style %q is not allowed for %s parameters", context, param.Style, param.In))
 	}
 	return errs
 }

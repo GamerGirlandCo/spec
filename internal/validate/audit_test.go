@@ -21,7 +21,7 @@ func TestValidate_ServerNameUniqueness(t *testing.T) {
 	}
 	errs := validate.ValidateDocument(doc, openapi.Version320)
 	assert.NotEmpty(t, errs)
-	assert.Contains(t, errs[0].Error(), "duplicates servers[0].name")
+	assertHasError(t, errs, "duplicates servers[0].name")
 }
 
 func TestValidate_ExclusiveBoundaryTypes(t *testing.T) {
@@ -31,7 +31,7 @@ func TestValidate_ExclusiveBoundaryTypes(t *testing.T) {
 		}
 		errs := validate.ValidateSchema("schema", schema, openapi.Version304, map[*openapi.Schema]bool{})
 		assert.NotEmpty(t, errs)
-		assert.Contains(t, errs[0].Error(), "must be a boolean in OpenAPI 3.0.x")
+		assertHasError(t, errs, "must be a boolean in OpenAPI 3.0.x")
 	})
 
 	t.Run("OpenAPI 3.1.0 - number required", func(t *testing.T) {
@@ -40,7 +40,7 @@ func TestValidate_ExclusiveBoundaryTypes(t *testing.T) {
 		}
 		errs := validate.ValidateSchema("schema", schema, openapi.Version310, map[*openapi.Schema]bool{})
 		assert.NotEmpty(t, errs)
-		assert.Contains(t, errs[0].Error(), "must be a number in OpenAPI 3.1.x or 3.2.0")
+		assertHasError(t, errs, "must be a number in OpenAPI 3.1.x or 3.2.0")
 	})
 
 	t.Run("OpenAPI 3.2.0 - number valid", func(t *testing.T) {
@@ -48,7 +48,7 @@ func TestValidate_ExclusiveBoundaryTypes(t *testing.T) {
 			ExclusiveMaximum: 100.0,
 		}
 		errs := validate.ValidateSchema("schema", schema, openapi.Version320, map[*openapi.Schema]bool{})
-		assert.Empty(t, errs)
+		assertNoStrictErrors(t, errs)
 	})
 }
 
@@ -62,7 +62,7 @@ func TestValidate_320Fields_NewNodeTypeAndDefaultMapping(t *testing.T) {
 		}
 		errs := validate.ValidateSchema("schema", schema, openapi.Version312, map[*openapi.Schema]bool{})
 		assert.NotEmpty(t, errs)
-		assert.Contains(t, errs[0].Error(), "requires OpenAPI 3.2.0")
+		assertHasError(t, errs, "requires OpenAPI 3.2.0")
 	})
 
 	t.Run("XML NodeType", func(t *testing.T) {
@@ -73,7 +73,7 @@ func TestValidate_320Fields_NewNodeTypeAndDefaultMapping(t *testing.T) {
 		}
 		errs := validate.ValidateSchema("schema", schema, openapi.Version312, map[*openapi.Schema]bool{})
 		assert.NotEmpty(t, errs)
-		assert.Contains(t, errs[0].Error(), "requires OpenAPI 3.2.0")
+		assertHasError(t, errs, "requires OpenAPI 3.2.0")
 	})
 }
 
@@ -87,7 +87,7 @@ func TestValidate_ForbiddenHeaderNames(t *testing.T) {
 		}
 		errs := validate.ValidateOperation("op", op, openapi.Version320, map[string]string{}, nil, nil)
 		assert.NotEmpty(t, errs)
-		assert.Contains(t, errs[0].Error(), "not allowed for header parameters")
+		assertHasError(t, errs, "not allowed for header parameters")
 	})
 
 	t.Run("Response headers", func(t *testing.T) {
@@ -99,7 +99,7 @@ func TestValidate_ForbiddenHeaderNames(t *testing.T) {
 		}
 		errs := validate.ValidateResponse("resp", resp, openapi.Version320)
 		assert.NotEmpty(t, errs)
-		assert.Contains(t, errs[0].Error(), "contains forbidden header \"Content-Type\"")
+		assertHasError(t, errs, "contains forbidden header \"Content-Type\"")
 	})
 }
 
@@ -110,7 +110,7 @@ func TestValidate_DiscriminatorUsage(t *testing.T) {
 	}
 	errs := validate.ValidateSchema("schema", schema, openapi.Version320, map[*openapi.Schema]bool{})
 	assert.NotEmpty(t, errs)
-	assert.Contains(t, errs[0].Error(), "only allowed with anyOf, oneOf, or allOf")
+	assertHasError(t, errs, "only allowed with anyOf, oneOf, or allOf")
 }
 
 func TestValidate_EncodingContext(t *testing.T) {
@@ -122,7 +122,7 @@ func TestValidate_EncodingContext(t *testing.T) {
 	}
 	errs := validate.ValidateMediaType("mt", "application/json", mediaType, openapi.Version320)
 	assert.NotEmpty(t, errs)
-	assert.Contains(t, errs[0].Error(), "requires multipart or application/x-www-form-urlencoded")
+	assertHasError(t, errs, "requires multipart or application/x-www-form-urlencoded")
 }
 
 func TestOptions_320NewFields(t *testing.T) {
@@ -159,5 +159,5 @@ func TestOptions_320NewFields(t *testing.T) {
 		},
 	}
 	errs := validate.ValidateDocument(doc, openapi.Version320)
-	assert.Empty(t, errs)
+	assertNoStrictErrors(t, errs)
 }

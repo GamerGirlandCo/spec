@@ -1,11 +1,11 @@
 package builder
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 
 	"github.com/oaswrap/spec/internal/reflect"
+	"github.com/oaswrap/spec/internal/validate"
 	"github.com/oaswrap/spec/openapi"
 	"github.com/oaswrap/spec/option"
 )
@@ -32,7 +32,7 @@ func (b *Builder) AddOperation(method, path string, opts []option.OperationOptio
 
 func (b *Builder) AddWebhookOperation(method, name string, opts []option.OperationOption) error {
 	if reflect.IsOpenAPI30(b.Config.OpenAPIVersion) {
-		return fmt.Errorf("webhooks require OpenAPI 3.1.x or 3.2.0")
+		return validate.Errorf("webhooks require OpenAPI 3.1.x or 3.2.0")
 	}
 	if b.Doc.Webhooks == nil {
 		b.Doc.Webhooks = map[string]*openapi.PathItem{}
@@ -55,7 +55,7 @@ func (b *Builder) AddOperationTo(
 
 	method = strings.ToUpper(method)
 	if method == "QUERY" && b.Config.OpenAPIVersion != openapi.Version320 {
-		return fmt.Errorf("method QUERY requires OpenAPI 3.2.0")
+		return validate.Errorf("method QUERY requires OpenAPI 3.2.0")
 	}
 
 	op := &openapi.Operation{Responses: map[string]*openapi.Response{}}
@@ -77,7 +77,7 @@ func (b *Builder) AddOperationTo(
 	}
 	for _, resp := range MergeResponses(cfg.Responses) {
 		if err := b.AddResponse(op, resp); err != nil {
-			return fmt.Errorf("%s %s response: %w", method, target, err)
+			return validate.Errorf("%s %s response: %w", method, target, err)
 		}
 	}
 	for _, customize := range cfg.Customizers {

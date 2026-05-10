@@ -8,7 +8,7 @@ import (
 	"github.com/oaswrap/spec/openapi"
 )
 
-//nolint:gocognit // recursive schema validation must cover many keyword branches.
+//nolint:gocognit,funlen // recursive schema validation must cover many keyword branches.
 func ValidateSchema(context string, schema *openapi.Schema, version string, visited map[*openapi.Schema]bool) []error {
 	var errs []error
 	if schema == nil {
@@ -18,30 +18,33 @@ func ValidateSchema(context string, schema *openapi.Schema, version string, visi
 		return nil
 	}
 	visited[schema] = true
+	if schema.Deprecated {
+		errs = append(errs, Warningf("%s is deprecated", context))
+	}
 	if reflect.IsOpenAPI30(version) {
 		if schema.Ref != "" && HasSchemaRefSiblings(schema) {
-			errs = append(errs, fmt.Errorf("%s must not define siblings with $ref in OpenAPI 3.0.x", context))
+			errs = append(errs, Errorf("%s must not define siblings with $ref in OpenAPI 3.0.x", context))
 		}
 		if schema.ReadOnly && schema.WriteOnly {
-			errs = append(errs, fmt.Errorf("%s must not be both readOnly and writeOnly", context))
+			errs = append(errs, Errorf("%s must not be both readOnly and writeOnly", context))
 		}
 		errs = append(errs, ValidateSchema304Fields(context, schema)...)
 	}
 	if version != openapi.Version320 {
 		if schema.Discriminator != nil &&
 			(schema.Discriminator.DefaultMapping != "" || ExtraHas(schema.Discriminator.Extra, "defaultMapping")) {
-			errs = append(errs, fmt.Errorf("%s.discriminator.defaultMapping requires OpenAPI 3.2.0", context))
+			errs = append(errs, Errorf("%s.discriminator.defaultMapping requires OpenAPI 3.2.0", context))
 		}
 		if schema.XML != nil && (schema.XML.NodeType != "" || ExtraHas(schema.XML.Extra, "nodeType")) {
-			errs = append(errs, fmt.Errorf("%s.xml.nodeType requires OpenAPI 3.2.0", context))
+			errs = append(errs, Errorf("%s.xml.nodeType requires OpenAPI 3.2.0", context))
 		}
 	}
 	errs = append(errs, ValidateExclusiveBoundaries(context, schema, version)...)
 	if schema.ExternalDocs != nil {
 		if schema.ExternalDocs.URL == "" {
-			errs = append(errs, fmt.Errorf("%s.externalDocs.url is required", context))
+			errs = append(errs, Errorf("%s.externalDocs.url is required", context))
 		} else if !IsURIReference(schema.ExternalDocs.URL) {
-			errs = append(errs, fmt.Errorf("%s.externalDocs.url must be a URI", context))
+			errs = append(errs, Errorf("%s.externalDocs.url must be a URI", context))
 		}
 	}
 	errs = append(errs, ValidateDiscriminator(context, schema, version)...)
@@ -108,7 +111,7 @@ func ValidateSchema304Fields(context string, schema *openapi.Schema) []error {
 		schema.Comment != "" {
 		errs = append(
 			errs,
-			fmt.Errorf("%s contains JSON Schema dialect fields that require OpenAPI 3.1.x or 3.2.0", context),
+			Errorf("%s contains JSON Schema dialect fields that require OpenAPI 3.1.x or 3.2.0", context),
 		)
 	}
 	if len(schema.Examples) > 0 || schema.Const != nil || len(schema.PatternProperties) > 0 ||
@@ -128,23 +131,23 @@ func ValidateSchema304Fields(context string, schema *openapi.Schema) []error {
 		schema.ContentSchema != nil {
 		errs = append(
 			errs,
-			fmt.Errorf("%s contains JSON Schema 2020-12 keywords that require OpenAPI 3.1.x or 3.2.0", context),
+			Errorf("%s contains JSON Schema 2020-12 keywords that require OpenAPI 3.1.x or 3.2.0", context),
 		)
 	}
 	if _, ok := schema.Type.([]string); ok {
-		errs = append(errs, fmt.Errorf("%s.type must be a string in OpenAPI 3.0.x", context))
+		errs = append(errs, Errorf("%s.type must be a string in OpenAPI 3.0.x", context))
 	}
 	if _, ok := schema.Type.([]any); ok {
-		errs = append(errs, fmt.Errorf("%s.type must be a string in OpenAPI 3.0.x", context))
+		errs = append(errs, Errorf("%s.type must be a string in OpenAPI 3.0.x", context))
 	}
 	if schema.ExclusiveMaximum != nil {
 		if _, ok := schema.ExclusiveMaximum.(bool); !ok {
-			errs = append(errs, fmt.Errorf("%s.exclusiveMaximum must be a boolean in OpenAPI 3.0.x", context))
+			errs = append(errs, Errorf("%s.exclusiveMaximum must be a boolean in OpenAPI 3.0.x", context))
 		}
 	}
 	if schema.ExclusiveMinimum != nil {
 		if _, ok := schema.ExclusiveMinimum.(bool); !ok {
-			errs = append(errs, fmt.Errorf("%s.exclusiveMinimum must be a boolean in OpenAPI 3.0.x", context))
+			errs = append(errs, Errorf("%s.exclusiveMinimum must be a boolean in OpenAPI 3.0.x", context))
 		}
 	}
 	if ExtraHas(
@@ -177,7 +180,7 @@ func ValidateSchema304Fields(context string, schema *openapi.Schema) []error {
 	) {
 		errs = append(
 			errs,
-			fmt.Errorf("%s contains Extra JSON Schema keywords that require OpenAPI 3.1.x or 3.2.0", context),
+			Errorf("%s contains Extra JSON Schema keywords that require OpenAPI 3.1.x or 3.2.0", context),
 		)
 	}
 	return errs
@@ -189,10 +192,10 @@ func ValidateExclusiveBoundaries(context string, schema *openapi.Schema, version
 		return nil
 	}
 	if schema.ExclusiveMaximum != nil && !IsNumber(schema.ExclusiveMaximum) {
-		errs = append(errs, fmt.Errorf("%s.exclusiveMaximum must be a number in OpenAPI 3.1.x or 3.2.0", context))
+		errs = append(errs, Errorf("%s.exclusiveMaximum must be a number in OpenAPI 3.1.x or 3.2.0", context))
 	}
 	if schema.ExclusiveMinimum != nil && !IsNumber(schema.ExclusiveMinimum) {
-		errs = append(errs, fmt.Errorf("%s.exclusiveMinimum must be a number in OpenAPI 3.1.x or 3.2.0", context))
+		errs = append(errs, Errorf("%s.exclusiveMinimum must be a number in OpenAPI 3.1.x or 3.2.0", context))
 	}
 	return errs
 }
@@ -203,17 +206,17 @@ func ValidateDiscriminator(context string, schema *openapi.Schema, version strin
 		return nil
 	}
 	if schema.Discriminator.PropertyName == "" {
-		errs = append(errs, fmt.Errorf("%s.discriminator.propertyName is required", context))
+		errs = append(errs, Errorf("%s.discriminator.propertyName is required", context))
 	}
 	if len(schema.OneOf) == 0 && len(schema.AnyOf) == 0 && len(schema.AllOf) == 0 {
-		errs = append(errs, fmt.Errorf("%s.discriminator is only allowed with anyOf, oneOf, or allOf", context))
+		errs = append(errs, Errorf("%s.discriminator is only allowed with anyOf, oneOf, or allOf", context))
 	}
 	if version == openapi.Version320 && schema.Discriminator.PropertyName != "" &&
 		!slices.Contains(schema.Required, schema.Discriminator.PropertyName) &&
 		schema.Discriminator.DefaultMapping == "" && !ExtraHas(schema.Discriminator.Extra, "defaultMapping") {
 		errs = append(
 			errs,
-			fmt.Errorf(
+			Errorf(
 				"%s.discriminator.defaultMapping is required when discriminator property %q is optional",
 				context,
 				schema.Discriminator.PropertyName,
@@ -229,7 +232,7 @@ func ValidateXML(context string, schema *openapi.Schema) []error {
 		return nil
 	}
 	if schema.XML.Namespace != "" && !IsNonRelativeURI(schema.XML.Namespace) {
-		errs = append(errs, fmt.Errorf("%s.xml.namespace must be a non-relative IRI", context))
+		errs = append(errs, Errorf("%s.xml.namespace must be a non-relative IRI", context))
 	}
 	nodeType := schema.XML.NodeType
 	if extraNodeType, ok := schema.XML.Extra["nodeType"]; ok {
@@ -238,13 +241,13 @@ func ValidateXML(context string, schema *openapi.Schema) []error {
 	if nodeType != "" {
 		if !slices.Contains([]string{"element", "attribute", "text", "cdata", "none"}, nodeType) {
 			errs = append(errs,
-				fmt.Errorf("%s.xml.nodeType must be one of element, attribute, text, cdata, or none", context))
+				Errorf("%s.xml.nodeType must be one of element, attribute, text, cdata, or none", context))
 		}
 		if schema.XML.Attribute {
-			errs = append(errs, fmt.Errorf("%s.xml.attribute must not be present when xml.nodeType is set", context))
+			errs = append(errs, Errorf("%s.xml.attribute must not be present when xml.nodeType is set", context))
 		}
 		if schema.XML.Wrapped {
-			errs = append(errs, fmt.Errorf("%s.xml.wrapped must not be present when xml.nodeType is set", context))
+			errs = append(errs, Errorf("%s.xml.wrapped must not be present when xml.nodeType is set", context))
 		}
 	}
 	return errs

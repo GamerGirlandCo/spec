@@ -20,11 +20,11 @@ func ValidateReferenceTargets(doc *openapi.Document) []error {
 	root := map[string]any{}
 	raw, err := openapi.MarshalJSON(doc)
 	if err != nil {
-		return []error{fmt.Errorf("failed to serialize document for $ref validation: %w", err)}
+		return []error{Errorf("failed to serialize document for $ref validation: %w", err)}
 	}
 	err = json.Unmarshal(raw, &root)
 	if err != nil {
-		return []error{fmt.Errorf("failed to parse document for $ref validation: %w", err)}
+		return []error{Errorf("failed to parse document for $ref validation: %w", err)}
 	}
 
 	resources := map[string]any{"": root}
@@ -37,24 +37,24 @@ func ValidateReferenceTargets(doc *openapi.Document) []error {
 	for _, entry := range entries {
 		ref := entry.ref
 		if strings.HasPrefix(ref, "/") {
-			errs = append(errs, fmt.Errorf("%s $ref %q must use #/ for local references", entry.context, ref))
+			errs = append(errs, Errorf("%s $ref %q must use #/ for local references", entry.context, ref))
 			continue
 		}
 		resolved, ok := ResolveURIReference(entry.base, ref)
 		if !ok {
-			errs = append(errs, fmt.Errorf("%s $ref %q must be a URI reference", entry.context, ref))
+			errs = append(errs, Errorf("%s $ref %q must be a URI reference", entry.context, ref))
 			continue
 		}
 		parsed, err := url.Parse(resolved)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("%s $ref %q must be a URI reference", entry.context, ref))
+			errs = append(errs, Errorf("%s $ref %q must be a URI reference", entry.context, ref))
 			continue
 		}
 		if _, ok := resources[urlWithoutFragment(parsed)]; !ok {
 			continue
 		}
 		if !ReferenceTargetExists(resolved, resources) {
-			errs = append(errs, fmt.Errorf("%s $ref %q points to a missing target", entry.context, ref))
+			errs = append(errs, Errorf("%s $ref %q points to a missing target", entry.context, ref))
 		}
 	}
 	return errs

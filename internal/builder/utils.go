@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/oaswrap/spec/internal/validate"
 	"github.com/oaswrap/spec/openapi"
 )
 
@@ -11,58 +12,58 @@ func SetOperation(item *openapi.PathItem, method string, op *openapi.Operation, 
 	switch method {
 	case http.MethodGet:
 		if item.Get != nil {
-			return fmt.Errorf("duplicate GET operation")
+			return validate.Errorf("duplicate GET operation")
 		}
 		item.Get = op
 	case http.MethodPut:
 		if item.Put != nil {
-			return fmt.Errorf("duplicate PUT operation")
+			return validate.Errorf("duplicate PUT operation")
 		}
 		item.Put = op
 	case http.MethodPost:
 		if item.Post != nil {
-			return fmt.Errorf("duplicate POST operation")
+			return validate.Errorf("duplicate POST operation")
 		}
 		item.Post = op
 	case http.MethodDelete:
 		if item.Delete != nil {
-			return fmt.Errorf("duplicate DELETE operation")
+			return validate.Errorf("duplicate DELETE operation")
 		}
 		item.Delete = op
 	case http.MethodOptions:
 		if item.Options != nil {
-			return fmt.Errorf("duplicate OPTIONS operation")
+			return validate.Errorf("duplicate OPTIONS operation")
 		}
 		item.Options = op
 	case http.MethodHead:
 		if item.Head != nil {
-			return fmt.Errorf("duplicate HEAD operation")
+			return validate.Errorf("duplicate HEAD operation")
 		}
 		item.Head = op
 	case http.MethodPatch:
 		if item.Patch != nil {
-			return fmt.Errorf("duplicate PATCH operation")
+			return validate.Errorf("duplicate PATCH operation")
 		}
 		item.Patch = op
 	case http.MethodTrace:
 		if item.Trace != nil {
-			return fmt.Errorf("duplicate TRACE operation")
+			return validate.Errorf("duplicate TRACE operation")
 		}
 		item.Trace = op
 	case "QUERY":
 		if item.Query != nil {
-			return fmt.Errorf("duplicate QUERY operation")
+			return validate.Errorf("duplicate QUERY operation")
 		}
 		item.Query = op
 	default:
 		if version != openapi.Version320 {
-			return fmt.Errorf("unsupported HTTP method %q", method)
+			return validate.Errorf("unsupported HTTP method %q", method)
 		}
 		if item.AdditionalOperations == nil {
 			item.AdditionalOperations = map[string]*openapi.Operation{}
 		}
 		if _, exists := item.AdditionalOperations[method]; exists {
-			return fmt.Errorf("duplicate %s operation", method)
+			return validate.Errorf("duplicate %s operation", method)
 		}
 		item.AdditionalOperations[method] = op
 	}

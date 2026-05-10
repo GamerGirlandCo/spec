@@ -1,8 +1,6 @@
 package validate
 
 import (
-	"fmt"
-
 	"github.com/oaswrap/spec/internal/reflect"
 	"github.com/oaswrap/spec/openapi"
 )
@@ -27,10 +25,10 @@ func ValidateComponents(
 	errs = append(errs, ValidateComponentKeys("pathItems", components.PathItems)...)
 	errs = append(errs, ValidateComponentKeys("mediaTypes", components.MediaTypes)...)
 	if reflect.IsOpenAPI30(version) && components.PathItems != nil {
-		errs = append(errs, fmt.Errorf("components.pathItems requires OpenAPI 3.1.x or 3.2.0"))
+		errs = append(errs, Errorf("components.pathItems requires OpenAPI 3.1.x or 3.2.0"))
 	}
 	if version != openapi.Version320 && components.MediaTypes != nil {
-		errs = append(errs, fmt.Errorf("components.mediaTypes requires OpenAPI 3.2.0"))
+		errs = append(errs, Errorf("components.mediaTypes requires OpenAPI 3.2.0"))
 	}
 	for name, schema := range components.Schemas {
 		errs = append(errs, ValidateSchema("components.schemas."+name, schema, version, map[*openapi.Schema]bool{})...)
@@ -97,7 +95,7 @@ func ValidateComponentKeys[T any](kind string, values map[string]T) []error {
 	var errs []error
 	for key := range values {
 		if !componentRe.MatchString(key) {
-			errs = append(errs, fmt.Errorf("components.%s key %q must match %s", kind, key, componentRe.String()))
+			errs = append(errs, Errorf("components.%s key %q must match %s", kind, key, componentRe.String()))
 		}
 	}
 	return errs
