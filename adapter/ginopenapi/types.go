@@ -17,6 +17,9 @@ type Generator interface {
 	// Validate checks if the OpenAPI specification is valid.
 	Validate() error
 
+	// ValidateReport validates the schema and returns all findings.
+	ValidateReport() error
+
 	// GenerateSchema generates the OpenAPI schema.
 	// Defaults to YAML. Pass "json" to generate JSON.
 	GenerateSchema(format ...string) ([]byte, error)

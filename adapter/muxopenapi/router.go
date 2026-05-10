@@ -177,6 +177,10 @@ func (r *router) Validate() error {
 	return r.gen.Validate()
 }
 
+func (r *router) ValidateReport() error {
+	return r.gen.ValidateReport()
+}
+
 func (r *router) WriteSchemaTo(path string) error {
 	return r.gen.WriteSchemaTo(path)
 }

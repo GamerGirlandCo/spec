@@ -174,3 +174,7 @@ func (r *router) GenerateSchema(format ...string) ([]byte, error) {
 func (r *router) Validate() error {
 	return r.gen.Validate()
 }
+
+func (r *router) ValidateReport() error {
+	return r.gen.ValidateReport()
+}

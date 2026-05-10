@@ -24,6 +24,9 @@ type Generator interface {
 	// Validate validates the schema.
 	Validate() error
 
+	// ValidateReport validates the schema and returns all findings.
+	ValidateReport() error
+
 	// WriteSchemaTo writes the schema to a file.
 	WriteSchemaTo(path string) error
 }

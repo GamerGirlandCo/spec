@@ -179,6 +179,10 @@ func (r *router) Validate() error {
 	return r.gen.Validate()
 }
 
+func (r *router) ValidateReport() error {
+	return r.gen.ValidateReport()
+}
+
 // GenerateSchema generates the OpenAPI schema in the specified format(s).
 func (r *router) GenerateSchema(formats ...string) ([]byte, error) {
 	return r.gen.GenerateSchema(formats...)
