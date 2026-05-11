@@ -9,19 +9,20 @@ import (
 )
 
 func (b *Builder) AddRequest(op *openapi.Operation, cu *openapi.ContentUnit) error {
-	params, body, err := b.Reflector.RequestParts(cu.Structure, ContentType(cu))
+	ct := ContentType(cu)
+	params, body, err := b.Reflector.RequestParts(cu.Structure, ct)
 	if err != nil {
 		return err
 	}
 	op.Parameters = append(op.Parameters, params...)
 
-	ct := ContentType(cu)
 	if body == nil {
 		isDefaultJSON := ct == "application/json" || cu.ContentType == ""
 		if isDefaultJSON && cu.Format == "" && cu.Example == nil && len(cu.Examples) == 0 {
 			return nil
 		}
 	}
+	b.Config.Logger.Debug("building request body", "contentType", ct)
 
 	if op.RequestBody == nil {
 		op.RequestBody = &openapi.RequestBody{Content: map[string]openapi.MediaType{}}
@@ -57,6 +58,7 @@ func (b *Builder) AddResponse(op *openapi.Operation, cu *openapi.ContentUnit) er
 	} else if cu.HTTPStatus == 0 {
 		return validate.Errorf("HTTP status is required unless ContentDefault is set")
 	}
+	b.Config.Logger.Debug("building response body", "status", key)
 
 	response := op.Responses[key]
 	if response == nil {

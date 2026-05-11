@@ -1,6 +1,8 @@
 package builder
 
 import (
+	"io"
+	"log/slog"
 	"regexp"
 	"strings"
 
@@ -19,6 +21,9 @@ type Builder struct {
 var pathParamTemplateRe = regexp.MustCompile(`\{([^{}]+)\}`)
 
 func NewBuilder(cfg *openapi.Config, doc *openapi.Document) *Builder {
+	if cfg.Logger == nil {
+		cfg.Logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+	}
 	return &Builder{
 		Config:    cfg,
 		Doc:       doc,
@@ -31,6 +36,7 @@ func (b *Builder) AddOperation(method, path string, opts []option.OperationOptio
 }
 
 func (b *Builder) AddWebhookOperation(method, name string, opts []option.OperationOption) error {
+	b.Config.Logger.Debug("adding webhook operation", "method", method, "name", name)
 	if reflect.IsOpenAPI30(b.Config.OpenAPIVersion) {
 		return validate.Errorf("webhooks require OpenAPI 3.1.x or 3.2.0")
 	}
@@ -45,6 +51,7 @@ func (b *Builder) AddOperationTo(
 	opts []option.OperationOption,
 	items map[string]*openapi.PathItem,
 ) error {
+	b.Config.Logger.Debug("adding operation", "method", method, "target", target)
 	cfg := &option.OperationConfig{}
 	for _, opt := range opts {
 		opt(cfg)
@@ -168,6 +175,7 @@ func (b *Builder) ensurePathParameters(target string, op *openapi.Operation) {
 		if _, ok := existing[name]; ok {
 			continue
 		}
+		b.Config.Logger.Debug("auto-injecting path parameter", "target", target, "param", name)
 		op.Parameters = append(op.Parameters, &openapi.Parameter{
 			Name:     name,
 			In:       string(openapi.ParameterInPath),

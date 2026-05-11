@@ -2,8 +2,11 @@ package reflect
 
 import (
 	"errors"
+	"io"
+	"log/slog"
 	"reflect"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/oaswrap/spec/openapi"
@@ -25,6 +28,12 @@ type Reflector struct {
 }
 
 func NewReflector(cfg *openapi.Config) *Reflector {
+	if cfg == nil {
+		cfg = &openapi.Config{}
+	}
+	if cfg.Logger == nil {
+		cfg.Logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+	}
 	r := &Reflector{
 		Config:      cfg,
 		Components:  map[string]*openapi.Schema{},
@@ -53,6 +62,7 @@ func (r *Reflector) RequestParts(
 		return nil, nil, nil
 	}
 	if mapped := r.TypeMapping[t]; mapped != nil {
+		r.Config.Logger.Debug("applying type mapping", "src", t.String(), "dst", mapped.String())
 		t = mapped
 	}
 	if t.Kind() != reflect.Struct || IsTime(t) {
@@ -182,6 +192,7 @@ func (r *Reflector) SchemaForValue(value any, mode SchemaMode) (*openapi.Schema,
 	//nolint:nestif // exposer path needs pre+post hook
 	if schema := r.SchemaFromValueExposer(value); schema != nil {
 		t := IndirectType(reflect.TypeOf(value))
+		r.Config.Logger.Debug("using SchemaExposer bypass", "type", t.String())
 		interceptSchema := r.interceptSchemaFn()
 		if interceptSchema != nil {
 			preSchema := &openapi.Schema{}
@@ -190,9 +201,11 @@ func (r *Reflector) SchemaForValue(value any, mode SchemaMode) (*openapi.Schema,
 				return nil, err
 			}
 			if stop {
+				r.Config.Logger.Debug("interceptSchema: pre-build stopped", "type", t.String())
 				return preSchema, nil
 			}
 			params := openapi.InterceptSchemaParams{Type: t, Schema: schema, Processed: true}
+			r.Config.Logger.Debug("interceptSchema: post-build called", "type", t.String())
 			if _, err := interceptSchema(params); err != nil {
 				return nil, err
 			}
@@ -212,6 +225,7 @@ func (r *Reflector) RefSchema(t reflect.Type) (*openapi.Schema, error) {
 	}
 	r.Generating[t] = true
 	r.Components[name] = &openapi.Schema{}
+	r.Config.Logger.Debug("generating component schema", "name", name, "type", t.String())
 	interceptSchema := r.interceptSchemaFn()
 	if interceptSchema != nil {
 		stop, err := interceptSchema(openapi.InterceptSchemaParams{Type: t, Schema: r.Components[name]})
@@ -221,6 +235,7 @@ func (r *Reflector) RefSchema(t reflect.Type) (*openapi.Schema, error) {
 			return nil, err
 		}
 		if stop {
+			r.Config.Logger.Debug("interceptSchema: pre-build stopped", "type", t.String(), "component", name)
 			delete(r.Generating, t)
 			return &openapi.Schema{Ref: "#/components/schemas/" + name}, nil
 		}
@@ -238,6 +253,7 @@ func (r *Reflector) RefSchema(t reflect.Type) (*openapi.Schema, error) {
 	r.Components[name].Required = built.Required
 	if interceptSchema != nil {
 		postParams := openapi.InterceptSchemaParams{Type: t, Schema: r.Components[name], Processed: true}
+		r.Config.Logger.Debug("interceptSchema: post-build called", "type", t.String(), "component", name)
 		if _, err := interceptSchema(postParams); err != nil {
 			delete(r.Generating, t)
 			delete(r.Components, name)
@@ -277,6 +293,7 @@ func (r *Reflector) StructSchema(
 			name = LowerCamel(field.Name)
 		}
 		if interceptProp != nil {
+			r.Config.Logger.Debug("interceptProp: field hook called", "field", name, "parent", typeName(parentType))
 			if err := interceptProp(openapi.InterceptPropParams{
 				Name:         name,
 				Field:        field,
@@ -448,4 +465,18 @@ func (r *Reflector) SchemaFromTypeExposer(t reflect.Type) *openapi.Schema {
 
 func IsTime(t reflect.Type) bool {
 	return t == reflect.TypeFor[time.Time]()
+}
+
+func typeName(t reflect.Type) string {
+	if t.Name() == "" {
+		return "<anonymous>"
+	}
+	pkg := t.PkgPath()
+	if idx := strings.LastIndex(pkg, "/"); idx >= 0 {
+		pkg = pkg[idx+1:]
+	}
+	if pkg != "" {
+		return pkg + "." + t.Name()
+	}
+	return t.Name()
 }

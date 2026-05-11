@@ -2,6 +2,7 @@ package option
 
 import (
 	"errors"
+	"log/slog"
 	"reflect"
 	"testing"
 
@@ -672,4 +673,22 @@ func TestOptional(t *testing.T) {
 	assert.Equal(t, 2, optional(1, 2))
 	assert.Equal(t, "b", optional("a", "b"))
 	assert.False(t, optional(true, false))
+}
+
+func TestWithLogger(t *testing.T) {
+	t.Run("default logger is not nil", func(t *testing.T) {
+		cfg := WithOpenAPIConfig()
+		assert.NotNil(t, cfg.Logger)
+	})
+
+	t.Run("custom logger is stored", func(t *testing.T) {
+		custom := slog.Default()
+		cfg := WithOpenAPIConfig(WithLogger(custom))
+		assert.Same(t, custom, cfg.Logger)
+	})
+
+	t.Run("nil logger falls back to slog.Default", func(t *testing.T) {
+		cfg := WithOpenAPIConfig(WithLogger(nil))
+		assert.Same(t, slog.Default(), cfg.Logger)
+	})
 }

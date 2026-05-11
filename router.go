@@ -310,9 +310,11 @@ func (g *generator) build() {
 	defer g.state.mu.Unlock()
 
 	if !g.state.dirty {
+		g.cfg.Logger.Debug("skip build: document not dirty")
 		return
 	}
 
+	g.cfg.Logger.Debug("start build", "openapi_version", g.cfg.OpenAPIVersion)
 	g.state.errs = nil
 	g.state.doc = newDocument(g.cfg)
 	g.state.builder = builder.NewBuilder(g.cfg, g.state.doc)
@@ -360,6 +362,11 @@ func (g *generator) build() {
 	}
 	g.state.errs = append(g.state.errs, validate.ValidateDocument(g.state.doc, g.cfg.OpenAPIVersion)...)
 	g.state.dirty = false
+	if len(g.state.errs) > 0 {
+		g.cfg.Logger.Warn("finish build", "routes", len(routes), "errors", len(g.state.errs))
+	} else {
+		g.cfg.Logger.Debug("finish build", "routes", len(routes), "errors", 0)
+	}
 }
 
 type routeItem struct {

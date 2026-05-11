@@ -2,6 +2,7 @@ package openapi
 
 import (
 	"errors"
+	"log/slog"
 	"reflect"
 
 	specui "github.com/oaswrap/spec-ui"
@@ -63,6 +64,7 @@ const (
 // It contains all the necessary information and options to customize the generated document, including metadata,
 // server information, security schemes, and UI configuration.
 type Config struct {
+	Logger            *slog.Logger
 	OpenAPIVersion    string
 	Self              string
 	Title             string

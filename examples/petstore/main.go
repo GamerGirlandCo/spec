@@ -67,7 +67,7 @@ func main() {
 		option.OperationID("updatePetWithForm"),
 		option.Summary("Update pet with form"),
 		option.Description("Updates a pet in the store with form data."),
-		option.Request(new(UpdatePetWithFormRequest)),
+		option.Request(new(UpdatePetWithFormRequest), option.ContentType("application/x-www-form-urlencoded")),
 		option.Response(200, nil),
 	)
 	pet.Delete("/{petId}",
