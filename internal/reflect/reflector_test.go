@@ -237,3 +237,265 @@ func TestReflector_RequestPartsAndStructSchemaBranches(t *testing.T) {
 		assert.Equal(t, "#/components/schemas/Dst", body.Ref)
 	})
 }
+
+func TestStructSchema_InterceptProp(t *testing.T) {
+	type Payload struct {
+		Name   string `json:"name"`
+		Secret string `json:"secret"`
+	}
+
+	t.Run("PreHookSkipsProperty", func(t *testing.T) {
+		cfg := &openapi.Config{
+			ReflectorConfig: &openapi.ReflectorConfig{
+				InterceptProp: func(params openapi.InterceptPropParams) error {
+					if !params.Processed && params.Name == "secret" {
+						return openapi.ErrSkipProperty
+					}
+					return nil
+				},
+			},
+		}
+		r := reflect.NewReflector(cfg)
+		schema := r.SchemaForValue(Payload{}, reflect.SchemaInline)
+		assert.Contains(t, schema.Properties, "name")
+		assert.NotContains(t, schema.Properties, "secret")
+	})
+
+	t.Run("PostHookSkipsProperty", func(t *testing.T) {
+		cfg := &openapi.Config{
+			ReflectorConfig: &openapi.ReflectorConfig{
+				InterceptProp: func(params openapi.InterceptPropParams) error {
+					if params.Processed && params.Name == "secret" {
+						return openapi.ErrSkipProperty
+					}
+					return nil
+				},
+			},
+		}
+		r := reflect.NewReflector(cfg)
+		schema := r.SchemaForValue(Payload{}, reflect.SchemaInline)
+		assert.Contains(t, schema.Properties, "name")
+		assert.NotContains(t, schema.Properties, "secret")
+	})
+
+	t.Run("PostHookModifiesPropertySchema", func(t *testing.T) {
+		cfg := &openapi.Config{
+			ReflectorConfig: &openapi.ReflectorConfig{
+				InterceptProp: func(params openapi.InterceptPropParams) error {
+					if params.Processed && params.Name == "name" {
+						params.PropertySchema.Description = "intercepted"
+					}
+					return nil
+				},
+			},
+		}
+		r := reflect.NewReflector(cfg)
+		schema := r.SchemaForValue(Payload{}, reflect.SchemaInline)
+		require.Contains(t, schema.Properties, "name")
+		assert.Equal(t, "intercepted", schema.Properties["name"].Description)
+		assert.Empty(t, schema.Properties["secret"].Description)
+	})
+
+	t.Run("CallOrderProcessedFalseBeforeTrue", func(t *testing.T) {
+		var calls []bool
+		cfg := &openapi.Config{
+			ReflectorConfig: &openapi.ReflectorConfig{
+				InterceptProp: func(params openapi.InterceptPropParams) error {
+					calls = append(calls, params.Processed)
+					return nil
+				},
+			},
+		}
+		r := reflect.NewReflector(cfg)
+		r.SchemaForValue(Payload{}, reflect.SchemaInline)
+		require.Len(t, calls, 4) // 2 fields × (pre + post)
+		assert.False(t, calls[0])
+		assert.True(t, calls[1])
+		assert.False(t, calls[2])
+		assert.True(t, calls[3])
+	})
+
+	t.Run("PostHookSkipAlsoRemovesFromRequired", func(t *testing.T) {
+		type WithRequired struct {
+			Name   string `json:"name" required:"true"`
+			Secret string `json:"secret" required:"true"`
+		}
+		cfg := &openapi.Config{
+			ReflectorConfig: &openapi.ReflectorConfig{
+				InterceptProp: func(params openapi.InterceptPropParams) error {
+					if params.Processed && params.Name == "secret" {
+						return openapi.ErrSkipProperty
+					}
+					return nil
+				},
+			},
+		}
+		r := reflect.NewReflector(cfg)
+		schema := r.SchemaForValue(WithRequired{}, reflect.SchemaInline)
+		assert.Contains(t, schema.Required, "name")
+		assert.NotContains(t, schema.Required, "secret")
+		assert.NotContains(t, schema.Properties, "secret")
+	})
+}
+
+func TestReflector_RequiredPropByValidateTag(t *testing.T) {
+	type Form struct {
+		Name  string `json:"name" validate:"required,min=3"`
+		Email string `json:"email" validate:"email"`
+		Age   int    `json:"age"`
+	}
+
+	t.Run("DefaultTagMarksRequired", func(t *testing.T) {
+		r := reflect.NewReflector(option.WithOpenAPIConfig(option.WithReflectorConfig(
+			option.RequiredPropByValidateTag(),
+		)))
+		schema := r.SchemaForValue(Form{}, reflect.SchemaInline)
+		assert.Contains(t, schema.Required, "name")
+		assert.NotContains(t, schema.Required, "email")
+		assert.NotContains(t, schema.Required, "age")
+	})
+
+	t.Run("CustomTagName", func(t *testing.T) {
+		type BindingForm struct {
+			Name  string `json:"name" binding:"required"`
+			Email string `json:"email" binding:"email"`
+		}
+		r := reflect.NewReflector(option.WithOpenAPIConfig(option.WithReflectorConfig(
+			option.RequiredPropByValidateTag("binding"),
+		)))
+		schema := r.SchemaForValue(BindingForm{}, reflect.SchemaInline)
+		assert.Contains(t, schema.Required, "name")
+		assert.NotContains(t, schema.Required, "email")
+	})
+
+	t.Run("CustomSeparator", func(t *testing.T) {
+		type PipeForm struct {
+			Name  string `json:"name" validate:"required|min=3"`
+			Email string `json:"email" validate:"email"`
+		}
+		r := reflect.NewReflector(option.WithOpenAPIConfig(option.WithReflectorConfig(
+			option.RequiredPropByValidateTag("validate", "|"),
+		)))
+		schema := r.SchemaForValue(PipeForm{}, reflect.SchemaInline)
+		assert.Contains(t, schema.Required, "name")
+		assert.NotContains(t, schema.Required, "email")
+	})
+
+	t.Run("NoValidateTagNotRequired", func(t *testing.T) {
+		type Plain struct {
+			Name string `json:"name"`
+		}
+		r := reflect.NewReflector(option.WithOpenAPIConfig(option.WithReflectorConfig(
+			option.RequiredPropByValidateTag(),
+		)))
+		schema := r.SchemaForValue(Plain{}, reflect.SchemaInline)
+		assert.Empty(t, schema.Required)
+	})
+}
+
+func TestStructSchema_InterceptSchema(t *testing.T) {
+	t.Run("PreHookStopReturnCustomSchema", func(t *testing.T) {
+		cfg := &openapi.Config{
+			ReflectorConfig: &openapi.ReflectorConfig{
+				InterceptSchema: func(params openapi.InterceptSchemaParams) (bool, error) {
+					if !params.Processed && params.Type == std_reflect.TypeFor[int]() {
+						params.Schema.Type = "string"
+						params.Schema.Format = "uuid"
+						return true, nil
+					}
+					return false, nil
+				},
+			},
+		}
+		r := reflect.NewReflector(cfg)
+		schema := r.SchemaForValue(0, reflect.SchemaInline)
+		assert.Equal(t, "string", schema.Type)
+		assert.Equal(t, "uuid", schema.Format)
+	})
+
+	t.Run("PostHookModifiesPrimitiveSchema", func(t *testing.T) {
+		cfg := &openapi.Config{
+			ReflectorConfig: &openapi.ReflectorConfig{
+				InterceptSchema: func(params openapi.InterceptSchemaParams) (bool, error) {
+					if params.Processed && params.Type == std_reflect.TypeFor[string]() {
+						params.Schema.Description = "intercepted"
+					}
+					return false, nil
+				},
+			},
+		}
+		r := reflect.NewReflector(cfg)
+		schema := r.SchemaForValue("", reflect.SchemaInline)
+		assert.Equal(t, "intercepted", schema.Description)
+	})
+
+	t.Run("PostHookModifiesComponentSchema", func(t *testing.T) {
+		type Item struct {
+			Name string `json:"name"`
+		}
+		r := spec.NewRouter(option.WithReflectorConfig(
+			option.InterceptSchema(func(params openapi.InterceptSchemaParams) (bool, error) {
+				if params.Processed && params.Type == std_reflect.TypeFor[Item]() {
+					if params.Schema.Extensions == nil {
+						params.Schema.Extensions = map[string]any{}
+					}
+					params.Schema.Extensions["x-intercepted"] = true
+				}
+				return false, nil
+			}),
+		))
+		r.Get("/items", option.Response(200, Item{}))
+		_, err := r.GenerateSchema("yaml")
+		require.NoError(t, err)
+		doc := r.Document()
+		require.Contains(t, doc.Components.Schemas, "Item")
+		assert.Equal(t, true, doc.Components.Schemas["Item"].Extensions["x-intercepted"])
+	})
+
+	t.Run("PreHookStopOnComponentSkipsStructSchema", func(t *testing.T) {
+		type Skipped struct {
+			Name string `json:"name"`
+		}
+		r := spec.NewRouter(option.WithReflectorConfig(
+			option.InterceptSchema(func(params openapi.InterceptSchemaParams) (bool, error) {
+				if !params.Processed && params.Type == std_reflect.TypeFor[Skipped]() {
+					params.Schema.Type = "object"
+					params.Schema.Description = "custom"
+					return true, nil
+				}
+				return false, nil
+			}),
+		))
+		r.Get("/", option.Response(200, Skipped{}))
+		_, err := r.GenerateSchema("yaml")
+		require.NoError(t, err)
+		doc := r.Document()
+		require.Contains(t, doc.Components.Schemas, "Skipped")
+		assert.Equal(t, "custom", doc.Components.Schemas["Skipped"].Description)
+		assert.Nil(t, doc.Components.Schemas["Skipped"].Properties) // StructSchema was skipped
+	})
+}
+
+// Ensure InterceptProp wires through spec.NewRouter to StructSchema.
+func TestReflector_InterceptPropViaRouter(t *testing.T) {
+	_ = spec.NewRouter // import guard
+	type Item struct {
+		Name   string `json:"name"`
+		Hidden string `json:"hidden"`
+	}
+	r := spec.NewRouter(option.WithReflectorConfig(
+		option.InterceptProp(func(params openapi.InterceptPropParams) error {
+			if params.Processed && params.Name == "hidden" {
+				return openapi.ErrSkipProperty
+			}
+			return nil
+		}),
+	))
+	r.Get("/items", option.Response(200, Item{}))
+	_, err := r.GenerateSchema("yaml")
+	require.NoError(t, err)
+	doc := r.Document()
+	require.Contains(t, doc.Components.Schemas, "Item")
+	assert.Contains(t, doc.Components.Schemas["Item"].Properties, "name")
+	assert.NotContains(t, doc.Components.Schemas["Item"].Properties, "hidden")
+}

@@ -1,6 +1,7 @@
 package reflect
 
 import (
+	"errors"
 	"reflect"
 	"time"
 
@@ -184,7 +185,22 @@ func (r *Reflector) RefSchema(t reflect.Type) *openapi.Schema {
 	}
 	r.Generating[t] = true
 	r.Components[name] = &openapi.Schema{}
-	r.Components[name] = r.StructSchema(t, "json", false, SchemaInline)
+	interceptSchema := r.interceptSchemaFn()
+	if interceptSchema != nil {
+		if stop, _ := interceptSchema(openapi.InterceptSchemaParams{Type: t, Schema: r.Components[name]}); stop {
+			delete(r.Generating, t)
+			return &openapi.Schema{Ref: "#/components/schemas/" + name}
+		}
+	}
+	built := r.StructSchema(t, "json", false, SchemaInline)
+	// Assign onto the existing pointer so pre-hook customizations on non-overlapping fields survive.
+	// StructSchema only sets Type, Properties, and Required.
+	r.Components[name].Type = built.Type
+	r.Components[name].Properties = built.Properties
+	r.Components[name].Required = built.Required
+	if interceptSchema != nil {
+		interceptSchema(openapi.InterceptSchemaParams{Type: t, Schema: r.Components[name], Processed: true})
+	}
 	delete(r.Generating, t)
 	return &openapi.Schema{Ref: "#/components/schemas/" + name}
 }
@@ -196,6 +212,7 @@ func (r *Reflector) StructSchema(
 	mode SchemaMode,
 ) *openapi.Schema {
 	schema := &openapi.Schema{Type: "object", Properties: map[string]*openapi.Schema{}}
+	interceptProp := r.interceptPropFn()
 	ForEachField(t, func(field reflect.StructField) {
 		if IgnoredField(field, nameTag) {
 			return
@@ -210,10 +227,36 @@ func (r *Reflector) StructSchema(
 			}
 			name = LowerCamel(field.Name)
 		}
+		if interceptProp != nil {
+			if err := interceptProp(openapi.InterceptPropParams{
+				Name:         name,
+				Field:        field,
+				ParentSchema: schema,
+			}); errors.Is(err, openapi.ErrSkipProperty) {
+				return
+			}
+		}
 		prop := r.SchemaForType(field.Type, mode, &field)
 		schema.Properties[name] = prop
 		if BoolTag(field.Tag.Get("required")) {
 			schema.Required = append(schema.Required, name)
+		}
+		if interceptProp != nil {
+			if err := interceptProp(openapi.InterceptPropParams{
+				Name:           name,
+				Field:          field,
+				PropertySchema: prop,
+				ParentSchema:   schema,
+				Processed:      true,
+			}); errors.Is(err, openapi.ErrSkipProperty) {
+				delete(schema.Properties, name)
+				for i, req := range schema.Required {
+					if req == name {
+						schema.Required = append(schema.Required[:i], schema.Required[i+1:]...)
+						break
+					}
+				}
+			}
 		}
 	})
 	if len(schema.Properties) == 0 {

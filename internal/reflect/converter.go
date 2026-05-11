@@ -2,6 +2,7 @@ package reflect
 
 import (
 	"reflect"
+	"slices"
 
 	"github.com/oaswrap/spec/openapi"
 )
@@ -19,7 +20,11 @@ func (r *Reflector) SchemaForType(t reflect.Type, mode SchemaMode, field *reflec
 	if mapped := r.TypeMapping[t]; mapped != nil {
 		t = mapped
 	}
+	interceptSchema := r.interceptSchemaFn()
 	if schema := r.SchemaFromTypeExposer(t); schema != nil {
+		if interceptSchema != nil {
+			interceptSchema(openapi.InterceptSchemaParams{Type: t, Schema: schema, Processed: true})
+		}
 		r.ApplyNullable(schema, nullable)
 		if field != nil {
 			r.ApplySchemaTags(schema, *field)
@@ -35,6 +40,18 @@ func (r *Reflector) SchemaForType(t reflect.Type, mode SchemaMode, field *reflec
 		return schema
 	}
 
+	// Pre-hook for inline and primitive types (component types are intercepted inside RefSchema).
+	if interceptSchema != nil {
+		preSchema := &openapi.Schema{}
+		if stop, _ := interceptSchema(openapi.InterceptSchemaParams{Type: t, Schema: preSchema}); stop {
+			r.ApplyNullable(preSchema, nullable)
+			if field != nil {
+				r.ApplySchemaTags(preSchema, *field)
+			}
+			return preSchema
+		}
+	}
+
 	var schema *openapi.Schema
 	switch t.Kind() { //nolint:exhaustive // only interested in types supported by OpenAPI
 	case reflect.Bool:
@@ -43,9 +60,12 @@ func (r *Reflector) SchemaForType(t reflect.Type, mode SchemaMode, field *reflec
 		schema = &openapi.Schema{Type: "integer", Format: "int32"}
 	case reflect.Int64:
 		schema = &openapi.Schema{Type: "integer", Format: "int64"}
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32:
+	case reflect.Uint8, reflect.Uint16:
 		minVal := 0.0
 		schema = &openapi.Schema{Type: "integer", Format: "int32", Minimum: &minVal}
+	case reflect.Uint, reflect.Uint32:
+		minVal := 0.0
+		schema = &openapi.Schema{Type: "integer", Format: "int64", Minimum: &minVal}
 	case reflect.Uint64, reflect.Uintptr:
 		minVal := 0.0
 		schema = &openapi.Schema{Type: "integer", Format: "int64", Minimum: &minVal}
@@ -81,6 +101,9 @@ func (r *Reflector) SchemaForType(t reflect.Type, mode SchemaMode, field *reflec
 	default:
 		schema = &openapi.Schema{}
 	}
+	if interceptSchema != nil {
+		interceptSchema(openapi.InterceptSchemaParams{Type: t, Schema: schema, Processed: true})
+	}
 	r.ApplyNullable(schema, nullable)
 	if field != nil {
 		r.ApplySchemaTags(schema, *field)
@@ -114,8 +137,15 @@ func (r *Reflector) ApplyNullable(schema *openapi.Schema, nullable bool) {
 		}
 		return
 	}
-	if typ, ok := schema.Type.(string); ok && typ != "" {
-		schema.Type = []string{typ, "null"}
+	switch typ := schema.Type.(type) {
+	case string:
+		if typ != "" {
+			schema.Type = []string{typ, "null"}
+		}
+	case []string:
+		if !slices.Contains(typ, "null") {
+			schema.Type = append(typ, "null")
+		}
 	}
 }
 

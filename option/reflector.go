@@ -2,6 +2,7 @@ package option
 
 import (
 	"reflect"
+	"strings"
 
 	"github.com/oaswrap/spec/openapi"
 )
@@ -31,6 +32,43 @@ func TypeMapping(src, dst any) ReflectorOption {
 	return func(cfg *openapi.ReflectorConfig) {
 		cfg.TypeMappings = append(cfg.TypeMappings, openapi.TypeMapping{Src: src, Dst: dst})
 	}
+}
+
+// InterceptSchema sets callback to intercept schema generation per type.
+func InterceptSchema(fn openapi.InterceptSchemaFunc) ReflectorOption {
+	return func(cfg *openapi.ReflectorConfig) { cfg.InterceptSchema = fn }
+}
+
+// InterceptProp sets callback to intercept property schema generation per field.
+func InterceptProp(fn openapi.InterceptPropFunc) ReflectorOption {
+	return func(cfg *openapi.ReflectorConfig) { cfg.InterceptProp = fn }
+}
+
+// RequiredPropByValidateTag marks properties as required when their validate tag contains "required".
+// Optional args: tags[0] overrides the tag name (default "validate"), tags[1] overrides the separator (default ",").
+func RequiredPropByValidateTag(tags ...string) ReflectorOption {
+	return InterceptProp(func(params openapi.InterceptPropParams) error {
+		if !params.Processed {
+			return nil
+		}
+		validateTag := "validate"
+		sep := ","
+		if len(tags) > 0 {
+			validateTag = tags[0]
+		}
+		if len(tags) > 1 {
+			sep = tags[1]
+		}
+		if v, ok := params.Field.Tag.Lookup(validateTag); ok {
+			for _, part := range strings.Split(v, sep) {
+				if strings.TrimSpace(part) == "required" {
+					params.ParentSchema.Required = append(params.ParentSchema.Required, params.Name)
+					break
+				}
+			}
+		}
+		return nil
+	})
 }
 
 // ParameterTagMapping overrides tag source for a specific parameter location.

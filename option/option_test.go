@@ -211,6 +211,8 @@ func TestReflectorOptions(t *testing.T) {
 		InterceptDefName(func(_ reflect.Type, _ string) string { return "Intercepted" }),
 		TypeMapping(1, "one"),
 		ParameterTagMapping(openapi.ParameterInQuery, "q"),
+		InterceptProp(func(_ openapi.InterceptPropParams) error { return nil }),
+		InterceptSchema(func(_ openapi.InterceptSchemaParams) (bool, error) { return false, nil }),
 	}
 
 	for _, opt := range opts {
@@ -227,6 +229,14 @@ func TestReflectorOptions(t *testing.T) {
 		assert.Equal(t, "one", cfg.TypeMappings[0].Dst)
 	}
 	assert.Equal(t, "q", cfg.ParameterTagMapping[openapi.ParameterInQuery])
+	assert.NotNil(t, cfg.InterceptProp)
+	assert.NotNil(t, cfg.InterceptSchema)
+
+	t.Run("RequiredPropByValidateTagSetsInterceptProp", func(t *testing.T) {
+		c := &openapi.ReflectorConfig{}
+		RequiredPropByValidateTag()(c)
+		assert.NotNil(t, c.InterceptProp)
+	})
 }
 
 func TestSecurityOptions(t *testing.T) {
