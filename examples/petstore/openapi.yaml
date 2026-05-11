@@ -1,4 +1,4 @@
-openapi: 3.0.3
+openapi: 3.1.2
 info:
   title: Petstore API
   description: This is a sample Petstore server.
@@ -39,14 +39,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Pet"
+              $ref: '#/components/schemas/Pet'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Pet"
+                $ref: '#/components/schemas/Pet'
       security:
         - petstore_auth:
             - write:pets
@@ -61,14 +61,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Pet"
+              $ref: '#/components/schemas/Pet'
       responses:
-        "201":
+        '201':
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Pet"
+                $ref: '#/components/schemas/Pet'
       security:
         - petstore_auth:
             - write:pets
@@ -90,14 +90,14 @@ paths:
               - pending
               - sold
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Pet"
+                  $ref: '#/components/schemas/Pet'
       security:
         - petstore_auth:
             - write:pets
@@ -117,14 +117,14 @@ paths:
             items:
               type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Pet"
+                  $ref: '#/components/schemas/Pet'
       security:
         - petstore_auth:
             - write:pets
@@ -144,12 +144,12 @@ paths:
             type: integer
             format: int32
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Pet"
+                $ref: '#/components/schemas/Pet'
       security:
         - petstore_auth:
             - write:pets
@@ -169,7 +169,7 @@ paths:
             type: integer
             format: int32
       responses:
-        "200":
+        '200':
           description: OK
       security:
         - petstore_auth:
@@ -193,7 +193,7 @@ paths:
           schema:
             type: string
       responses:
-        "204":
+        '204':
           description: No Content
       security:
         - petstore_auth:
@@ -218,12 +218,12 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiResponse"
+                $ref: '#/components/schemas/ApiResponse'
       security:
         - petstore_auth:
             - write:pets
@@ -236,7 +236,7 @@ paths:
       description: Returns a map of status codes to quantities.
       operationId: getInventory
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
@@ -258,14 +258,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Order"
+              $ref: '#/components/schemas/Order'
       responses:
-        "201":
+        '201':
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Order"
+                $ref: '#/components/schemas/Order'
   /store/order/{orderId}:
     get:
       tags:
@@ -281,13 +281,13 @@ paths:
             type: integer
             format: int32
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Order"
-        "404":
+                $ref: '#/components/schemas/Order'
+        '404':
           description: Not Found
     delete:
       tags:
@@ -303,7 +303,7 @@ paths:
             type: integer
             format: int32
       responses:
-        "204":
+        '204':
           description: No Content
   /user:
     post:
@@ -316,14 +316,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/User"
+              $ref: '#/components/schemas/User'
       responses:
-        "201":
+        '201':
           description: Created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
+                $ref: '#/components/schemas/User'
   /user/createWithList:
     post:
       tags:
@@ -337,9 +337,9 @@ paths:
             schema:
               type: array
               items:
-                $ref: "#/components/schemas/User"
+                $ref: '#/components/schemas/User'
       responses:
-        "201":
+        '201':
           description: Created
   /user/{username}:
     get:
@@ -355,13 +355,13 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
-        "404":
+                $ref: '#/components/schemas/User'
+        '404':
           description: Not Found
     put:
       tags:
@@ -404,13 +404,13 @@ paths:
                 username:
                   type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
-        "404":
+                $ref: '#/components/schemas/User'
+        '404':
           description: Not Found
     delete:
       tags:
@@ -425,7 +425,7 @@ paths:
           schema:
             type: string
       responses:
-        "204":
+        '204':
           description: No Content
 components:
   schemas:
@@ -491,7 +491,7 @@ components:
         tags:
           type: array
           items:
-            $ref: "#/components/schemas/Tag"
+            $ref: '#/components/schemas/Tag'
         type:
           type: string
     Tag:
