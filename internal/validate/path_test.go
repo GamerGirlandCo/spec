@@ -75,7 +75,7 @@ func TestValidatePathItem_Errors(t *testing.T) {
 func TestIsFixedMethodAndIsValidParameterIn(t *testing.T) {
 	assert.True(t, validate.IsFixedMethod("GET"))
 	assert.True(t, validate.IsFixedMethod("patch"))
-	assert.False(t, validate.IsFixedMethod("QUERY"))
+	assert.True(t, validate.IsFixedMethod("QUERY"))
 	assert.False(t, validate.IsFixedMethod("PURGE"))
 
 	assert.True(t, validate.IsValidParameterIn("query"))
@@ -101,6 +101,12 @@ func TestValidatePathParams_Direct(t *testing.T) {
 		{Name: "id", In: "path", Required: true},
 	})
 	assert.Empty(t, errs)
+}
+
+func TestHasParameterRefSiblings(t *testing.T) {
+	assert.True(t, validate.HasParameterRefSiblings(&openapi.Parameter{Summary: "s"}, openapi.Version304))
+	assert.True(t, validate.HasParameterRefSiblings(&openapi.Parameter{Name: "n"}, openapi.Version312))
+	assert.False(t, validate.HasParameterRefSiblings(&openapi.Parameter{}, openapi.Version312))
 }
 
 func TestValidatePathItemOperations_AdditionalOpsRequires320(t *testing.T) {

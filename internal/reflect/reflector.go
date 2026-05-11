@@ -133,14 +133,27 @@ func (r *Reflector) ParameterField(field reflect.StructField) (string, string, b
 
 func (r *Reflector) ParameterSchema(field reflect.StructField, in, name string) *openapi.Parameter {
 	schema := r.SchemaForType(field.Type, SchemaInline, &field)
-	return &openapi.Parameter{
+	param := &openapi.Parameter{
 		Name:        name,
 		In:          in,
 		Description: field.Tag.Get("description"),
 		Required:    in == string(openapi.ParameterInPath) || BoolTag(field.Tag.Get("required")),
 		Deprecated:  BoolTag(field.Tag.Get("deprecated")),
-		Schema:      schema,
 	}
+	if in == string(openapi.ParameterInQueryString) {
+		mediaType := field.Tag.Get("mediaType")
+		if mediaType == "" {
+			mediaType = "application/x-www-form-urlencoded"
+		}
+		param.Content = map[string]*openapi.MediaType{
+			mediaType: {
+				Schema: schema,
+			},
+		}
+	} else {
+		param.Schema = schema
+	}
+	return param
 }
 
 func (r *Reflector) SchemaForValue(value any, mode SchemaMode) *openapi.Schema {

@@ -7,7 +7,7 @@
 [![Go Version](https://img.shields.io/github/go-mod/go-version/oaswrap/spec)](https://github.com/oaswrap/spec/blob/main/go.mod)
 [![License](https://img.shields.io/github/license/oaswrap/spec)](LICENSE)
 
-`spec` is a Go library for generating OpenAPI `3.0.x`, `3.1.x`, and `3.2.0` documents. It uses a router and functional options API, and owns its OpenAPI model and schema reflection — no external OpenAPI or JSON Schema generators needed. YAML serialization uses `github.com/goccy/go-yaml`.
+Code-first, framework-agnostic OpenAPI 3.x spec builder for Go. Generate docs from route registrations and Go structs — no annotations, no vendor lock-in.
 
 ---
 
@@ -16,7 +16,7 @@
 - **Native OpenAPI builder** — paths, operations, components, validation, and schema reflection are all implemented in this repository without third-party OpenAPI dependencies.
 - **Framework-agnostic core** — use `spec.NewRouter` for static generation, or drop in adapters for Chi, Echo, Gin, Fiber, net/http, and Mux.
 - **Code-first route documentation** — register routes and their documentation together using Go functions and typed options.
-- **Version-aware output** — defaults to OpenAPI `3.0.4`, with full support for `3.1.2` and `3.2.0` features when selected.
+- **Version-aware output** — defaults to OpenAPI `3.1.2`, with full support for `3.0.x` and `3.2.0` features when selected.
 - **Direct model escape hatches** — use typed `openapi` structs, `Extensions` for `x-*` fields, and `Extra` for official or future fields not yet wrapped by a helper option.
 - **Deterministic output** — generated documents are stable enough for golden-file snapshot tests and CI documentation checks.
 
@@ -124,7 +124,8 @@ type User struct {
 | `MarshalJSON()` | Validates and serializes pretty-printed JSON. |
 | `WriteSchemaTo("openapi.yaml")` | Infers format from file extension (`.yaml`, `.yml`, `.json`). |
 | `Document()` | Returns the built `*openapi.Document`. |
-| `Validate()` | Builds the document and checks OpenAPI invariants. |
+| `Validate()` | Builds the document and checks OpenAPI invariants. Returns only `SeverityError` findings. |
+| `ValidateReport()` | Builds and validates, returning all findings including warnings and info as `ValidationErrors`. |
 | `Config()` | Returns the effective OpenAPI configuration. |
 
 ---
@@ -181,7 +182,7 @@ r := spec.NewRouter(
 | Option | Purpose |
 | --- | --- |
 | `WithOpenAPIConfig(opts...)` | Build an `*openapi.Config` with defaults and apply options. |
-| `WithOpenAPIVersion(version)` | Set `openapi`; default is `openapi.Version304`. Constants are available for `3.0.0`–`3.0.4`, `3.1.0`–`3.1.2`, and `3.2.0`. |
+| `WithOpenAPIVersion(version)` | Set `openapi`; default is `openapi.Version312`. Constants are available for `3.0.0`–`3.0.4`, `3.1.0`–`3.1.2`, and `3.2.0`. |
 | `WithSelf(uri)` | Set OpenAPI `3.2.0` `$self`. |
 | `WithJSONSchemaDialect(uri)` | Set root `jsonSchemaDialect`. |
 | `WithTitle(title)` | Set `info.title`. |
@@ -227,7 +228,7 @@ r := spec.NewRouter(
 
 **Tag options:** `TagSummary`, `TagDescription`, `TagExternalDocs`, `TagParent` (3.2.0), `TagKind` (3.2.0).
 
-**Server options:** `ServerDescription`, `ServerVariables`.
+**Server options:** `ServerDescription`, `ServerVariables`, `ServerName` (3.2.0).
 
 ---
 
@@ -283,6 +284,7 @@ api.Get("/users/{id}",
 | --- | --- |
 | `ContentType(contentType)` | Set media type; default is `application/json`. |
 | `ContentDescription(description)` | Set request/response description. |
+| `ContentSummary(summary)` | Set request/response summary (OpenAPI `3.2.0`). |
 | `ContentDefault(isDefault...)` | Mark response as `default`. |
 | `ContentEncoding(prop, enc)` | Add media type encoding metadata for a property. |
 | `ContentExample(value)` | Set media type `example`. |
@@ -366,6 +368,7 @@ type SearchRequest struct {
 | `header:"name"` | Header parameter. |
 | `cookie:"name"` | Cookie parameter. |
 | `querystring:"name"` | OpenAPI `3.2.0` whole-query-string parameter. |
+| `mediaType:"..."` | Media type for `querystring` parameter content; defaults to `application/x-www-form-urlencoded`. OpenAPI `3.2.0` only. |
 | `form:"name"` | Form body property name for form content types. |
 
 **Schema tags:**
@@ -483,10 +486,13 @@ Selecting `openapi.Version320` enables the following additional features:
 - Custom HTTP methods via `Add`, emitted as `additionalOperations`.
 - `querystring` parameter tags.
 - Root `$self` field.
+- Server `name` field.
+- Response `summary` field.
 - Tag `parent` and `kind` fields.
 - Security scheme metadata and deprecation fields.
 - `components.mediaTypes`.
 - Media type and encoding fields: `itemSchema`, `prefixEncoding`, `itemEncoding`.
+- Discriminator `defaultMapping`.
 - Example `dataValue` and `serializedValue` fields.
 - XML `nodeType`.
 

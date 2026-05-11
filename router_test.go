@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -32,7 +33,7 @@ type User struct {
 	Name string `json:"name"`
 }
 
-func TestRouter_GenerateSchema_OpenAPI304(t *testing.T) {
+func TestRouter_GenerateSchema_DefaultVersion(t *testing.T) {
 	r := spec.NewRouter(
 		option.WithTitle("Users API"),
 		option.WithVersion("1.2.3"),
@@ -59,7 +60,7 @@ func TestRouter_GenerateSchema_OpenAPI304(t *testing.T) {
 	err = json.Unmarshal(raw, &doc)
 	require.NoError(t, err, "unmarshal generated JSON:\n%s", raw)
 
-	assert.Equal(t, openapi.Version304, doc.OpenAPI)
+	assert.Equal(t, openapi.Version312, doc.OpenAPI)
 	assert.Equal(t, "Users API", doc.Info.Title)
 	assert.Equal(t, "1.2.3", doc.Info.Version)
 	assert.NotNil(t, doc.Paths["/api/v1/login"].Post)
@@ -512,4 +513,42 @@ func TestRouter_Errors_Unwrap(t *testing.T) {
 		u := err.(interface{ Unwrap() []error })
 		assert.NotEmpty(t, u.Unwrap())
 	}
+}
+
+func TestRouter_ValidateReport(t *testing.T) {
+	r := spec.NewRouter(
+		option.WithTitle(""),   // Empty title triggers error
+		option.WithVersion(""), // Empty version triggers error
+	)
+
+	err := r.ValidateReport()
+	require.Error(t, err)
+
+	var valErrs spec.ValidationErrors
+	require.ErrorAs(t, err, &valErrs)
+
+	// Check if errors are as expected
+	foundTitleErr := false
+	foundVersionErr := false
+	for _, e := range valErrs.Errors {
+		if strings.Contains(e.Error(), "info.title is required") {
+			foundTitleErr = true
+		}
+		if strings.Contains(e.Error(), "info.version is required") {
+			foundVersionErr = true
+		}
+	}
+	assert.True(t, foundTitleErr, "should have found title error")
+	assert.True(t, foundVersionErr, "should have found version error")
+
+	// Test nil case - providing all recommended fields
+	r2 := spec.NewRouter(
+		option.WithTitle("Valid"),
+		option.WithVersion("1.0.0"),
+		option.WithContact(openapi.Contact{Name: "Support"}),
+		option.WithLicense(openapi.License{Name: "MIT"}),
+		option.WithServer("https://example.com"),
+	)
+
+	assert.NoError(t, r2.ValidateReport())
 }

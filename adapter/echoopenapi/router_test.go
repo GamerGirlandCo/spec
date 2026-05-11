@@ -295,9 +295,7 @@ func TestRouter_Spec(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := echo.New()
-			opts := append([]option.OpenAPIOption{
-				option.WithOpenAPIVersion("3.0.3"),
-			}, tt.opts...)
+			opts := append([]option.OpenAPIOption{}, tt.opts...)
 			r := echoopenapi.NewRouter(e, opts...)
 			tt.setup(r)
 
@@ -664,4 +662,15 @@ func TestGenerator_DisableDocs(t *testing.T) {
 	e.ServeHTTP(rec, req)
 
 	assert.Equal(t, 404, rec.Code, "Expected status code 404 for /docs when docs are disabled")
+}
+
+func TestGenerator_ValidateReport(t *testing.T) {
+	e := echo.New()
+	r := echoopenapi.NewRouter(e,
+		option.WithContact(openapi.Contact{Name: "Support"}),
+		option.WithLicense(openapi.License{Name: "MIT"}),
+		option.WithServer("https://example.com"),
+	)
+	err := r.ValidateReport()
+	assert.NoError(t, err)
 }

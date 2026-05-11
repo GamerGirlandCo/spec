@@ -9,9 +9,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/OneOfRequest"
+              $ref: '#/components/schemas/OneOfRequest'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:

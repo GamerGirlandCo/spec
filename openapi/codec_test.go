@@ -100,6 +100,27 @@ func TestToSerializable_EdgeCases(t *testing.T) {
 			assert.Equal(t, "b", slice[1].Key)
 		}
 	})
+
+	t.Run("Expressions", func(t *testing.T) {
+		type ExprStruct struct {
+			Expressions map[string]any `json:"-"`
+		}
+		e := ExprStruct{
+			Expressions: map[string]any{"$method": "GET"},
+		}
+		res := toSerializable(reflect.ValueOf(e), objectJSON)
+		data, err := json.Marshal(res)
+		require.NoError(t, err)
+		assert.JSONEq(t, `{"$method":"GET"}`, string(data))
+	})
+
+	t.Run("MapNonStringKey", func(t *testing.T) {
+		m := map[int]string{1: "foo"}
+		res := toSerializable(reflect.ValueOf(m), objectJSON)
+		data, err := json.Marshal(res)
+		require.NoError(t, err)
+		assert.JSONEq(t, `{}`, string(data))
+	})
 }
 
 func TestIsEmptyValue(t *testing.T) {
@@ -119,6 +140,12 @@ func TestIsEmptyValue(t *testing.T) {
 		{[]int{1}, false},
 		{map[string]int{}, true},
 		{map[string]int{"a": 1}, false},
+		{uint(0), true},
+		{uint(1), false},
+		{float32(0), true},
+		{float32(1.1), false},
+		{[0]int{}, true},
+		{[1]int{0}, false},
 	}
 	for _, tc := range cases {
 		assert.Equal(t, tc.empty, isEmptyValue(reflect.ValueOf(tc.val)), "isEmptyValue(%v)", tc.val)

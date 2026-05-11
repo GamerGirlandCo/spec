@@ -6,12 +6,11 @@ import (
 
 	"github.com/oaswrap/spec"
 	specui "github.com/oaswrap/spec-ui"
+	"github.com/oaswrap/spec/internal/mapper"
+	"github.com/oaswrap/spec/internal/validate"
 	"github.com/oaswrap/spec/openapi"
 	"github.com/oaswrap/spec/option"
-	"github.com/oaswrap/spec/pkg/mapper"
 	"github.com/oaswrap/spec/pkg/parser"
-
-	"github.com/oaswrap/spec/adapter/fiberv3openapi/internal/constant"
 )
 
 // NewGenerator creates a new OpenAPI generator with the specified Fiber v3 router and options.
@@ -26,9 +25,9 @@ func NewGenerator(r fiber.Router, opts ...option.OpenAPIOption) Generator {
 // It initializes the OpenAPI generator and sets up the necessary routes for OpenAPI documentation.
 func NewRouter(r fiber.Router, opts ...option.OpenAPIOption) Generator {
 	defaultOpts := []option.OpenAPIOption{
-		option.WithTitle(constant.DefaultTitle),
-		option.WithDescription(constant.DefaultDescription),
-		option.WithVersion(constant.DefaultVersion),
+		option.WithTitle("Fiber v3 OpenAPI"),
+		option.WithDescription("OpenAPI documentation for Fiber v3 applications"),
+		option.WithVersion("1.0.0"),
 		option.WithPathParser(parser.NewColonParamParser()),
 		option.WithStoplightElements(),
 		option.WithCacheAge(0),
@@ -126,8 +125,7 @@ func (r *router) Add(method, path string, handlers ...fiber.Handler) Route {
 	r.fiberRouter.Add([]string{method}, path, anyHandlers[0], anyHandlers[1:]...)
 
 	rt := &route{}
-	if method == fiber.MethodConnect && r.gen.Config().OpenAPIVersion != openapi.Version320 {
-		// CONNECT requires OpenAPI 3.2, so older specs skip it
+	if !validate.AllowsOperationMethod(r.gen.Config().OpenAPIVersion, method) {
 		return rt
 	}
 	rt.sr = r.specRouter.Add(method, path)
@@ -172,6 +170,10 @@ func (r *router) With(opts ...option.GroupOption) Router {
 
 func (r *router) Validate() error {
 	return r.gen.Validate()
+}
+
+func (r *router) ValidateReport() error {
+	return r.gen.ValidateReport()
 }
 
 func (r *router) GenerateSchema(formats ...string) ([]byte, error) {

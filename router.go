@@ -35,6 +35,7 @@ type sharedState struct {
 	doc     *openapi.Document
 	builder *builder.Builder
 	errs    []error
+	dirty   bool
 }
 
 // NewRouter creates a new OpenAPI generator.
@@ -82,7 +83,7 @@ func NewGenerator(opts ...option.OpenAPIOption) Generator {
 	g := &generator{
 		cfg: cfg,
 	}
-	g.state = &sharedState{root: g}
+	g.state = &sharedState{root: g, dirty: true}
 	return g
 }
 
@@ -182,6 +183,7 @@ func (g *generator) Add(method, path string, opts ...option.OperationOption) Rou
 	path = joinPath(g.prefix, path)
 	r := &route{prefix: g.prefix, method: method, path: path, opts: opts, isWebhook: false, state: g.state}
 	g.routes = append(g.routes, r)
+	g.state.dirty = true
 	return r
 }
 
@@ -194,6 +196,7 @@ func (g *generator) AddWebhook(method, name string, opts ...option.OperationOpti
 	defer g.state.mu.Unlock()
 	r := &route{prefix: g.prefix, method: method, path: name, opts: opts, isWebhook: true, state: g.state}
 	g.routes = append(g.routes, r)
+	g.state.dirty = true
 	return r
 }
 
@@ -202,6 +205,7 @@ func (g *generator) NewRoute(opts ...option.OperationOption) Route {
 	defer g.state.mu.Unlock()
 	r := &route{prefix: g.prefix, opts: opts, state: g.state}
 	g.routes = append(g.routes, r)
+	g.state.dirty = true
 	return r
 }
 
@@ -221,6 +225,7 @@ func (g *generator) Group(pattern string, opts ...option.GroupOption) Router {
 		state:  g.state,
 	}
 	g.groups = append(g.groups, group)
+	g.state.dirty = true
 	return group
 }
 
@@ -228,6 +233,7 @@ func (g *generator) With(opts ...option.GroupOption) Router {
 	g.state.mu.Lock()
 	defer g.state.mu.Unlock()
 	g.opts = append(g.opts, opts...)
+	g.state.dirty = true
 	return g
 }
 
@@ -292,9 +298,20 @@ func (g *generator) Validate() error {
 	return joinErrors(append([]error(nil), g.state.errs...))
 }
 
+func (g *generator) ValidateReport() error {
+	g.build()
+	g.state.mu.Lock()
+	defer g.state.mu.Unlock()
+	return joinAllErrors(append([]error(nil), g.state.errs...))
+}
+
 func (g *generator) build() {
 	g.state.mu.Lock()
 	defer g.state.mu.Unlock()
+
+	if !g.state.dirty {
+		return
+	}
 
 	g.state.errs = nil
 	g.state.doc = newDocument(g.cfg)
@@ -342,6 +359,7 @@ func (g *generator) build() {
 		g.state.doc.Components = nil
 	}
 	g.state.errs = append(g.state.errs, validate.ValidateDocument(g.state.doc, g.cfg.OpenAPIVersion)...)
+	g.state.dirty = false
 }
 
 type routeItem struct {
@@ -402,6 +420,7 @@ func (r *route) Method(method string) Route {
 	r.state.mu.Lock()
 	defer r.state.mu.Unlock()
 	r.method = method
+	r.state.dirty = true
 	return r
 }
 
@@ -412,6 +431,7 @@ func (r *route) Path(path string) Route {
 		path = joinPath(r.prefix, path)
 	}
 	r.path = path
+	r.state.dirty = true
 	return r
 }
 
@@ -419,6 +439,7 @@ func (r *route) With(opts ...option.OperationOption) Route {
 	r.state.mu.Lock()
 	defer r.state.mu.Unlock()
 	r.opts = append(r.opts, opts...)
+	r.state.dirty = true
 	return r
 }
 

@@ -665,3 +665,14 @@ func TestGenerator_DisableDocs(t *testing.T) {
 
 	assert.Equal(t, 404, rec.Code, "Expected status code 404 for /docs when docs are disabled")
 }
+
+func TestGenerator_ValidateReport(t *testing.T) {
+	e := echo.New()
+	r := echov5openapi.NewRouter(e,
+		option.WithContact(openapi.Contact{Name: "Support"}),
+		option.WithLicense(openapi.License{Name: "MIT"}),
+		option.WithServer("https://example.com"),
+	)
+	err := r.ValidateReport()
+	assert.NoError(t, err)
+}

@@ -249,7 +249,6 @@ func TestRouter_Spec(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			app := http.NewServeMux()
 			opts := []option.OpenAPIOption{
-				option.WithOpenAPIVersion("3.0.3"),
 				option.WithTitle("Test API " + tt.name),
 				option.WithVersion("1.0.0"),
 				option.WithDescription("This is a test API for " + tt.name),
@@ -494,7 +493,7 @@ func TestGenerator_Docs(t *testing.T) {
 		assert.Equal(t, http.StatusOK, docsFileRec.Code)
 		assert.NotEmpty(t, docsFileRec.Body.String())
 		assert.Contains(t, docsFileRec.Header().Get("Content-Type"), "application/x-yaml")
-		assert.Contains(t, docsFileRec.Body.String(), "openapi: 3.0.4")
+		assert.Contains(t, docsFileRec.Body.String(), "openapi: 3.1.2")
 	})
 }
 
@@ -604,4 +603,15 @@ func TestRouter_ServeHTTP(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Contains(t, rec.Body.String(), "pong")
+}
+
+func TestGenerator_ValidateReport(t *testing.T) {
+	mux := http.NewServeMux()
+	r := httpopenapi.NewRouter(mux,
+		option.WithContact(openapi.Contact{Name: "Support"}),
+		option.WithLicense(openapi.License{Name: "MIT"}),
+		option.WithServer("https://example.com"),
+	)
+	err := r.ValidateReport()
+	assert.NoError(t, err)
 }

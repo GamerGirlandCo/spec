@@ -18,7 +18,7 @@ func ValidatePathItem(
 ) []error {
 	var errs []error
 	if !strings.HasPrefix(path, "/") {
-		errs = append(errs, fmt.Errorf("path %q must start with /", path))
+		errs = append(errs, Errorf("path %q must start with /", path))
 	}
 	errs = append(
 		errs,
@@ -39,15 +39,15 @@ func ValidatePathItemOperations(
 		return errs
 	}
 	for i := range item.Servers {
-		errs = append(errs, ValidateServer(fmt.Sprintf("%s.servers[%d]", context, i), &item.Servers[i])...)
+		errs = append(errs, ValidateServer(fmt.Sprintf("%s.servers[%d]", context, i), &item.Servers[i], version)...)
 	}
 	errs = append(errs, ValidateParameters(context+".parameters", item.Parameters, version, componentParameters)...)
 	if version != openapi.Version320 {
 		if item.Query != nil {
-			errs = append(errs, fmt.Errorf("QUERY operation at %s requires OpenAPI 3.2.0", context))
+			errs = append(errs, Errorf("QUERY operation at %s requires OpenAPI 3.2.0", context))
 		}
 		if len(item.AdditionalOperations) > 0 {
-			errs = append(errs, fmt.Errorf("additionalOperations at %s requires OpenAPI 3.2.0", context))
+			errs = append(errs, Errorf("additionalOperations at %s requires OpenAPI 3.2.0", context))
 		}
 	}
 	for method, op := range OperationsOf(item) {
@@ -66,7 +66,7 @@ func ValidatePathItemOperations(
 		if IsFixedMethod(method) {
 			errs = append(
 				errs,
-				fmt.Errorf("additionalOperations at %s must not contain fixed method %s", context, method),
+				Errorf("additionalOperations at %s must not contain fixed method %s", context, method),
 			)
 		}
 	}
@@ -93,7 +93,7 @@ func ValidatePathParams(path, method string, params []*openapi.Parameter) []erro
 			if _, ok := templateNames[p.Name]; !ok {
 				errs = append(
 					errs,
-					fmt.Errorf(
+					Errorf(
 						"%s %s path parameter %q must match a path template",
 						strings.ToUpper(method),
 						path,
@@ -106,11 +106,11 @@ func ValidatePathParams(path, method string, params []*openapi.Parameter) []erro
 	for _, match := range matches {
 		name := match[1]
 		if required, ok := declared[name]; !ok {
-			errs = append(errs, fmt.Errorf("%s %s missing path parameter %q", strings.ToUpper(method), path, name))
+			errs = append(errs, Errorf("%s %s missing path parameter %q", strings.ToUpper(method), path, name))
 		} else if !required {
 			errs = append(
 				errs,
-				fmt.Errorf("%s %s path parameter %q must be required", strings.ToUpper(method), path, name),
+				Errorf("%s %s path parameter %q must be required", strings.ToUpper(method), path, name),
 			)
 		}
 	}
@@ -137,7 +137,7 @@ func OperationsOf(item *openapi.PathItem) map[string]*openapi.Operation {
 
 func IsFixedMethod(method string) bool {
 	switch strings.ToLower(method) {
-	case "get", "put", "post", "delete", "options", "head", "patch", "trace":
+	case "get", "put", "post", "delete", "options", "head", "patch", "trace", "query":
 		return true
 	default:
 		return false

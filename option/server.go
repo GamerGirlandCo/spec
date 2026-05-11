@@ -14,3 +14,9 @@ func ServerDescription(description string) ServerOption {
 func ServerVariables(variables map[string]openapi.ServerVariable) ServerOption {
 	return func(server *openapi.Server) { server.Variables = variables }
 }
+
+// ServerName sets server name.
+// It is only valid for OpenAPI 3.2.0.
+func ServerName(name string) ServerOption {
+	return func(server *openapi.Server) { server.Name = name }
+}

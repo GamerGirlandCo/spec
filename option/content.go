@@ -15,6 +15,12 @@ func ContentDescription(description string) ContentOption {
 	return func(cu *openapi.ContentUnit) { cu.Description = description }
 }
 
+// ContentSummary sets request-body/response summary.
+// It is only valid for OpenAPI 3.2.0.
+func ContentSummary(summary string) ContentOption {
+	return func(cu *openapi.ContentUnit) { cu.Summary = summary }
+}
+
 // ContentDefault marks a response as the `default` response.
 func ContentDefault(isDefault ...bool) ContentOption {
 	return func(cu *openapi.ContentUnit) { cu.IsDefault = optional(true, isDefault...) }

@@ -73,6 +73,8 @@ type Generator interface {
 	MarshalJSON() ([]byte, error)
 	// Validate builds the document and validates OpenAPI invariants.
 	Validate() error
+	// ValidateReport builds the document, validates it, and returns all findings including warnings and info.
+	ValidateReport() error
 	// WriteSchemaTo serializes and writes the document based on file extension.
 	WriteSchemaTo(path string) error
 }

@@ -60,6 +60,13 @@ type NestedRequest struct {
 	} `json:"level1"`
 }
 
+type QueryStringRequest struct {
+	Payload struct {
+		Search string `json:"search"`
+		Limit  int    `json:"limit"`
+	} `querystring:"payload"`
+}
+
 type mockPathParser struct{}
 
 func (mockPathParser) Parse(path string) (string, error) {
@@ -73,6 +80,46 @@ type BaseResponse[T any] struct {
 }
 
 type ProfileResponse BaseResponse[User]
+
+type AllBasicDataTypes struct {
+	Int     int     `json:"int"`
+	Int8    int8    `json:"int8"`
+	Int16   int16   `json:"int16"`
+	Int32   int32   `json:"int32"`
+	Int64   int64   `json:"int64"`
+	Uint    uint    `json:"uint"`
+	Uint8   uint8   `json:"uint8"`
+	Uint16  uint16  `json:"uint16"`
+	Uint32  uint32  `json:"uint32"`
+	Uint64  uint64  `json:"uint64"`
+	Uintptr uintptr `json:"uintptr"`
+	Float32 float32 `json:"float32"`
+	Float64 float64 `json:"float64"`
+	Byte    byte    `json:"byte"`
+	Rune    rune    `json:"rune"`
+	String  string  `json:"string"`
+	Bool    bool    `json:"bool"`
+}
+
+type AllBasicDataTypesPointers struct {
+	Int     *int     `json:"int"`
+	Int8    *int8    `json:"int8"`
+	Int16   *int16   `json:"int16"`
+	Int32   *int32   `json:"int32"`
+	Int64   *int64   `json:"int64"`
+	Uint    *uint    `json:"uint"`
+	Uint8   *uint8   `json:"uint8"`
+	Uint16  *uint16  `json:"uint16"`
+	Uint32  *uint32  `json:"uint32"`
+	Uint64  *uint64  `json:"uint64"`
+	Uintptr *uintptr `json:"uintptr"`
+	Float32 *float32 `json:"float32"`
+	Float64 *float64 `json:"float64"`
+	Byte    *byte    `json:"byte"`
+	Rune    *rune    `json:"rune"`
+	String  *string  `json:"string"`
+	Bool    *bool    `json:"bool"`
+}
 
 func TestGolden(t *testing.T) {
 	allVersions := []string{openapi.Version304, openapi.Version312, openapi.Version320}
@@ -269,7 +316,7 @@ func TestGolden(t *testing.T) {
 		},
 		{
 			name:     "compatibility_extensions",
-			versions: []string{openapi.Version304, openapi.Version312},
+			versions: []string{openapi.Version312},
 			opts: []option.OpenAPIOption{
 				option.WithTitle("Compatibility API"),
 				option.WithVersion("1.0.0"),
@@ -294,6 +341,22 @@ func TestGolden(t *testing.T) {
 					option.CustomizeOperation(func(op *openapi.Operation) {
 						op.Extensions = map[string]any{"x-operation": "ok"}
 					}),
+				)
+			},
+		},
+		{
+			name: "basic_data_types",
+			opts: []option.OpenAPIOption{option.WithTitle("Basic Types API"), option.WithVersion("1.0.0")},
+			run: func(r spec.Router) {
+				r.Post("/basic-types",
+					option.OperationID("basicTypes"),
+					option.Request(new(AllBasicDataTypes)),
+					option.Response(200, new(AllBasicDataTypes)),
+				)
+				r.Post("/basic-types-pointers",
+					option.OperationID("basicTypesPointers"),
+					option.Request(new(AllBasicDataTypesPointers)),
+					option.Response(200, new(AllBasicDataTypesPointers)),
 				)
 			},
 		},
@@ -394,6 +457,12 @@ func TestGoldenOpenAPI320Features(t *testing.T) {
 			}
 			resp.Content["application/json"] = mt
 		}),
+	)
+
+	r.Get("/search",
+		option.Tags("commerce"),
+		option.Request(new(QueryStringRequest)),
+		option.Response(200, new([]User)),
 	)
 
 	schema, err := r.GenerateSchema("yaml")

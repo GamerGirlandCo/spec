@@ -1,6 +1,7 @@
 package validate_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -73,9 +74,9 @@ func TestValidateMediaTypeEncodingRestrictions(t *testing.T) {
 	)
 	r.Post("/encoded", option.Response(204, nil))
 
-	err := r.Validate()
+	err := r.ValidateReport()
 	assertValidationContains(t, err,
-		"encoding requires multipart or application/x-www-form-urlencoded media type",
+		"encoding is ignored unless media type is multipart or application/x-www-form-urlencoded",
 		"prefixEncoding requires multipart media type",
 		"itemEncoding requires multipart media type",
 	)
@@ -90,7 +91,9 @@ func TestValidateMediaTypeEncodingAllowsFormAndMultipart(t *testing.T) {
 			doc.Paths["/form"].Post.RequestBody = &openapi.RequestBody{
 				Content: map[string]openapi.MediaType{
 					"application/x-www-form-urlencoded": {
-						Schema:   &openapi.Schema{Type: "object"},
+						Schema: &openapi.Schema{Type: "object", Properties: map[string]*openapi.Schema{
+							"field": {Type: "string"},
+						}},
 						Encoding: map[string]*openapi.Encoding{"field": {ContentType: "text/plain"}},
 					},
 					"multipart/mixed": {
@@ -175,6 +178,89 @@ func TestValidateHeaderAndLinkRules(t *testing.T) {
 		"headers.X-Bad.style must be simple for headers",
 		"links.missingTarget must define operationRef or operationId",
 	)
+}
+
+func TestValidate_URIFields(t *testing.T) {
+	r := spec.NewRouter(
+		option.WithTitle("URI Fields"),
+		option.WithVersion("1.0.0"),
+		option.WithTermsOfService("not a uri"),
+		option.WithContact(openapi.Contact{URL: "not a uri", Email: "api@example.com"}),
+		option.WithLicense(openapi.License{Name: "MIT", URL: "not a uri"}),
+		option.WithExternalDocs("not a uri"),
+		option.WithSecurity("oidc", option.SecurityOpenIDConnect("not a uri")),
+		option.WithSecurity("oauth2", option.SecurityOAuth2AuthorizationCode(
+			"not a uri",
+			"also not a uri",
+			map[string]string{"read": "Read access"},
+			option.OAuthRefreshURL("also not a uri"),
+		)),
+		option.WithDocument(func(doc *openapi.Document) {
+			doc.Paths["/uri"].Get.Responses["200"].Links = map[string]*openapi.Link{
+				"follow": {
+					OperationRef: "not a uri",
+				},
+			}
+		}),
+	)
+	r.Get("/uri",
+		option.ExternalDocs("not a uri"),
+		option.Response(200, "",
+			option.ContentType("text/plain"),
+			option.ContentNamedExample("remote", nil, option.ExampleExternalValue("not a uri")),
+		),
+	)
+
+	err := r.Validate()
+	assertValidationContains(t, err,
+		"info.termsOfService must be a URI",
+		"info.contact.url must be a URI",
+		"info.license.url must be a URI",
+		"externalDocs.url must be a URI",
+		"GET /uri.externalDocs.url must be a URI",
+		"components.securitySchemes.oidc.openIdConnectUrl must be an HTTPS URI without a fragment",
+		"components.securitySchemes.oauth2.flows.authorizationCode.authorizationUrl must be a URI",
+		"components.securitySchemes.oauth2.flows.authorizationCode.tokenUrl must be a URI",
+		"components.securitySchemes.oauth2.flows.authorizationCode.refreshUrl must be a URI",
+		"GET /uri.responses.200.content.text/plain.examples.remote.externalValue must be a URI",
+		"GET /uri.responses.200.links.follow.operationRef must be a URI reference",
+	)
+}
+
+func TestValidate_URIFields_AllowsRelativeReferences(t *testing.T) {
+	r := spec.NewRouter(
+		option.WithOpenAPIVersion(openapi.Version312),
+		option.WithTitle("Relative URI Fields"),
+		option.WithVersion("1.0.0"),
+		option.WithTermsOfService("terms"),
+		option.WithContact(openapi.Contact{URL: "../contact", Email: "api@example.com"}),
+		option.WithLicense(openapi.License{Name: "MIT", URL: "./license"}),
+		option.WithExternalDocs("../docs"),
+		option.WithSecurity("oidc",
+			option.SecurityOpenIDConnect("https://example.com/.well-known/openid-configuration")),
+		option.WithSecurity("oauth2", option.SecurityOAuth2AuthorizationCode(
+			"/authorize",
+			"/token",
+			map[string]string{"read": "Read access"},
+			option.OAuthRefreshURL("/refresh"),
+		)),
+		option.WithDocument(func(doc *openapi.Document) {
+			doc.Paths["/uri"].Get.Responses["200"].Links = map[string]*openapi.Link{
+				"follow": {
+					OperationRef: "#/paths/~1uri/get",
+				},
+			}
+		}),
+	)
+	r.Get("/uri",
+		option.ExternalDocs("../operation-docs"),
+		option.Response(200, "",
+			option.ContentType("text/plain"),
+			option.ContentNamedExample("remote", nil, option.ExampleExternalValue("examples/remote.txt")),
+		),
+	)
+
+	assert.NoError(t, r.Validate())
 }
 
 func TestValidate_OpenAPI320_ExampleSerializedValue(t *testing.T) {
@@ -500,4 +586,244 @@ func TestValidateParameterSerializationHelper(t *testing.T) {
 		In: string(openapi.ParameterInQuery),
 	}, openapi.Version304)
 	assert.Empty(t, errs)
+}
+
+func TestValidateParameters_Direct(t *testing.T) {
+	compParams := map[string]*openapi.Parameter{
+		"SharedID": {Name: "id", In: "path", Required: true},
+	}
+
+	t.Run("RequiredAndDuplicates", func(t *testing.T) {
+		params := []*openapi.Parameter{
+			nil,
+			{Ref: "#/components/parameters/SharedID"},
+			{Ref: "#/components/parameters/SharedID"},
+		}
+		errs := validate.ValidateParameters("context", params, openapi.Version312, compParams)
+		assert.Len(t, errs, 2)
+		assert.Contains(t, errs[0].Error(), "is required")
+		assert.Contains(t, errs[1].Error(), `duplicates parameter "id" in "path"`)
+	})
+
+	t.Run("RefSiblings", func(t *testing.T) {
+		params := []*openapi.Parameter{
+			{Ref: "#/components/parameters/SharedID", Description: "Illegal sibling"},
+		}
+		errs := validate.ValidateParameters("context", params, openapi.Version304, compParams)
+		assert.NotEmpty(t, errs)
+		assert.Contains(t, errs[0].Error(), "must not define siblings with $ref")
+	})
+
+	t.Run("DeprecatedWarning", func(t *testing.T) {
+		params := []*openapi.Parameter{
+			{Name: "old", In: "query", Deprecated: true, Schema: &openapi.Schema{Type: "string"}},
+		}
+		errs := validate.ValidateParameters("context", params, openapi.Version312, nil)
+		assert.Len(t, errs, 1)
+		assert.Contains(t, errs[0].Error(), "is deprecated")
+	})
+}
+
+func TestValidate_MutualTLSVersionGate(t *testing.T) {
+	t.Run("3.0.x rejects mutualTLS", func(t *testing.T) {
+		errs := validate.ValidateSecurityScheme("securitySchemes.mtls", &openapi.SecurityScheme{
+			Type: "mutualTLS",
+		}, openapi.Version304)
+		assertHasError(t, errs, "mutualTLS requires OpenAPI 3.1.x or 3.2.0")
+	})
+
+	t.Run("3.1.x allows mutualTLS", func(t *testing.T) {
+		errs := validate.ValidateSecurityScheme("securitySchemes.mtls", &openapi.SecurityScheme{
+			Type: "mutualTLS",
+		}, openapi.Version312)
+		assertNoStrictErrors(t, errs)
+	})
+
+	t.Run("3.2.0 allows mutualTLS", func(t *testing.T) {
+		errs := validate.ValidateSecurityScheme("securitySchemes.mtls", &openapi.SecurityScheme{
+			Type: "mutualTLS",
+		}, openapi.Version320)
+		assertNoStrictErrors(t, errs)
+	})
+}
+
+func TestValidate_ContentTypeHeader_IsWarning(t *testing.T) {
+	resp := &openapi.Response{
+		Description: "OK",
+		Headers: map[string]*openapi.Header{
+			"Content-Type": {Schema: &openapi.Schema{Type: "string"}},
+		},
+	}
+	errs := validate.ValidateResponse("responses.200", resp, openapi.Version304)
+	assertHasWarning(t, errs, "is ignored by the OpenAPI spec")
+	assertNoStrictErrors(t, errs)
+}
+
+func TestValidate_EncodingSchemaProperties(t *testing.T) {
+	t.Run("3.1.x errors when encoding key not in schema", func(t *testing.T) {
+		mt := &openapi.MediaType{
+			Schema: &openapi.Schema{
+				Type: "object",
+				Properties: map[string]*openapi.Schema{
+					"file": {Type: "string"},
+				},
+			},
+			Encoding: map[string]*openapi.Encoding{
+				"unknown": {ContentType: "application/octet-stream"},
+			},
+		}
+		errs := validate.ValidateMediaType(
+			"requestBody.content.multipart/form-data", "multipart/form-data", mt, openapi.Version312)
+		assertHasError(t, errs, "must correspond to a schema property")
+	})
+
+	t.Run("3.2.0 errors when encoding key not in schema", func(t *testing.T) {
+		mt := &openapi.MediaType{
+			Schema: &openapi.Schema{
+				Type: "object",
+				Properties: map[string]*openapi.Schema{
+					"file": {Type: "string"},
+				},
+			},
+			Encoding: map[string]*openapi.Encoding{
+				"unknown": {ContentType: "application/octet-stream"},
+			},
+		}
+		errs := validate.ValidateMediaType(
+			"requestBody.content.multipart/form-data", "multipart/form-data", mt, openapi.Version320)
+		assertHasError(t, errs, "must correspond to a schema property")
+	})
+
+	t.Run("encoding key matching schema property is valid", func(t *testing.T) {
+		mt := &openapi.MediaType{
+			Schema: &openapi.Schema{
+				Type: "object",
+				Properties: map[string]*openapi.Schema{
+					"file": {Type: "string"},
+				},
+			},
+			Encoding: map[string]*openapi.Encoding{
+				"file": {ContentType: "application/octet-stream"},
+			},
+		}
+		errs := validate.ValidateMediaType(
+			"requestBody.content.multipart/form-data", "multipart/form-data", mt, openapi.Version320)
+		assertNoStrictErrors(t, errs)
+	})
+}
+
+func TestValidate_AllowReserved_Header(t *testing.T) {
+	t.Run("pre-3.2.0 rejects allowReserved in headers", func(t *testing.T) {
+		for _, version := range []string{openapi.Version304, openapi.Version312} {
+			hdr := &openapi.Header{Schema: &openapi.Schema{Type: "string"}, AllowReserved: true}
+			errs := validate.ValidateHeader("headers.X-Custom", hdr, version)
+			assertHasError(t, errs, "allowReserved is not allowed for headers")
+		}
+	})
+
+	t.Run("3.2.0 allows allowReserved in headers", func(t *testing.T) {
+		hdr := &openapi.Header{Schema: &openapi.Schema{Type: "string"}, AllowReserved: true}
+		errs := validate.ValidateHeader("headers.X-Custom", hdr, openapi.Version320)
+		assertNoStrictErrors(t, errs)
+	})
+}
+
+func TestValidate_AllowEmptyValue_Deprecated320(t *testing.T) {
+	t.Run("3.2.0 warns when allowEmptyValue is used in query param", func(t *testing.T) {
+		param := &openapi.Parameter{
+			Name:            "q",
+			In:              "query",
+			AllowEmptyValue: true,
+			Schema:          &openapi.Schema{Type: "string"},
+		}
+		errs := validate.ValidateParameters("op", []*openapi.Parameter{param}, openapi.Version320, nil)
+		assertHasWarning(t, errs, "allowEmptyValue is deprecated in OpenAPI 3.2.0")
+	})
+
+	t.Run("pre-3.2.0 does not warn for allowEmptyValue", func(t *testing.T) {
+		param := &openapi.Parameter{
+			Name:            "q",
+			In:              "query",
+			AllowEmptyValue: true,
+			Schema:          &openapi.Schema{Type: "string"},
+		}
+		errs := validate.ValidateParameters("op", []*openapi.Parameter{param}, openapi.Version312, nil)
+		for _, e := range errs {
+			if strings.Contains(e.Error(), "deprecated") {
+				t.Fatalf("unexpected deprecation warning for 3.1.x: %v", e)
+			}
+		}
+	})
+}
+
+func TestValidate_EncodingHeaders_ContentType(t *testing.T) {
+	t.Run("Content-Type in encoding.headers emits a warning", func(t *testing.T) {
+		enc := &openapi.Encoding{
+			Headers: map[string]*openapi.Header{
+				"Content-Type": {Schema: &openapi.Schema{Type: "string"}},
+			},
+		}
+		errs := validate.ValidateEncoding(
+			"requestBody.content.multipart/form-data.encoding.file",
+			"multipart/form-data",
+			enc,
+			openapi.Version312,
+		)
+		assertHasWarning(t, errs, "is described separately and is ignored")
+	})
+}
+
+func TestValidateLink_Direct(t *testing.T) {
+	errs := validate.ValidateLink("ctx", nil, openapi.Version304)
+	assert.Len(t, errs, 1)
+	assert.Contains(t, errs[0].Error(), "ctx is required")
+
+	errs = validate.ValidateLink("ctx", &openapi.Link{Summary: "x"}, openapi.Version304)
+	assert.Len(t, errs, 1)
+	assert.Contains(t, errs[0].Error(), "summary is only allowed with $ref")
+
+	errs = validate.ValidateLink("ctx", &openapi.Link{OperationRef: "/a", OperationID: "id"}, openapi.Version304)
+	assert.Len(t, errs, 1)
+	assert.Contains(t, errs[0].Error(), "operationRef and operationId are mutually exclusive")
+
+	errs = validate.ValidateLink("ctx", &openapi.Link{}, openapi.Version304)
+	assert.Len(t, errs, 1)
+	assert.Contains(t, errs[0].Error(), "must define operationRef or operationId")
+}
+
+func TestValidateExample_Direct(t *testing.T) {
+	errs := validate.ValidateExample("ctx", nil, openapi.Version304)
+	assert.Len(t, errs, 1)
+	assert.Contains(t, errs[0].Error(), "ctx is required")
+
+	errs = validate.ValidateExample("ctx", &openapi.Example{
+		SerializedValue: "x",
+		Value:           "y",
+	}, openapi.Version320)
+	assert.Len(t, errs, 1)
+	assert.Contains(t, errs[0].Error(), "serializedValue is mutually exclusive with value and externalValue")
+}
+
+func TestSecuritySchemeOAuth2MetadataURL(t *testing.T) {
+	value, ok := validate.SecuritySchemeOAuth2MetadataURL(&openapi.SecurityScheme{
+		OAuth2MetadataURL: "https://auth.example/.well-known/oauth-authorization-server",
+	})
+	assert.True(t, ok)
+	assert.Equal(t, "https://auth.example/.well-known/oauth-authorization-server", value)
+
+	value, ok = validate.SecuritySchemeOAuth2MetadataURL(&openapi.SecurityScheme{
+		Extra: map[string]any{"oauth2MetadataUrl": "https://auth.example/metadata"},
+	})
+	assert.True(t, ok)
+	assert.Equal(t, "https://auth.example/metadata", value)
+
+	value, ok = validate.SecuritySchemeOAuth2MetadataURL(&openapi.SecurityScheme{
+		Extra: map[string]any{"oauth2MetadataUrl": 1},
+	})
+	assert.True(t, ok)
+	assert.Empty(t, value)
+
+	value, ok = validate.SecuritySchemeOAuth2MetadataURL(&openapi.SecurityScheme{})
+	assert.False(t, ok)
+	assert.Empty(t, value)
 }

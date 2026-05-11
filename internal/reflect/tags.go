@@ -137,20 +137,28 @@ func (r *Reflector) ApplyXMLTags(schema *openapi.Schema, tag reflect.StructTag) 
 	schema.XML.Name = xmlName
 	schema.XML.Namespace = xmlNamespace
 	schema.XML.Prefix = xmlPrefix
-	if xmlAttribute != "" && (r.Config.OpenAPIVersion != openapi.Version320 || xmlNodeType == "") {
-		schema.XML.Attribute = BoolTag(xmlAttribute)
-	}
-	if xmlWrapped != "" && (r.Config.OpenAPIVersion != openapi.Version320 || xmlNodeType == "") {
-		schema.XML.Wrapped = BoolTag(xmlWrapped)
-	}
-	if xmlNodeType != "" && r.Config.OpenAPIVersion == openapi.Version320 {
-		if schema.XML.Extra == nil {
-			schema.XML.Extra = map[string]any{}
+
+	if r.Config.OpenAPIVersion == openapi.Version320 {
+		switch {
+		case xmlNodeType != "":
+			schema.XML.NodeType = xmlNodeType
+		case xmlAttribute != "" && BoolTag(xmlAttribute):
+			schema.XML.NodeType = "attribute"
+		case xmlWrapped != "" && BoolTag(xmlWrapped):
+			schema.XML.NodeType = "element"
 		}
-		schema.XML.Extra["nodeType"] = xmlNodeType
+	} else {
+		if xmlAttribute != "" {
+			schema.XML.Attribute = BoolTag(xmlAttribute)
+		}
+		if xmlWrapped != "" {
+			schema.XML.Wrapped = BoolTag(xmlWrapped)
+		}
 	}
+
 	if schema.XML.Name == "" && schema.XML.Namespace == "" && schema.XML.Prefix == "" && !schema.XML.Attribute &&
 		!schema.XML.Wrapped &&
+		schema.XML.NodeType == "" &&
 		len(schema.XML.Extra) == 0 {
 		schema.XML = nil
 	}

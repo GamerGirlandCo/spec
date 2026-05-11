@@ -6,6 +6,7 @@ type ContentUnit struct {
 	HTTPStatus  int
 	ContentType string
 	IsDefault   bool
+	Summary     string
 	Description string
 	Encoding    map[string]string
 	Example     any

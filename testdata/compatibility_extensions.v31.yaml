@@ -14,18 +14,18 @@ paths:
             description: User identifier
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
+                $ref: '#/components/schemas/User'
       x-operation: ok
 webhooks:
   user.created:
     post:
       responses:
-        "202":
+        '202':
           description: Accepted
 components:
   schemas:

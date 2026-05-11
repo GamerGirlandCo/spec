@@ -30,19 +30,45 @@ paths:
             description: User identifier
             type: string
       responses:
-        "200":
+        '200':
           summary: Payment found
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
+                $ref: '#/components/schemas/User'
               examples:
                 encoded-id:
                   summary: Encoded identifier
                   dataValue:
                     id: pay_123
-                  serializedValue: "{\"id\":\"pay_123\"}"
+                  serializedValue: '{"id":"pay_123"}'
+  /search:
+    get:
+      tags:
+        - commerce
+      parameters:
+        - name: payload
+          in: querystring
+          content:
+            application/x-www-form-urlencoded:
+              schema:
+                type: object
+                properties:
+                  limit:
+                    type: integer
+                    format: int32
+                  search:
+                    type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
 components:
   schemas:
     User:

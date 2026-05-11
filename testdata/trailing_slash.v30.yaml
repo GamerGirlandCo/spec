@@ -6,5 +6,5 @@ paths:
   /ping:
     get:
       responses:
-        "204":
+        '204':
           description: No Content

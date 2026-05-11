@@ -249,7 +249,6 @@ func TestRouter_Spec(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			app := chi.NewRouter()
 			opts := []option.OpenAPIOption{
-				option.WithOpenAPIVersion("3.0.3"),
 				option.WithTitle("Test API " + tt.name),
 				option.WithVersion("1.0.0"),
 				option.WithDescription("This is a test API for " + tt.name),
@@ -575,7 +574,7 @@ func TestGenerator_Docs(t *testing.T) {
 		rr := httptest.NewRecorder()
 		c.ServeHTTP(rr, req)
 		assert.Equal(t, http.StatusOK, rr.Code, "expected status OK for /docs/openapi.yaml route")
-		assert.Contains(t, rr.Body.String(), "openapi: 3.0.4", "expected response body to contain 'openapi: 3.0.4'")
+		assert.Contains(t, rr.Body.String(), "openapi: 3.1.2", "expected response body to contain 'openapi: 3.1.2'")
 	})
 }
 
@@ -631,7 +630,7 @@ func TestGenerator_MarshalJSON(t *testing.T) {
 	schema, err := r.MarshalJSON()
 	require.NoError(t, err, "failed to marshal OpenAPI schema to JSON")
 	assert.NotEmpty(t, schema, "expected non-empty OpenAPI schema JSON")
-	assert.Contains(t, string(schema), `"openapi": "3.0.4"`, "expected OpenAPI version in schema JSON")
+	assert.Contains(t, string(schema), `"openapi": "3.1.2"`, "expected OpenAPI version in schema JSON")
 	assert.Contains(t, string(schema), `"title": "Chi OpenAPI"`, "expected title in schema JSON")
 }
 
@@ -650,7 +649,7 @@ func TestGenerator_MarshalYAML(t *testing.T) {
 	schema, err := r.MarshalYAML()
 	require.NoError(t, err, "failed to marshal OpenAPI schema to YAML")
 	assert.NotEmpty(t, schema, "expected non-empty OpenAPI schema YAML")
-	assert.Contains(t, string(schema), "openapi: 3.0.4", "expected OpenAPI version in schema YAML")
+	assert.Contains(t, string(schema), "openapi: 3.1.2", "expected OpenAPI version in schema YAML")
 	assert.Contains(t, string(schema), "title: Chi OpenAPI", "expected title in schema YAML")
 }
 
@@ -674,6 +673,17 @@ func TestGenerator_WriteSchemaTo(t *testing.T) {
 	schema, err := os.ReadFile(goldenPath)
 	require.NoError(t, err, "failed to read OpenAPI schema file")
 	assert.NotEmpty(t, schema, "expected non-empty OpenAPI schema file")
-	assert.Contains(t, string(schema), "openapi: 3.0.4", "expected OpenAPI version in schema file")
+	assert.Contains(t, string(schema), "openapi: 3.1.2", "expected OpenAPI version in schema file")
 	assert.Contains(t, string(schema), "title: Chi OpenAPI", "expected title in schema file")
+}
+
+func TestGenerator_ValidateReport(t *testing.T) {
+	c := chi.NewRouter()
+	r := chiopenapi.NewRouter(c,
+		option.WithContact(openapi.Contact{Name: "Support"}),
+		option.WithLicense(openapi.License{Name: "MIT"}),
+		option.WithServer("https://example.com"),
+	)
+	err := r.ValidateReport()
+	assert.NoError(t, err)
 }

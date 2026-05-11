@@ -1,10 +1,10 @@
 package builder
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/oaswrap/spec/internal/reflect"
+	"github.com/oaswrap/spec/internal/validate"
 	"github.com/oaswrap/spec/openapi"
 )
 
@@ -51,13 +51,16 @@ func (b *Builder) AddResponse(op *openapi.Operation, cu *openapi.ContentUnit) er
 	if cu.IsDefault {
 		key = "default"
 	} else if cu.HTTPStatus == 0 {
-		return fmt.Errorf("HTTP status is required unless ContentDefault is set")
+		return validate.Errorf("HTTP status is required unless ContentDefault is set")
 	}
 
 	response := op.Responses[key]
 	if response == nil {
 		response = &openapi.Response{Description: ResponseDescription(cu)}
 		op.Responses[key] = response
+	}
+	if cu.Summary != "" && b.Config.OpenAPIVersion == openapi.Version320 {
+		response.Summary = cu.Summary
 	}
 	if response.Content == nil {
 		response.Content = map[string]openapi.MediaType{}

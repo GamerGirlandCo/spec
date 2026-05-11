@@ -79,6 +79,28 @@ func TestBuilder_AddResponse(t *testing.T) {
 
 	assert.NotNil(t, op.Responses["200"])
 	assert.NotNil(t, op.Responses["200"].Content["application/json"])
+
+	t.Run("StatusRequired", func(t *testing.T) {
+		cu2 := &openapi.ContentUnit{HTTPStatus: 0}
+		err := b.AddResponse(op, cu2)
+		assert.Error(t, err)
+	})
+
+	t.Run("DefaultResponse", func(t *testing.T) {
+		cu3 := &openapi.ContentUnit{IsDefault: true, Structure: "ok"}
+		err := b.AddResponse(op, cu3)
+		require.NoError(t, err)
+		assert.NotNil(t, op.Responses["default"])
+	})
+
+	t.Run("Summary320", func(t *testing.T) {
+		cfg320 := &openapi.Config{OpenAPIVersion: openapi.Version320}
+		b320 := NewBuilder(cfg320, doc)
+		cu4 := &openapi.ContentUnit{HTTPStatus: 201, Summary: "Created"}
+		err := b320.AddResponse(op, cu4)
+		require.NoError(t, err)
+		assert.Equal(t, "Created", op.Responses["201"].Summary)
+	})
 }
 
 func TestApplyContentExamples(t *testing.T) {

@@ -383,12 +383,13 @@ func TestRouter_Single(t *testing.T) {
 				require.NoError(t, err, "failed to read response body for %s request", tt.method)
 				assert.Equal(t, "pong", string(body), "expected response body to be 'pong' for %s request", tt.method)
 			}
-			if tt.method == "CONNECT" {
-				return // CONNECT method is not supported by OpenAPI, so we skip it
-			}
-
 			schema, err := r.GenerateSchema()
 			require.NoError(t, err, "failed to generate OpenAPI schema for %s request", tt.method)
+
+			if tt.method == "CONNECT" {
+				assert.NotContains(t, string(schema), "operationId: ping")
+				return
+			}
 			assert.NotEmpty(t, schema, "expected non-empty OpenAPI schema for %s request", tt.method)
 
 			// Check if the route is registered in the OpenAPI schema
@@ -509,7 +510,7 @@ func TestGenerator_Docs(t *testing.T) {
 		assert.Contains(
 			t,
 			string(body),
-			"openapi: 3.0.4",
+			"openapi: 3.1.2",
 			"expected OpenAPI version in response body for OpenAPI YAML route",
 		)
 	})
@@ -627,4 +628,15 @@ func TestGeneratorMarshalJSON(t *testing.T) {
 	jsonData, err := r.MarshalJSON()
 	require.NoError(t, err, "failed to marshal OpenAPI schema to JSON")
 	assert.NotEmpty(t, jsonData, "expected non-empty JSON data")
+}
+
+func TestGenerator_ValidateReport(t *testing.T) {
+	app := fiber.New()
+	r := fiberv3openapi.NewRouter(app,
+		option.WithContact(openapi.Contact{Name: "Support"}),
+		option.WithLicense(openapi.License{Name: "MIT"}),
+		option.WithServer("https://example.com"),
+	)
+	err := r.ValidateReport()
+	assert.NoError(t, err)
 }

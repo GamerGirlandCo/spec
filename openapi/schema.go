@@ -69,14 +69,16 @@ type Schema struct {
 
 // Discriminator represents the OpenAPI Discriminator Object.
 type Discriminator struct {
-	PropertyName string            `json:"propertyName"      yaml:"propertyName"`
-	Mapping      map[string]string `json:"mapping,omitempty" yaml:"mapping,omitempty"`
-	Extensions   map[string]any    `json:"-"                 yaml:"-"`
-	Extra        map[string]any    `json:"-"                 yaml:"-"`
+	PropertyName   string            `json:"propertyName"             yaml:"propertyName"`
+	Mapping        map[string]string `json:"mapping,omitempty"        yaml:"mapping,omitempty"`
+	DefaultMapping string            `json:"defaultMapping,omitempty" yaml:"defaultMapping,omitempty"`
+	Extensions     map[string]any    `json:"-"                        yaml:"-"`
+	Extra          map[string]any    `json:"-"                        yaml:"-"`
 }
 
 // XML represents the OpenAPI XML Object.
 type XML struct {
+	NodeType   string         `json:"nodeType,omitempty"  yaml:"nodeType,omitempty"`
 	Name       string         `json:"name,omitempty"      yaml:"name,omitempty"`
 	Namespace  string         `json:"namespace,omitempty" yaml:"namespace,omitempty"`
 	Prefix     string         `json:"prefix,omitempty"    yaml:"prefix,omitempty"`

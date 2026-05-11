@@ -241,7 +241,6 @@ func TestRouter_Spec(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			app := gin.New()
 			opts := []option.OpenAPIOption{
-				option.WithOpenAPIVersion("3.0.3"),
 				option.WithTitle("Test API " + tt.name),
 				option.WithVersion("1.0.0"),
 				option.WithDescription("This is a test API for " + tt.name),
@@ -331,6 +330,25 @@ func TestRouter_Single(t *testing.T) {
 			assert.Contains(t, string(schema), "operationId: ping", "expected operationId in schema for %s", tt.method)
 		})
 	}
+
+	t.Run("CONNECT omitted from schema before OpenAPI 3.2", func(t *testing.T) {
+		app := gin.New()
+		r := ginopenapi.NewRouter(app)
+
+		r.Handle(http.MethodConnect, "/ping", PingHandler).With(
+			option.OperationID("ping-connect"),
+		)
+
+		req, _ := http.NewRequest(http.MethodConnect, "/ping", nil)
+		rec := httptest.NewRecorder()
+		app.ServeHTTP(rec, req)
+		assert.Equal(t, http.StatusOK, rec.Code, "expected status code 200 for CONNECT")
+
+		schema, err := r.GenerateSchema()
+		require.NoError(t, err, "failed to generate OpenAPI schema for CONNECT")
+		assert.NotContains(t, string(schema), "operationId: ping-connect")
+	})
+
 	t.Run("Static", func(t *testing.T) {
 		// Create temp dir
 		tmpDir := t.TempDir()
@@ -545,7 +563,7 @@ func TestGenerator_Docs(t *testing.T) {
 			"application/x-yaml",
 			"expected Content-Type to be application/x-yaml",
 		)
-		assert.Contains(t, rec.Body.String(), "openapi: 3.0.4", "expected OpenAPI version in response body")
+		assert.Contains(t, rec.Body.String(), "openapi: 3.1.2", "expected OpenAPI version in response body")
 	})
 }
 
@@ -662,4 +680,15 @@ func TestGenerator_MarshalJSON(t *testing.T) {
 	require.NoError(t, err, "failed to marshal OpenAPI schema to JSON")
 	assert.NotEmpty(t, schema, "expected non-empty OpenAPI schema in JSON format")
 	assert.Contains(t, string(schema), `"openapi":`, "expected OpenAPI schema to contain 'openapi' field")
+}
+
+func TestGenerator_ValidateReport(t *testing.T) {
+	app := gin.New()
+	r := ginopenapi.NewRouter(app,
+		option.WithContact(openapi.Contact{Name: "Support"}),
+		option.WithLicense(openapi.License{Name: "MIT"}),
+		option.WithServer("https://example.com"),
+	)
+	err := r.ValidateReport()
+	assert.NoError(t, err)
 }

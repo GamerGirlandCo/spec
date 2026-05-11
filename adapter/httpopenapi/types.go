@@ -13,6 +13,9 @@ type Generator interface {
 	// Validate checks if the OpenAPI schema is valid.
 	Validate() error
 
+	// ValidateReport validates the schema and returns all findings.
+	ValidateReport() error
+
 	// GenerateSchema generates the OpenAPI schema in the specified formats.
 	// Supported formats include "yaml", "json", etc.
 	// If no formats are specified, it defaults to "yaml".

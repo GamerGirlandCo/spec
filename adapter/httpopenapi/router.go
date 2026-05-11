@@ -7,12 +7,10 @@ import (
 
 	"github.com/oaswrap/spec"
 	specui "github.com/oaswrap/spec-ui"
-	"github.com/oaswrap/spec/openapi"
-	"github.com/oaswrap/spec/option"
-	"github.com/oaswrap/spec/pkg/mapper"
-
-	"github.com/oaswrap/spec/adapter/httpopenapi/internal/constant"
 	"github.com/oaswrap/spec/adapter/httpopenapi/internal/parser"
+	"github.com/oaswrap/spec/internal/mapper"
+	"github.com/oaswrap/spec/internal/validate"
+	"github.com/oaswrap/spec/option"
 )
 
 type router struct {
@@ -35,9 +33,9 @@ func NewRouter(mux *http.ServeMux, opts ...option.OpenAPIOption) Generator {
 // It initializes the OpenAPI generator and sets up the necessary handlers for OpenAPI documentation.
 func NewGenerator(mux *http.ServeMux, opts ...option.OpenAPIOption) Generator {
 	defaultOpts := []option.OpenAPIOption{
-		option.WithTitle(constant.DefaultTitle),
-		option.WithDescription(constant.DefaultDescription),
-		option.WithVersion(constant.DefaultVersion),
+		option.WithTitle("HTTP OpenAPI"),
+		option.WithDescription("OpenAPI documentation for HTTP applications"),
+		option.WithVersion("1.0.0"),
 		option.WithStoplightElements(),
 		option.WithCacheAge(0),
 	}
@@ -79,7 +77,7 @@ func (r *router) HandleFunc(pattern string, handler func(http.ResponseWriter, *h
 	route := &route{}
 	routePattern, err := parser.ParseRoutePattern(pattern)
 	if err != nil || routePattern.Method == "" ||
-		(routePattern.Method == http.MethodConnect && r.gen.Config().OpenAPIVersion != openapi.Version320) {
+		!validate.AllowsOperationMethod(r.gen.Config().OpenAPIVersion, routePattern.Method) {
 		return route
 	}
 	route.specRoute = r.specRouter.Add(routePattern.Method, routePattern.Path)
@@ -95,7 +93,7 @@ func (r *router) Handle(pattern string, handler http.Handler) Route {
 	route := &route{}
 	routePattern, err := parser.ParseRoutePattern(pattern)
 	if err != nil || routePattern.Method == "" ||
-		(routePattern.Method == http.MethodConnect && r.gen.Config().OpenAPIVersion != openapi.Version320) {
+		!validate.AllowsOperationMethod(r.gen.Config().OpenAPIVersion, routePattern.Method) {
 		return route
 	}
 	route.specRoute = r.specRouter.Add(routePattern.Method, routePattern.Path)
@@ -161,6 +159,10 @@ func (r *router) With(opts ...option.GroupOption) Router {
 
 func (r *router) Validate() error {
 	return r.gen.Validate()
+}
+
+func (r *router) ValidateReport() error {
+	return r.gen.ValidateReport()
 }
 
 func (r *router) GenerateSchema(formats ...string) ([]byte, error) {
