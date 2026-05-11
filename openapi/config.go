@@ -19,6 +19,7 @@ type InterceptPropParams struct {
 	PropertySchema *Schema // nil when Processed=false
 	ParentSchema   *Schema
 	Processed      bool
+	ParentType     reflect.Type // the struct type being reflected; same for all fields including embedded
 }
 
 // InterceptPropFunc intercepts field reflection to control or modify property schemas.

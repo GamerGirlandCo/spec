@@ -35,13 +35,42 @@ func TypeMapping(src, dst any) ReflectorOption {
 }
 
 // InterceptSchema sets callback to intercept schema generation per type.
+// If a previous hook exists, both are chained: the previous hook runs first.
+// If the previous hook returns stop=true or an error, the next hook is not called.
 func InterceptSchema(fn openapi.InterceptSchemaFunc) ReflectorOption {
-	return func(cfg *openapi.ReflectorConfig) { cfg.InterceptSchema = fn }
+	return func(cfg *openapi.ReflectorConfig) {
+		if cfg.InterceptSchema == nil {
+			cfg.InterceptSchema = fn
+			return
+		}
+		prev := cfg.InterceptSchema
+		cfg.InterceptSchema = func(params openapi.InterceptSchemaParams) (bool, error) {
+			stop, err := prev(params)
+			if err != nil || stop {
+				return stop, err
+			}
+			return fn(params)
+		}
+	}
 }
 
 // InterceptProp sets callback to intercept property schema generation per field.
+// If a previous hook exists, both are chained: the previous hook runs first,
+// and the new hook runs only if the previous did not return an error.
 func InterceptProp(fn openapi.InterceptPropFunc) ReflectorOption {
-	return func(cfg *openapi.ReflectorConfig) { cfg.InterceptProp = fn }
+	return func(cfg *openapi.ReflectorConfig) {
+		if cfg.InterceptProp == nil {
+			cfg.InterceptProp = fn
+			return
+		}
+		prev := cfg.InterceptProp
+		cfg.InterceptProp = func(params openapi.InterceptPropParams) error {
+			if err := prev(params); err != nil {
+				return err
+			}
+			return fn(params)
+		}
+	}
 }
 
 // RequiredPropByValidateTag marks properties as required when their validate tag contains "required".

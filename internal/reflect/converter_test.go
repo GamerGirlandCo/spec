@@ -56,7 +56,8 @@ func TestConverter_SchemaForType(t *testing.T) {
 			if tt.name == "Interface" {
 				typ = std_reflect.TypeFor[any]()
 			}
-			schema := r.SchemaForType(typ, reflect.SchemaInline, nil)
+			schema, err := r.SchemaForType(typ, reflect.SchemaInline, nil)
+			require.NoError(t, err)
 			if tt.expected != "" {
 				assert.Equal(t, tt.expected, schema.Type)
 			}

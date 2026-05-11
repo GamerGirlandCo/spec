@@ -8,15 +8,18 @@ import (
 	"github.com/oaswrap/spec/openapi"
 )
 
-func (b *Builder) AddRequest(op *openapi.Operation, cu *openapi.ContentUnit) {
-	params, body := b.Reflector.RequestParts(cu.Structure, ContentType(cu))
+func (b *Builder) AddRequest(op *openapi.Operation, cu *openapi.ContentUnit) error {
+	params, body, err := b.Reflector.RequestParts(cu.Structure, ContentType(cu))
+	if err != nil {
+		return err
+	}
 	op.Parameters = append(op.Parameters, params...)
 
 	ct := ContentType(cu)
 	if body == nil {
 		isDefaultJSON := ct == "application/json" || cu.ContentType == ""
 		if isDefaultJSON && cu.Format == "" && cu.Example == nil && len(cu.Examples) == 0 {
-			return
+			return nil
 		}
 	}
 
@@ -44,6 +47,7 @@ func (b *Builder) AddRequest(op *openapi.Operation, cu *openapi.ContentUnit) {
 		}
 	}
 	op.RequestBody.Content[ct] = mt
+	return nil
 }
 
 func (b *Builder) AddResponse(op *openapi.Operation, cu *openapi.ContentUnit) error {
@@ -68,7 +72,10 @@ func (b *Builder) AddResponse(op *openapi.Operation, cu *openapi.ContentUnit) er
 
 	ct := ContentType(cu)
 	if cu.Structure != nil || cu.ContentType != "" || cu.Example != nil || len(cu.Examples) > 0 {
-		schema := b.Reflector.SchemaForValue(cu.Structure, reflect.SchemaUseComponent)
+		schema, err := b.Reflector.SchemaForValue(cu.Structure, reflect.SchemaUseComponent)
+		if err != nil {
+			return err
+		}
 		if schema == nil && cu.ContentType != "" {
 			schema = &openapi.Schema{Type: "string"}
 		}
