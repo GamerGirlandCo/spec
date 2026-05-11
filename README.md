@@ -36,6 +36,9 @@ Code-first, framework-agnostic OpenAPI 3.x spec builder for Go. Generate docs fr
 - Low-level typed OpenAPI model for direct field control.
 - `spec.OneOf` for explicit one-of schemas.
 - `SchemaExposer` and `StaticSchemaExposer` hooks for custom reflected schemas.
+- `InterceptSchema` hook for type-level schema customization and override.
+- `InterceptProp` hook for field-level property filtering and modification.
+- `RequiredPropByValidateTag` option to derive `required` from `validate` struct tags.
 
 ---
 
@@ -424,8 +427,8 @@ type SearchRequest struct {
 | `bool` | `type: boolean` |
 | Signed integers (except `int64`) | `type: integer`, `format: int32` |
 | `int64` | `type: integer`, `format: int64` |
-| Unsigned integers (except `uint64`/`uintptr`) | `type: integer`, `format: int32`, `minimum: 0` |
-| `uint64`, `uintptr` | `type: integer`, `format: int64`, `minimum: 0` |
+| `uint8`, `uint16` | `type: integer`, `format: int32`, `minimum: 0` |
+| `uint`, `uint32`, `uint64`, `uintptr` | `type: integer`, `format: int64`, `minimum: 0` |
 | `float32` | `type: number`, `format: float` |
 | `float64` | `type: number`, `format: double` |
 | `string` | `type: string` |
@@ -466,6 +469,19 @@ r := spec.NewRouter(
 		option.InterceptDefName(func(t reflect.Type, defaultName string) string {
 			return defaultName
 		}),
+		option.InterceptSchema(func(params openapi.InterceptSchemaParams) (stop bool, err error) {
+			if params.Processed {
+				params.Schema.Extensions = map[string]any{"x-go-type": params.Type.String()}
+			}
+			return false, nil
+		}),
+		option.InterceptProp(func(params openapi.InterceptPropParams) error {
+			if params.Processed && params.Field.Tag.Get("internal") == "true" {
+				return openapi.ErrSkipProperty
+			}
+			return nil
+		}),
+		option.RequiredPropByValidateTag(), // marks fields required when validate tag contains "required"
 	),
 )
 ```
@@ -477,6 +493,9 @@ r := spec.NewRouter(
 | `TypeMapping(src, dst)` | Reflect `src` as if it were `dst`. |
 | `ParameterTagMapping(in, sourceTag)` | Add a custom tag for a parameter location while keeping the default tag. |
 | `InterceptDefName(fn)` | Customize schema component names. |
+| `InterceptSchema(fn)` | Hook called before and after each type is reflected. Pre-call (`Processed=false`): return `stop=true` to override schema entirely. Post-call (`Processed=true`): modify the built schema. |
+| `InterceptProp(fn)` | Hook called before and after each struct field is reflected. Return `openapi.ErrSkipProperty` to exclude the field. |
+| `RequiredPropByValidateTag(tag, sep...)` | Mark properties as required when their `validate` tag (or custom tag) contains `"required"`. Default tag: `validate`, default separator: `,`. |
 
 ---
 
