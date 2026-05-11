@@ -199,12 +199,13 @@ func (r *Reflector) RefSchema(t reflect.Type) *openapi.Schema {
 	r.Components[name].Properties = built.Properties
 	r.Components[name].Required = built.Required
 	if interceptSchema != nil {
-		interceptSchema(openapi.InterceptSchemaParams{Type: t, Schema: r.Components[name], Processed: true})
+		_, _ = interceptSchema(openapi.InterceptSchemaParams{Type: t, Schema: r.Components[name], Processed: true})
 	}
 	delete(r.Generating, t)
 	return &openapi.Schema{Ref: "#/components/schemas/" + name}
 }
 
+//nolint:gocognit // covers full struct field inspection with parameter/body split logic.
 func (r *Reflector) StructSchema(
 	t reflect.Type,
 	nameTag string,

@@ -7,7 +7,7 @@ import (
 	"github.com/oaswrap/spec/openapi"
 )
 
-//nolint:funlen // covers full OpenAPI scalar/collection/struct mapping in one switch for readability.
+//nolint:funlen,gocognit // covers full OpenAPI scalar/collection/struct mapping in one switch for readability.
 func (r *Reflector) SchemaForType(t reflect.Type, mode SchemaMode, field *reflect.StructField) *openapi.Schema {
 	nullable := false
 	for t != nil && t.Kind() == reflect.Pointer {
@@ -23,7 +23,7 @@ func (r *Reflector) SchemaForType(t reflect.Type, mode SchemaMode, field *reflec
 	interceptSchema := r.interceptSchemaFn()
 	if schema := r.SchemaFromTypeExposer(t); schema != nil {
 		if interceptSchema != nil {
-			interceptSchema(openapi.InterceptSchemaParams{Type: t, Schema: schema, Processed: true})
+			_, _ = interceptSchema(openapi.InterceptSchemaParams{Type: t, Schema: schema, Processed: true})
 		}
 		r.ApplyNullable(schema, nullable)
 		if field != nil {
@@ -102,7 +102,7 @@ func (r *Reflector) SchemaForType(t reflect.Type, mode SchemaMode, field *reflec
 		schema = &openapi.Schema{}
 	}
 	if interceptSchema != nil {
-		interceptSchema(openapi.InterceptSchemaParams{Type: t, Schema: schema, Processed: true})
+		_, _ = interceptSchema(openapi.InterceptSchemaParams{Type: t, Schema: schema, Processed: true})
 	}
 	r.ApplyNullable(schema, nullable)
 	if field != nil {
@@ -144,7 +144,8 @@ func (r *Reflector) ApplyNullable(schema *openapi.Schema, nullable bool) {
 		}
 	case []string:
 		if !slices.Contains(typ, "null") {
-			schema.Type = append(typ, "null")
+			typ = append(typ, "null")
+			schema.Type = typ
 		}
 	}
 }
