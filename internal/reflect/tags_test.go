@@ -101,3 +101,77 @@ func TestApplyXMLTags(t *testing.T) {
 		assert.Nil(t, s.XML)
 	})
 }
+
+func TestParseTagValueAndValues(t *testing.T) {
+	t.Run("ParseTagValue", func(t *testing.T) {
+		assert.Equal(t, true, reflect.ParseTagValue("true"))
+		assert.Equal(t, int64(42), reflect.ParseTagValue("42"))
+		assert.InDelta(t, 3.14, reflect.ParseTagValue("3.14"), 0.0001)
+		assert.Equal(
+			t,
+			map[string]any{"a": int64(1), "b": []any{int64(2), int64(3)}},
+			reflect.ParseTagValue(`{"a":1,"b":[2,3]}`),
+		)
+		assert.Equal(t, "plain-text", reflect.ParseTagValue("plain-text"))
+	})
+
+	t.Run("ParseTagValues", func(t *testing.T) {
+		assert.Equal(t, []any{float64(1), float64(2), float64(3)}, reflect.ParseTagValues("[1,2,3]"))
+		assert.Equal(t, []any{int64(1), int64(2), "three"}, reflect.ParseTagValues("1, 2, three"))
+	})
+}
+
+func TestApplyExclusiveLimit(t *testing.T) {
+	t.Run("OpenAPI30UsesBooleans", func(t *testing.T) {
+		r := reflect.NewReflector(&openapi.Config{OpenAPIVersion: openapi.Version304})
+		s := &openapi.Schema{}
+		tag := std_reflect.StructTag(`exclusiveMaximum:"true" exclusiveMinimum:"false"`)
+
+		r.ApplyExclusiveLimit(s, tag, "exclusiveMaximum")
+		r.ApplyExclusiveLimit(s, tag, "exclusiveMinimum")
+
+		assert.Equal(t, true, s.ExclusiveMaximum)
+		assert.Equal(t, false, s.ExclusiveMinimum)
+	})
+
+	t.Run("OpenAPI31UsesNumbers", func(t *testing.T) {
+		r := reflect.NewReflector(&openapi.Config{OpenAPIVersion: openapi.Version312})
+		s := &openapi.Schema{}
+		tag := std_reflect.StructTag(`exclusiveMaximum:"9.5" exclusiveMinimum:"-1.25"`)
+
+		r.ApplyExclusiveLimit(s, tag, "exclusiveMaximum")
+		r.ApplyExclusiveLimit(s, tag, "exclusiveMinimum")
+
+		assert.InDelta(t, 9.5, s.ExclusiveMaximum, 0.0001)
+		assert.InDelta(t, -1.25, s.ExclusiveMinimum, 0.0001)
+	})
+}
+
+func TestApplySchemaTags(t *testing.T) {
+	type Payload struct {
+		Value string `json:"value" type:"string,null" title:"User value" description:"desc" format:"uuid" pattern:"^u_" default:"42" example:"7" examples:"[1,2]" enum:"a,b" const:"fixed" multipleOf:"2" maximum:"10" minimum:"1" exclusiveMaximum:"9.5" exclusiveMinimum:"0.5" maxLength:"64" minLength:"1" maxItems:"3" minItems:"1" maxProperties:"5" minProperties:"1" uniqueItems:"true" nullable:"true" deprecated:"true" readOnly:"true" writeOnly:"true" contentEncoding:"gzip" contentMediaType:"application/json"`
+	}
+
+	field, ok := std_reflect.TypeFor[Payload]().FieldByName("Value")
+	require.True(t, ok)
+
+	r := reflect.NewReflector(&openapi.Config{OpenAPIVersion: openapi.Version312})
+	schema := &openapi.Schema{}
+	r.ApplySchemaTags(schema, field)
+
+	assert.Equal(t, []string{"string", "null"}, schema.Type)
+	assert.Equal(t, "User value", schema.Title)
+	assert.Equal(t, "desc", schema.Description)
+	assert.Equal(t, "uuid", schema.Format)
+	assert.Equal(t, "^u_", schema.Pattern)
+	assert.Equal(t, int64(42), schema.Default)
+	assert.Equal(t, int64(7), schema.Example)
+	assert.Equal(t, []any{float64(1), float64(2)}, schema.Examples)
+	assert.Equal(t, []any{"a", "b"}, schema.Enum)
+	assert.Equal(t, "fixed", schema.Const)
+	assert.True(t, schema.Deprecated)
+	assert.True(t, schema.ReadOnly)
+	assert.True(t, schema.WriteOnly)
+	assert.Equal(t, "gzip", schema.ContentEncoding)
+	assert.Equal(t, "application/json", schema.ContentMediaType)
+}

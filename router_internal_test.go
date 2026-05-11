@@ -66,3 +66,27 @@ func TestRoutePathRespectsPrefixForNonWebhook(t *testing.T) {
 	webhook.Path("user.created")
 	assert.Equal(t, "user.created", webhook.path)
 }
+
+func TestPackagePathFromFunc(t *testing.T) {
+	tests := []struct {
+		name     string
+		funcName string
+		want     string
+	}{
+		{name: "empty", funcName: "", want: ""},
+		{name: "no dot", funcName: "github.com/oaswrap/spec", want: ""},
+		{name: "full package function", funcName: "github.com/oaswrap/spec.NewRouter", want: "github.com/oaswrap/spec"},
+		{
+			name:     "method receiver",
+			funcName: "github.com/oaswrap/spec.(*generator).Add",
+			want:     "github.com/oaswrap/spec",
+		},
+		{name: "simple package function", funcName: "main.main", want: "main"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, packagePathFromFunc(tt.funcName))
+		})
+	}
+}
