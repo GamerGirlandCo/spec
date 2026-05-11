@@ -1,6 +1,7 @@
 package reflect
 
 import (
+	"mime/multipart"
 	"reflect"
 	"testing"
 	"time"
@@ -112,4 +113,37 @@ func TestInternalHelpers(t *testing.T) {
 		assert.Equal(t, []string{}, uniqueStrings([]string{}))
 		assert.Equal(t, []string{"a", "b", "c"}, uniqueStrings([]string{"a", "b", "a", "c", "b"}))
 	})
+}
+
+func TestInferContentType(t *testing.T) {
+	type noTags struct {
+		Name string `json:"name"`
+	}
+	type formBody struct {
+		Name  string `form:"name"`
+		Email string `form:"email"`
+	}
+	type mixedBody struct {
+		Query string `query:"q"`
+		Name  string `form:"name"`
+	}
+	type fileBody struct {
+		File *multipart.FileHeader `form:"file"`
+	}
+	type multiFileBody struct {
+		Files []*multipart.FileHeader `form:"files"`
+	}
+	type fileInterfaceBody struct {
+		File multipart.File `form:"file"`
+	}
+
+	assert.Empty(t, InferContentType(nil))
+	assert.Empty(t, InferContentType(noTags{}))
+	assert.Empty(t, InferContentType("string"))
+	assert.Equal(t, "application/x-www-form-urlencoded", InferContentType(formBody{}))
+	assert.Equal(t, "application/x-www-form-urlencoded", InferContentType(&formBody{}))
+	assert.Equal(t, "application/x-www-form-urlencoded", InferContentType(mixedBody{}))
+	assert.Equal(t, "multipart/form-data", InferContentType(fileBody{}))
+	assert.Equal(t, "multipart/form-data", InferContentType(multiFileBody{}))
+	assert.Equal(t, "multipart/form-data", InferContentType(fileInterfaceBody{}))
 }

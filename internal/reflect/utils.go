@@ -2,6 +2,7 @@ package reflect
 
 import (
 	"fmt"
+	"mime/multipart"
 	"path"
 	"reflect"
 	"regexp"
@@ -149,4 +150,50 @@ func SanitizeTypeName(name string) string {
 
 	// Final cleanup for any remaining characters
 	return genericNameRe.ReplaceAllString(name, "")
+}
+
+var (
+	typeFileHeader = reflect.TypeFor[multipart.FileHeader]()
+	typeFile       = reflect.TypeFor[multipart.File]()
+)
+
+// InferContentType inspects struct tags on value to determine request body content type.
+// Returns "multipart/form-data" if any field tagged `form` holds a file type,
+// "application/x-www-form-urlencoded" if any `form` tag is present, or "" otherwise.
+func InferContentType(value any) string {
+	t := IndirectType(reflect.TypeOf(value))
+	if t == nil || t.Kind() != reflect.Struct || IsTime(t) {
+		return ""
+	}
+	hasForm := false
+	hasFile := false
+	ForEachField(t, func(field reflect.StructField) {
+		if TagName(field, "form") == "" {
+			return
+		}
+		hasForm = true
+		if isFileField(field.Type) {
+			hasFile = true
+		}
+	})
+	if !hasForm {
+		return ""
+	}
+	if hasFile {
+		return "multipart/form-data"
+	}
+	return "application/x-www-form-urlencoded"
+}
+
+func isFileField(t reflect.Type) bool {
+	if t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	if t.Kind() == reflect.Slice {
+		t = t.Elem()
+		if t.Kind() == reflect.Pointer {
+			t = t.Elem()
+		}
+	}
+	return t == typeFileHeader || t == typeFile || t.Implements(typeFile)
 }

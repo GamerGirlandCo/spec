@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/oaswrap/spec/internal/reflect"
 	"github.com/oaswrap/spec/internal/validate"
 	"github.com/oaswrap/spec/openapi"
 )
@@ -113,6 +114,11 @@ func MergeResponses(responses []*openapi.ContentUnit) []*openapi.ContentUnit {
 func ContentType(cu *openapi.ContentUnit) string {
 	if cu != nil && cu.ContentType != "" {
 		return cu.ContentType
+	}
+	if cu != nil && cu.Structure != nil {
+		if ct := reflect.InferContentType(cu.Structure); ct != "" {
+			return ct
+		}
 	}
 	return "application/json"
 }

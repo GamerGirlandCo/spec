@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"mime/multipart"
 	"net/http"
 	"testing"
 
@@ -55,9 +56,23 @@ func TestSetOperation(t *testing.T) {
 }
 
 func TestContentType(t *testing.T) {
+	type formBody struct {
+		Name string `form:"name"`
+	}
+	type fileBody struct {
+		File *multipart.FileHeader `form:"file"`
+	}
+
 	assert.Equal(t, "application/json", ContentType(nil))
 	assert.Equal(t, "application/json", ContentType(&openapi.ContentUnit{}))
 	assert.Equal(t, "application/xml", ContentType(&openapi.ContentUnit{ContentType: "application/xml"}))
+	assert.Equal(t, "application/x-www-form-urlencoded", ContentType(&openapi.ContentUnit{Structure: formBody{}}))
+	assert.Equal(t, "multipart/form-data", ContentType(&openapi.ContentUnit{Structure: fileBody{}}))
+	// explicit ContentType always wins over struct tag inference
+	assert.Equal(t, "application/json", ContentType(&openapi.ContentUnit{
+		ContentType: "application/json",
+		Structure:   formBody{},
+	}))
 }
 
 func TestResponseDescription(t *testing.T) {
