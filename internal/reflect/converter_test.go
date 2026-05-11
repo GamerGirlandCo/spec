@@ -4,6 +4,7 @@ import (
 	std_reflect "reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -56,7 +57,8 @@ func TestConverter_SchemaForType(t *testing.T) {
 			if tt.name == "Interface" {
 				typ = std_reflect.TypeFor[any]()
 			}
-			schema := r.SchemaForType(typ, reflect.SchemaInline, nil)
+			schema, err := r.SchemaForType(typ, reflect.SchemaInline, nil)
+			require.NoError(t, err)
 			if tt.expected != "" {
 				assert.Equal(t, tt.expected, schema.Type)
 			}
@@ -131,4 +133,146 @@ func TestConverter_SchemaExposer(t *testing.T) {
 		"Exposed",
 		doc.Paths["/exposer"].Get.Responses["200"].Content["application/json"].Schema.Description,
 	)
+}
+
+func TestConverter_SchemaForType_Branches(t *testing.T) {
+	t.Run("primitive and collection kinds", func(t *testing.T) {
+		r := reflect.NewReflector(&openapi.Config{OpenAPIVersion: openapi.Version312})
+
+		cases := []struct {
+			name   string
+			val    any
+			typ    std_reflect.Type
+			assert func(*testing.T, *openapi.Schema)
+		}{
+			{
+				name: "bool",
+				val:  true,
+				assert: func(t *testing.T, s *openapi.Schema) {
+					assert.Equal(t, "boolean", s.Type)
+				},
+			},
+			{
+				name: "int32",
+				val:  int32(1),
+				assert: func(t *testing.T, s *openapi.Schema) {
+					assert.Equal(t, "integer", s.Type)
+					assert.Equal(t, "int32", s.Format)
+				},
+			},
+			{
+				name: "uint16",
+				val:  uint16(1),
+				assert: func(t *testing.T, s *openapi.Schema) {
+					assert.Equal(t, "integer", s.Type)
+					require.NotNil(t, s.Minimum)
+					assert.InDelta(t, 0.0, *s.Minimum, 0.0001)
+				},
+			},
+			{
+				name: "uint64",
+				val:  uint64(1),
+				assert: func(t *testing.T, s *openapi.Schema) {
+					assert.Equal(t, "integer", s.Type)
+					assert.Equal(t, "int64", s.Format)
+				},
+			},
+			{
+				name: "float64",
+				val:  float64(1.25),
+				assert: func(t *testing.T, s *openapi.Schema) {
+					assert.Equal(t, "number", s.Type)
+					assert.Equal(t, "double", s.Format)
+				},
+			},
+			{
+				name: "array",
+				val:  [2]int{1, 2},
+				assert: func(t *testing.T, s *openapi.Schema) {
+					assert.Equal(t, "array", s.Type)
+					require.NotNil(t, s.Items)
+					assert.Equal(t, "integer", s.Items.Type)
+				},
+			},
+			{
+				name: "map",
+				val:  map[string]bool{"ok": true},
+				assert: func(t *testing.T, s *openapi.Schema) {
+					assert.Equal(t, "object", s.Type)
+					require.NotNil(t, s.AdditionalProperties)
+					additional, ok := s.AdditionalProperties.(*openapi.Schema)
+					require.True(t, ok)
+					assert.Equal(t, "boolean", additional.Type)
+				},
+			},
+			{
+				name: "time",
+				val:  time.Time{},
+				assert: func(t *testing.T, s *openapi.Schema) {
+					assert.Equal(t, "string", s.Type)
+					assert.Equal(t, "date-time", s.Format)
+				},
+			},
+			{
+				name: "interface",
+				typ:  std_reflect.TypeFor[any](),
+				assert: func(t *testing.T, s *openapi.Schema) {
+					assert.Equal(t, &openapi.Schema{}, s)
+				},
+			},
+			{
+				name: "default",
+				val:  func() {},
+				assert: func(t *testing.T, s *openapi.Schema) {
+					assert.Equal(t, &openapi.Schema{}, s)
+				},
+			},
+		}
+
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				typ := tc.typ
+				if typ == nil {
+					typ = std_reflect.TypeOf(tc.val)
+				}
+				s, err := r.SchemaForType(typ, reflect.SchemaInline, nil)
+				require.NoError(t, err)
+				tc.assert(t, s)
+			})
+		}
+	})
+
+	t.Run("byte slice encoding differs by version", func(t *testing.T) {
+		r304 := reflect.NewReflector(&openapi.Config{OpenAPIVersion: openapi.Version304})
+		s304, err := r304.SchemaForType(std_reflect.TypeFor[[]byte](), reflect.SchemaInline, nil)
+		require.NoError(t, err)
+		assert.Equal(t, "string", s304.Type)
+		assert.Equal(t, "byte", s304.Format)
+
+		r312 := reflect.NewReflector(&openapi.Config{OpenAPIVersion: openapi.Version312})
+		s312, err := r312.SchemaForType(std_reflect.TypeFor[[]byte](), reflect.SchemaInline, nil)
+		require.NoError(t, err)
+		assert.Equal(t, "string", s312.Type)
+		assert.Equal(t, "base64", s312.ContentEncoding)
+	})
+
+	t.Run("nullable pointer to component schema", func(t *testing.T) {
+		type User struct {
+			ID string `json:"id"`
+		}
+
+		r304 := reflect.NewReflector(&openapi.Config{OpenAPIVersion: openapi.Version304})
+		s304, err := r304.SchemaForType(std_reflect.TypeFor[*User](), reflect.SchemaUseComponent, nil)
+		require.NoError(t, err)
+		assert.True(t, s304.Nullable)
+		require.Len(t, s304.AllOf, 1)
+		assert.Equal(t, "#/components/schemas/User", s304.AllOf[0].Ref)
+
+		r312 := reflect.NewReflector(&openapi.Config{OpenAPIVersion: openapi.Version312})
+		s312, err := r312.SchemaForType(std_reflect.TypeFor[*User](), reflect.SchemaUseComponent, nil)
+		require.NoError(t, err)
+		require.Len(t, s312.AnyOf, 2)
+		assert.Equal(t, "#/components/schemas/User", s312.AnyOf[0].Ref)
+		assert.Equal(t, "null", s312.AnyOf[1].Type)
+	})
 }

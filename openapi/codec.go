@@ -98,7 +98,7 @@ func structToObject(value reflect.Value, mode objectMode) any {
 		if field.Name == "Extensions" || field.Name == "Extra" {
 			continue
 		}
-		name, omitempty := jsonField(field)
+		name, omitempty := fieldTag(field, mode)
 		if name == "" {
 			continue
 		}
@@ -249,8 +249,13 @@ func appendOrderedFields(fields []orderedField, next ...orderedField) []orderedF
 	return fields
 }
 
-func jsonField(field reflect.StructField) (string, bool) {
+func fieldTag(field reflect.StructField, mode objectMode) (string, bool) {
 	tag := field.Tag.Get("json")
+	if mode == objectYAML {
+		if yamlTag := field.Tag.Get("yaml"); yamlTag != "" {
+			tag = yamlTag
+		}
+	}
 	name, opts, _ := strings.Cut(tag, ",")
 	if name == "-" {
 		return "", false

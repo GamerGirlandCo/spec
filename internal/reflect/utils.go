@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"strings"
 	"unicode"
+
+	"github.com/oaswrap/spec/openapi"
 )
 
 func (r *Reflector) TypeName(t reflect.Type) string {
@@ -41,7 +43,7 @@ func sanitizeDefName(t reflect.Type, defaultDefName, callerPkgPath string) strin
 		return defaultDefName
 	}
 	pkgName := path.Base(t.PkgPath())
-	if pkgName == "" {
+	if pkgName == "" || pkgName == "main" {
 		return defaultDefName
 	}
 	pkgName = strings.ToUpper(pkgName[:1]) + pkgName[1:]
@@ -64,6 +66,20 @@ func (r *Reflector) StripPrefixes() []string {
 
 func (r *Reflector) InlineRefs() bool {
 	return r.Config.ReflectorConfig != nil && r.Config.ReflectorConfig.InlineRefs
+}
+
+func (r *Reflector) interceptPropFn() openapi.InterceptPropFunc {
+	if r.Config == nil || r.Config.ReflectorConfig == nil {
+		return nil
+	}
+	return r.Config.ReflectorConfig.InterceptProp
+}
+
+func (r *Reflector) interceptSchemaFn() openapi.InterceptSchemaFunc {
+	if r.Config == nil || r.Config.ReflectorConfig == nil {
+		return nil
+	}
+	return r.Config.ReflectorConfig.InterceptSchema
 }
 
 func IndirectType(t reflect.Type) reflect.Type {

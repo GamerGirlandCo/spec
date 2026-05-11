@@ -1,4 +1,4 @@
-openapi: 3.0.4
+openapi: 3.1.2
 info:
   title: My API
   version: 1.0.0
@@ -13,14 +13,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LoginRequest"
+              $ref: '#/components/schemas/LoginRequest'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LoginResponse"
+                $ref: '#/components/schemas/LoginResponse'
   /api/v1/users/{id}:
     get:
       summary: Get user by ID
@@ -32,12 +32,12 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
+                $ref: '#/components/schemas/User'
       security:
         - bearerAuth: []
 components:

@@ -1,11 +1,42 @@
 package openapi
 
 import (
+	"errors"
 	"reflect"
 
 	specui "github.com/oaswrap/spec-ui"
 	"github.com/oaswrap/spec-ui/config"
 )
+
+// ErrSkipProperty can be returned from InterceptPropFunc to skip adding the property to the schema.
+var ErrSkipProperty = errors.New("skip property")
+
+// InterceptPropParams defines parameters passed to InterceptPropFunc.
+// Called twice per field: before schema generation (Processed=false) and after (Processed=true).
+type InterceptPropParams struct {
+	Name           string
+	Field          reflect.StructField
+	PropertySchema *Schema // nil when Processed=false
+	ParentSchema   *Schema
+	Processed      bool
+	ParentType     reflect.Type // the struct type being reflected; same for all fields including embedded
+}
+
+// InterceptPropFunc intercepts field reflection to control or modify property schemas.
+// Return ErrSkipProperty to skip adding the property.
+type InterceptPropFunc func(params InterceptPropParams) error
+
+// InterceptSchemaParams defines parameters passed to InterceptSchemaFunc.
+// Called twice per type: before schema generation (Processed=false, empty schema) and after (Processed=true).
+type InterceptSchemaParams struct {
+	Type      reflect.Type
+	Schema    *Schema
+	Processed bool
+}
+
+// InterceptSchemaFunc intercepts type schema generation.
+// On the pre-call (Processed=false), return stop=true to skip default processing and use Schema as-is.
+type InterceptSchemaFunc func(params InterceptSchemaParams) (stop bool, err error)
 
 const (
 	// Version300 is OpenAPI 3.0.0.
@@ -74,6 +105,8 @@ type ReflectorConfig struct {
 	InlineRefs          bool
 	StripDefNamePrefix  []string
 	InterceptDefName    func(t reflect.Type, defaultDefName string) string
+	InterceptProp       InterceptPropFunc
+	InterceptSchema     InterceptSchemaFunc
 	DefNameCallerPkg    string
 	TypeMappings        []TypeMapping
 	ParameterTagMapping map[ParameterIn]string

@@ -1,10 +1,12 @@
 package option
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/oaswrap/spec-ui/config"
 	"github.com/oaswrap/spec/openapi"
@@ -211,6 +213,8 @@ func TestReflectorOptions(t *testing.T) {
 		InterceptDefName(func(_ reflect.Type, _ string) string { return "Intercepted" }),
 		TypeMapping(1, "one"),
 		ParameterTagMapping(openapi.ParameterInQuery, "q"),
+		InterceptProp(func(_ openapi.InterceptPropParams) error { return nil }),
+		InterceptSchema(func(_ openapi.InterceptSchemaParams) (bool, error) { return false, nil }),
 	}
 
 	for _, opt := range opts {
@@ -227,6 +231,188 @@ func TestReflectorOptions(t *testing.T) {
 		assert.Equal(t, "one", cfg.TypeMappings[0].Dst)
 	}
 	assert.Equal(t, "q", cfg.ParameterTagMapping[openapi.ParameterInQuery])
+	assert.NotNil(t, cfg.InterceptProp)
+	assert.NotNil(t, cfg.InterceptSchema)
+
+	t.Run("RequiredPropByValidateTagSetsInterceptProp", func(t *testing.T) {
+		c := &openapi.ReflectorConfig{}
+		RequiredPropByValidateTag()(c)
+		assert.NotNil(t, c.InterceptProp)
+	})
+
+	t.Run("InterceptSchemaChainsAndShortCircuits", func(t *testing.T) {
+		t.Run("calls next when previous continues", func(t *testing.T) {
+			c := &openapi.ReflectorConfig{}
+			calls := []string{}
+			InterceptSchema(func(_ openapi.InterceptSchemaParams) (bool, error) {
+				calls = append(calls, "first")
+				return false, nil
+			})(c)
+			InterceptSchema(func(_ openapi.InterceptSchemaParams) (bool, error) {
+				calls = append(calls, "second")
+				return true, nil
+			})(c)
+
+			stop, err := c.InterceptSchema(openapi.InterceptSchemaParams{})
+			require.NoError(t, err)
+			assert.True(t, stop)
+			assert.Equal(t, []string{"first", "second"}, calls)
+		})
+
+		t.Run("skips next when previous stops", func(t *testing.T) {
+			c := &openapi.ReflectorConfig{}
+			calls := []string{}
+			InterceptSchema(func(_ openapi.InterceptSchemaParams) (bool, error) {
+				calls = append(calls, "first")
+				return true, nil
+			})(c)
+			InterceptSchema(func(_ openapi.InterceptSchemaParams) (bool, error) {
+				calls = append(calls, "second")
+				return false, nil
+			})(c)
+
+			stop, err := c.InterceptSchema(openapi.InterceptSchemaParams{})
+			require.NoError(t, err)
+			assert.True(t, stop)
+			assert.Equal(t, []string{"first"}, calls)
+		})
+
+		t.Run("skips next when previous errors", func(t *testing.T) {
+			boom := errors.New("boom")
+			c := &openapi.ReflectorConfig{}
+			calls := []string{}
+			InterceptSchema(func(_ openapi.InterceptSchemaParams) (bool, error) {
+				calls = append(calls, "first")
+				return false, boom
+			})(c)
+			InterceptSchema(func(_ openapi.InterceptSchemaParams) (bool, error) {
+				calls = append(calls, "second")
+				return false, nil
+			})(c)
+
+			stop, err := c.InterceptSchema(openapi.InterceptSchemaParams{})
+			assert.False(t, stop)
+			require.ErrorIs(t, err, boom)
+			assert.Equal(t, []string{"first"}, calls)
+		})
+	})
+
+	t.Run("InterceptPropChainsAndShortCircuits", func(t *testing.T) {
+		t.Run("calls next when previous succeeds", func(t *testing.T) {
+			c := &openapi.ReflectorConfig{}
+			calls := []string{}
+			InterceptProp(func(_ openapi.InterceptPropParams) error {
+				calls = append(calls, "first")
+				return nil
+			})(c)
+			InterceptProp(func(_ openapi.InterceptPropParams) error {
+				calls = append(calls, "second")
+				return nil
+			})(c)
+
+			err := c.InterceptProp(openapi.InterceptPropParams{})
+			require.NoError(t, err)
+			assert.Equal(t, []string{"first", "second"}, calls)
+		})
+
+		t.Run("skips next when previous errors", func(t *testing.T) {
+			boom := errors.New("boom")
+			c := &openapi.ReflectorConfig{}
+			calls := []string{}
+			InterceptProp(func(_ openapi.InterceptPropParams) error {
+				calls = append(calls, "first")
+				return boom
+			})(c)
+			InterceptProp(func(_ openapi.InterceptPropParams) error {
+				calls = append(calls, "second")
+				return nil
+			})(c)
+
+			err := c.InterceptProp(openapi.InterceptPropParams{})
+			require.ErrorIs(t, err, boom)
+			assert.Equal(t, []string{"first"}, calls)
+		})
+	})
+
+	t.Run("RequiredPropByValidateTag", func(t *testing.T) {
+		type reqDefault struct {
+			ID string `validate:"required,min=3"`
+		}
+		type reqCustom struct {
+			ID string `rules:"min=3|required"`
+		}
+		type notRequired struct {
+			Name string `validate:"min=1"`
+		}
+
+		t.Run("adds required on processed field with default tag", func(t *testing.T) {
+			field, ok := reflect.TypeFor[reqDefault]().FieldByName("ID")
+			assert.True(t, ok)
+			parent := &openapi.Schema{}
+			c := &openapi.ReflectorConfig{}
+			RequiredPropByValidateTag()(c)
+
+			err := c.InterceptProp(openapi.InterceptPropParams{
+				Name:         "id",
+				Field:        field,
+				ParentSchema: parent,
+				Processed:    true,
+			})
+			require.NoError(t, err)
+			assert.Equal(t, []string{"id"}, parent.Required)
+		})
+
+		t.Run("does not add required before processed", func(t *testing.T) {
+			field, ok := reflect.TypeFor[reqDefault]().FieldByName("ID")
+			assert.True(t, ok)
+			parent := &openapi.Schema{}
+			c := &openapi.ReflectorConfig{}
+			RequiredPropByValidateTag()(c)
+
+			err := c.InterceptProp(openapi.InterceptPropParams{
+				Name:         "id",
+				Field:        field,
+				ParentSchema: parent,
+				Processed:    false,
+			})
+			require.NoError(t, err)
+			assert.Empty(t, parent.Required)
+		})
+
+		t.Run("supports custom tag and separator", func(t *testing.T) {
+			field, ok := reflect.TypeFor[reqCustom]().FieldByName("ID")
+			assert.True(t, ok)
+			parent := &openapi.Schema{}
+			c := &openapi.ReflectorConfig{}
+			RequiredPropByValidateTag("rules", "|")(c)
+
+			err := c.InterceptProp(openapi.InterceptPropParams{
+				Name:         "id",
+				Field:        field,
+				ParentSchema: parent,
+				Processed:    true,
+			})
+			require.NoError(t, err)
+			assert.Equal(t, []string{"id"}, parent.Required)
+		})
+
+		t.Run("ignores fields without required marker", func(t *testing.T) {
+			field, ok := reflect.TypeFor[notRequired]().FieldByName("Name")
+			assert.True(t, ok)
+			parent := &openapi.Schema{}
+			c := &openapi.ReflectorConfig{}
+			RequiredPropByValidateTag()(c)
+
+			err := c.InterceptProp(openapi.InterceptPropParams{
+				Name:         "name",
+				Field:        field,
+				ParentSchema: parent,
+				Processed:    true,
+			})
+			require.NoError(t, err)
+			assert.Empty(t, parent.Required)
+		})
+	})
 }
 
 func TestSecurityOptions(t *testing.T) {

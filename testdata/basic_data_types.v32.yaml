@@ -72,7 +72,7 @@ components:
           type: string
         uint:
           type: integer
-          format: int32
+          format: int64
           minimum: 0.0
         uint16:
           type: integer
@@ -80,7 +80,7 @@ components:
           minimum: 0.0
         uint32:
           type: integer
-          format: int32
+          format: int64
           minimum: 0.0
         uint64:
           type: integer
@@ -155,7 +155,7 @@ components:
           type:
             - integer
             - 'null'
-          format: int32
+          format: int64
           minimum: 0.0
         uint16:
           type:
@@ -167,7 +167,7 @@ components:
           type:
             - integer
             - 'null'
-          format: int32
+          format: int64
           minimum: 0.0
         uint64:
           type:

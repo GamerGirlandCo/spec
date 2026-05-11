@@ -8,7 +8,6 @@ import (
 
 func createRouter() spec.Generator {
 	r := spec.NewRouter(
-		option.WithOpenAPIVersion("3.0.3"),
 		option.WithTitle("Petstore API"),
 		option.WithDescription("This is a sample Petstore server."),
 		option.WithVersion("1.0.0"),

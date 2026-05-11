@@ -203,3 +203,32 @@ func TestToSerializable(t *testing.T) {
 		}
 	})
 }
+
+func TestCodecInternalHelpers(t *testing.T) {
+	t.Run("mapToObject returns nil for nil map", func(t *testing.T) {
+		var m map[string]int
+		assert.Nil(t, mapToObject(reflect.ValueOf(m), objectJSON))
+	})
+
+	t.Run("mapValueToSerializable handles nil interface", func(t *testing.T) {
+		holder := struct{ V any }{}
+		assert.Nil(t, mapValueToSerializable(reflect.ValueOf(holder).Field(0), objectJSON))
+	})
+
+	t.Run("mapValueToSerializable converts nil slice to empty array", func(t *testing.T) {
+		var vals []string
+		assert.Equal(t, []any{}, mapValueToSerializable(reflect.ValueOf(vals), objectJSON))
+	})
+
+	t.Run("sliceToSlice returns nil for nil slice", func(t *testing.T) {
+		var vals []string
+		assert.Nil(t, sliceToSlice(reflect.ValueOf(vals), objectJSON))
+	})
+
+	t.Run("appendOrderedFields replaces existing keys", func(t *testing.T) {
+		fields := []orderedField{{Key: "x", Value: "old"}}
+		out := appendOrderedFields(fields, orderedField{Key: "x", Value: "new"}, orderedField{Key: "y", Value: 2})
+		require.Len(t, out, 2)
+		assert.Equal(t, []orderedField{{Key: "x", Value: "new"}, {Key: "y", Value: 2}}, out)
+	})
+}

@@ -70,7 +70,9 @@ func (b *Builder) AddOperationTo(
 	}
 
 	for _, req := range cfg.Requests {
-		b.AddRequest(op, req)
+		if err := b.AddRequest(op, req); err != nil {
+			return validate.Errorf("%s %s request: %w", method, target, err)
+		}
 	}
 	if len(cfg.Responses) == 0 {
 		op.Responses["default"] = &openapi.Response{Description: "Default response"}

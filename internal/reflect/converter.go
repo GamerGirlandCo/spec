@@ -2,37 +2,84 @@ package reflect
 
 import (
 	"reflect"
+	"slices"
 
 	"github.com/oaswrap/spec/openapi"
 )
 
-//nolint:funlen // covers full OpenAPI scalar/collection/struct mapping in one switch for readability.
-func (r *Reflector) SchemaForType(t reflect.Type, mode SchemaMode, field *reflect.StructField) *openapi.Schema {
+//nolint:funlen,gocognit // covers full OpenAPI scalar/collection/struct mapping in one switch for readability.
+func (r *Reflector) SchemaForType(
+	t reflect.Type,
+	mode SchemaMode,
+	field *reflect.StructField,
+) (*openapi.Schema, error) {
 	nullable := false
 	for t != nil && t.Kind() == reflect.Pointer {
 		nullable = true
 		t = t.Elem()
 	}
 	if t == nil {
-		return &openapi.Schema{}
+		return &openapi.Schema{}, nil
 	}
 	if mapped := r.TypeMapping[t]; mapped != nil {
 		t = mapped
 	}
+	interceptSchema := r.interceptSchemaFn()
+	//nolint:nestif // exposer path needs pre+post hook with nullable/tag application
 	if schema := r.SchemaFromTypeExposer(t); schema != nil {
+		// Pre-hook for exposer types: they bypass the standard pre-hook path below.
+		if interceptSchema != nil {
+			preSchema := &openapi.Schema{}
+			stop, err := interceptSchema(openapi.InterceptSchemaParams{Type: t, Schema: preSchema})
+			if err != nil {
+				return nil, err
+			}
+			if stop {
+				r.ApplyNullable(preSchema, nullable)
+				if field != nil {
+					r.ApplySchemaTags(preSchema, *field)
+				}
+				return preSchema, nil
+			}
+		}
+		if interceptSchema != nil {
+			params := openapi.InterceptSchemaParams{Type: t, Schema: schema, Processed: true}
+			if _, err := interceptSchema(params); err != nil {
+				return nil, err
+			}
+		}
 		r.ApplyNullable(schema, nullable)
 		if field != nil {
 			r.ApplySchemaTags(schema, *field)
 		}
-		return schema
+		return schema, nil
 	}
 	if mode == SchemaUseComponent && IsComponentType(t) && !r.InlineRefs() {
-		schema := r.RefSchema(t)
+		schema, err := r.RefSchema(t)
+		if err != nil {
+			return nil, err
+		}
 		r.ApplyNullable(schema, nullable)
 		if field != nil {
 			r.ApplySchemaTags(schema, *field)
 		}
-		return schema
+		return schema, nil
+	}
+
+	// Pre-hook for inline and primitive types (component types are intercepted inside RefSchema).
+	if interceptSchema != nil {
+		preSchema := &openapi.Schema{}
+		stop, err := interceptSchema(openapi.InterceptSchemaParams{Type: t, Schema: preSchema})
+		if err != nil {
+			return nil, err
+		}
+		if stop {
+			r.ApplyNullable(preSchema, nullable)
+			if field != nil {
+				r.ApplySchemaTags(preSchema, *field)
+			}
+			return preSchema, nil
+		}
 	}
 
 	var schema *openapi.Schema
@@ -43,9 +90,12 @@ func (r *Reflector) SchemaForType(t reflect.Type, mode SchemaMode, field *reflec
 		schema = &openapi.Schema{Type: "integer", Format: "int32"}
 	case reflect.Int64:
 		schema = &openapi.Schema{Type: "integer", Format: "int64"}
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32:
+	case reflect.Uint8, reflect.Uint16:
 		minVal := 0.0
 		schema = &openapi.Schema{Type: "integer", Format: "int32", Minimum: &minVal}
+	case reflect.Uint, reflect.Uint32:
+		minVal := 0.0
+		schema = &openapi.Schema{Type: "integer", Format: "int64", Minimum: &minVal}
 	case reflect.Uint64, reflect.Uintptr:
 		minVal := 0.0
 		schema = &openapi.Schema{Type: "integer", Format: "int64", Minimum: &minVal}
@@ -64,28 +114,46 @@ func (r *Reflector) SchemaForType(t reflect.Type, mode SchemaMode, field *reflec
 			}
 			break
 		}
-		schema = &openapi.Schema{Type: "array", Items: r.SchemaForType(t.Elem(), SchemaUseComponent, nil)}
+		items, err := r.SchemaForType(t.Elem(), SchemaUseComponent, nil)
+		if err != nil {
+			return nil, err
+		}
+		schema = &openapi.Schema{Type: "array", Items: items}
 	case reflect.Map:
+		addlProps, err := r.SchemaForType(t.Elem(), SchemaUseComponent, nil)
+		if err != nil {
+			return nil, err
+		}
 		schema = &openapi.Schema{
 			Type:                 "object",
-			AdditionalProperties: r.SchemaForType(t.Elem(), SchemaUseComponent, nil),
+			AdditionalProperties: addlProps,
 		}
 	case reflect.Struct:
 		if IsTime(t) {
 			schema = &openapi.Schema{Type: "string", Format: "date-time"}
 		} else {
-			schema = r.StructSchema(t, "json", false, mode)
+			var err error
+			schema, err = r.StructSchema(t, "json", false, mode)
+			if err != nil {
+				return nil, err
+			}
 		}
 	case reflect.Interface:
 		schema = &openapi.Schema{}
 	default:
 		schema = &openapi.Schema{}
 	}
+	if interceptSchema != nil {
+		postParams := openapi.InterceptSchemaParams{Type: t, Schema: schema, Processed: true}
+		if _, err := interceptSchema(postParams); err != nil {
+			return nil, err
+		}
+	}
 	r.ApplyNullable(schema, nullable)
 	if field != nil {
 		r.ApplySchemaTags(schema, *field)
 	}
-	return schema
+	return schema, nil
 }
 
 func (r *Reflector) ApplyNullable(schema *openapi.Schema, nullable bool) {
@@ -114,8 +182,16 @@ func (r *Reflector) ApplyNullable(schema *openapi.Schema, nullable bool) {
 		}
 		return
 	}
-	if typ, ok := schema.Type.(string); ok && typ != "" {
-		schema.Type = []string{typ, "null"}
+	switch typ := schema.Type.(type) {
+	case string:
+		if typ != "" {
+			schema.Type = []string{typ, "null"}
+		}
+	case []string:
+		if !slices.Contains(typ, "null") {
+			typ = append(typ, "null")
+			schema.Type = typ
+		}
 	}
 }
 
