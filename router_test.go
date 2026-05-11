@@ -33,7 +33,7 @@ type User struct {
 	Name string `json:"name"`
 }
 
-func TestRouter_GenerateSchema_OpenAPI304(t *testing.T) {
+func TestRouter_GenerateSchema_DefaultVersion(t *testing.T) {
 	r := spec.NewRouter(
 		option.WithTitle("Users API"),
 		option.WithVersion("1.2.3"),
@@ -60,7 +60,7 @@ func TestRouter_GenerateSchema_OpenAPI304(t *testing.T) {
 	err = json.Unmarshal(raw, &doc)
 	require.NoError(t, err, "unmarshal generated JSON:\n%s", raw)
 
-	assert.Equal(t, openapi.Version304, doc.OpenAPI)
+	assert.Equal(t, openapi.Version312, doc.OpenAPI)
 	assert.Equal(t, "Users API", doc.Info.Title)
 	assert.Equal(t, "1.2.3", doc.Info.Version)
 	assert.NotNil(t, doc.Paths["/api/v1/login"].Post)

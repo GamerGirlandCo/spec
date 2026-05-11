@@ -25,7 +25,7 @@ type OpenAPIOption func(*openapi.Config)
 //	)
 func WithOpenAPIConfig(opts ...OpenAPIOption) *openapi.Config {
 	cfg := &openapi.Config{
-		OpenAPIVersion: openapi.Version304,
+		OpenAPIVersion: openapi.Version312,
 		Title:          "API Documentation",
 		Version:        "1.0.0",
 		DocsPath:       "/docs",

@@ -253,7 +253,6 @@ func TestRouter_Spec(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mux := mux.NewRouter()
 			opts := []option.OpenAPIOption{
-				option.WithOpenAPIVersion("3.0.3"),
 				option.WithTitle("Test API " + tt.name),
 				option.WithVersion("1.0.0"),
 				option.WithDescription("This is a test API for " + tt.name),

@@ -74,7 +74,7 @@ func TestValidateMediaTypeEncodingRestrictions(t *testing.T) {
 	)
 	r.Post("/encoded", option.Response(204, nil))
 
-	err := r.Validate()
+	err := r.ValidateReport()
 	assertValidationContains(t, err,
 		"encoding is ignored unless media type is multipart or application/x-www-form-urlencoded",
 		"prefixEncoding requires multipart media type",

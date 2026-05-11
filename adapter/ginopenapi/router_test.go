@@ -241,7 +241,6 @@ func TestRouter_Spec(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			app := gin.New()
 			opts := []option.OpenAPIOption{
-				option.WithOpenAPIVersion("3.0.3"),
 				option.WithTitle("Test API " + tt.name),
 				option.WithVersion("1.0.0"),
 				option.WithDescription("This is a test API for " + tt.name),
@@ -564,7 +563,7 @@ func TestGenerator_Docs(t *testing.T) {
 			"application/x-yaml",
 			"expected Content-Type to be application/x-yaml",
 		)
-		assert.Contains(t, rec.Body.String(), "openapi: 3.0.4", "expected OpenAPI version in response body")
+		assert.Contains(t, rec.Body.String(), "openapi: 3.1.2", "expected OpenAPI version in response body")
 	})
 }
 

@@ -295,9 +295,7 @@ func TestRouter_Spec(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := echo.New()
-			opts := append([]option.OpenAPIOption{
-				option.WithOpenAPIVersion("3.0.3"),
-			}, tt.opts...)
+			opts := append([]option.OpenAPIOption{}, tt.opts...)
 			r := echoopenapi.NewRouter(e, opts...)
 			tt.setup(r)
 

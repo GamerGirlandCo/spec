@@ -14,6 +14,7 @@ import (
 
 func TestValidate_Document_OpenAPI304_RejectsNewerFields(t *testing.T) {
 	r := spec.NewRouter(
+		option.WithOpenAPIVersion(openapi.Version304),
 		option.WithTitle("Invalid 3.0"),
 		option.WithVersion("1.0.0"),
 		option.WithInfoSummary("summary"),

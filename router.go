@@ -302,17 +302,7 @@ func (g *generator) ValidateReport() error {
 	g.build()
 	g.state.mu.Lock()
 	defer g.state.mu.Unlock()
-
-	var filtered []error
-	for _, err := range g.state.errs {
-		if err != nil {
-			filtered = append(filtered, err)
-		}
-	}
-	if len(filtered) == 0 {
-		return nil
-	}
-	return ValidationErrors{Errors: filtered}
+	return joinAllErrors(append([]error(nil), g.state.errs...))
 }
 
 func (g *generator) build() {

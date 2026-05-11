@@ -88,6 +88,7 @@ func TestValidateRejectsReferenceSummaryOnNonReferenceObject(t *testing.T) {
 
 func TestValidateResponseAndReferenceRules(t *testing.T) {
 	r := spec.NewRouter(
+		option.WithOpenAPIVersion(openapi.Version304),
 		option.WithTitle("Invalid Responses"),
 		option.WithVersion("1.0.0"),
 		option.WithDocument(func(doc *openapi.Document) {

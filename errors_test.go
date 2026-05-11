@@ -33,9 +33,9 @@ func TestValidationErrorAlias(t *testing.T) {
 
 func TestValidationErrors_HasSeverity(t *testing.T) {
 	vErrs := spec.ValidationErrors{
-		Errors: []error{
-			spec.ValidationError{Err: errors.New("err"), Severity: spec.SeverityError},
-			spec.ValidationError{Err: errors.New("warn"), Severity: spec.SeverityWarning},
+		Errors: []spec.ValidationError{
+			{Err: errors.New("err"), Severity: spec.SeverityError},
+			{Err: errors.New("warn"), Severity: spec.SeverityWarning},
 		},
 	}
 
@@ -50,20 +50,11 @@ func TestValidationErrors_HasSeverity(t *testing.T) {
 	}
 
 	vWarnsOnly := spec.ValidationErrors{
-		Errors: []error{
-			spec.ValidationError{Err: errors.New("warn"), Severity: spec.SeverityWarning},
+		Errors: []spec.ValidationError{
+			{Err: errors.New("warn"), Severity: spec.SeverityWarning},
 		},
 	}
 	if vWarnsOnly.HasSeverity(spec.SeverityError) {
 		t.Error("expected NOT to have SeverityError in warnings-only collection")
-	}
-
-	vPtrWarnsOnly := spec.ValidationErrors{
-		Errors: []error{
-			&validate.Error{Err: errors.New("warn"), Severity: spec.SeverityWarning},
-		},
-	}
-	if vPtrWarnsOnly.HasSeverity(spec.SeverityError) {
-		t.Error("expected NOT to have SeverityError in pointer warnings-only collection")
 	}
 }

@@ -510,7 +510,7 @@ func TestGenerator_Docs(t *testing.T) {
 		assert.Contains(
 			t,
 			string(body),
-			"openapi: 3.0.4",
+			"openapi: 3.1.2",
 			"expected OpenAPI version in response body for OpenAPI YAML route",
 		)
 	})
