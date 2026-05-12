@@ -251,6 +251,7 @@ func (r *Reflector) RefSchema(t reflect.Type) (*openapi.Schema, error) {
 	r.Components[name].Type = built.Type
 	r.Components[name].Properties = built.Properties
 	r.Components[name].Required = built.Required
+	r.Components[name].AllOf = built.AllOf
 	if interceptSchema != nil {
 		postParams := openapi.InterceptSchemaParams{Type: t, Schema: r.Components[name], Processed: true}
 		r.Config.Logger.Debug("interceptSchema: post-build called", "type", t.String(), "component", name)
@@ -272,6 +273,22 @@ func (r *Reflector) StructSchema(
 	mode SchemaMode,
 ) (*openapi.Schema, error) {
 	schema := &openapi.Schema{Type: "object", Properties: map[string]*openapi.Schema{}}
+	// Pre-scan: collect embedded types opted into allOf $ref (via refer:"true" tag or EmbedReferencer).
+	for i := range t.NumField() {
+		field := t.Field(i)
+		if !field.Anonymous || TagName(field, "json") != "" {
+			continue
+		}
+		embType := IndirectType(field.Type)
+		if embType == nil || embType.Kind() != reflect.Struct || !isEmbedRef(field) {
+			continue
+		}
+		ref, err := r.RefSchema(embType)
+		if err != nil {
+			return nil, err
+		}
+		schema.AllOf = append(schema.AllOf, ref)
+	}
 	interceptProp := r.interceptPropFn()
 	parentType := t
 	var firstErr error

@@ -39,6 +39,8 @@ Code-first, framework-agnostic OpenAPI 3.x spec builder for Go. Generate docs fr
 - `InterceptSchema` hook for type-level schema customization and override.
 - `InterceptProp` hook for field-level property filtering and modification.
 - `RequiredPropByValidateTag` option to derive `required` from `validate` struct tags.
+- `encoding.TextMarshaler`/`TextUnmarshaler` types automatically reflected as `type: string`.
+- `EmbedReferencer` interface and `refer:"true"` tag for embedded struct `allOf $ref` instead of field inlining.
 
 ---
 
@@ -438,6 +440,7 @@ type SearchRequest struct {
 | `map[string]T` | `type: object`, `additionalProperties: T` |
 | Structs | `type: object`, `properties` |
 | Named structs (component mode) | `#/components/schemas/{TypeName}` reference |
+| `encoding.TextMarshaler` + `TextUnmarshaler` (no `json.Marshaler`) | `type: string` |
 | Pointers | Nullable schema behavior |
 
 Custom types can expose their own schema when tags are not expressive enough:
@@ -454,6 +457,36 @@ func (*Slug) OpenAPISchema(version string) *openapi.Schema {
 ```
 
 For static schemas, implement `OpenAPISchema() *openapi.Schema` instead. Field tags are still applied on top of custom schemas.
+
+### Embedded struct references
+
+By default, anonymous embedded struct fields are inlined into the parent schema. To emit an `allOf $ref` instead, use the `refer:"true"` tag or implement `openapi.EmbedReferencer` on the embedded type:
+
+```go
+// Via struct tag
+type Request struct {
+    Base `refer:"true"`
+    Name string `json:"name"`
+}
+
+// Via interface (useful when you own the embedded type)
+type Base struct {
+    ID int `json:"id"`
+}
+
+func (Base) ReferEmbedded() {}
+```
+
+Both produce:
+```yaml
+Request:
+  type: object
+  properties:
+    name:
+      type: string
+  allOf:
+    - $ref: '#/components/schemas/Base'
+```
 
 ---
 

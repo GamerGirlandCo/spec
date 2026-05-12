@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RequiredPropByValidateTag` hook for marking fields required based on `validate` struct tags.
 - `ParentType` field on `InterceptPropParams` for richer hook context.
 - Automatic content-type detection from struct type when not explicitly set.
+- `encoding.TextMarshaler`/`TextUnmarshaler` support: types implementing both interfaces (without `json.Marshaler`) are reflected as `type: string`.
+- `EmbedReferencer` interface and `refer:"true"` struct tag: embedded structs opt into `allOf $ref` instead of field inlining.
 
 ### Fixed
 - `uint8`/`uint16` reflected as `int32` format; `uint`/`uint32`/`uint64`/`uintptr` reflected as `int64` format.

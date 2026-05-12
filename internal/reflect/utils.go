@@ -90,6 +90,19 @@ func IndirectType(t reflect.Type) reflect.Type {
 	return t
 }
 
+var typeOfEmbedReferencer = reflect.TypeFor[openapi.EmbedReferencer]()
+
+func isEmbedRef(field reflect.StructField) bool {
+	if field.Tag.Get("refer") == "true" {
+		return true
+	}
+	t := IndirectType(field.Type)
+	if t == nil {
+		return false
+	}
+	return field.Type.Implements(typeOfEmbedReferencer) || reflect.PointerTo(t).Implements(typeOfEmbedReferencer)
+}
+
 func ForEachField(t reflect.Type, fn func(reflect.StructField)) {
 	for i := range t.NumField() {
 		field := t.Field(i)
@@ -97,7 +110,9 @@ func ForEachField(t reflect.Type, fn func(reflect.StructField)) {
 			continue
 		}
 		if field.Anonymous && IndirectType(field.Type).Kind() == reflect.Struct && TagName(field, "json") == "" {
-			ForEachField(IndirectType(field.Type), fn)
+			if !isEmbedRef(field) {
+				ForEachField(IndirectType(field.Type), fn)
+			}
 			continue
 		}
 		fn(field)

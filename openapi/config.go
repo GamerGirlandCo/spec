@@ -12,6 +12,14 @@ import (
 // ErrSkipProperty can be returned from InterceptPropFunc to skip adding the property to the schema.
 var ErrSkipProperty = errors.New("skip property")
 
+// EmbedReferencer can be implemented by an embedded struct type to opt into $ref-based embedding.
+// When a struct embeds a type that implements EmbedReferencer (or is tagged `refer:"true"`),
+// the embedded type is registered as a component schema and referenced via allOf instead of
+// having its fields inlined into the parent schema.
+type EmbedReferencer interface {
+	ReferEmbedded()
+}
+
 // InterceptPropParams defines parameters passed to InterceptPropFunc.
 // Called twice per field: before schema generation (Processed=false) and after (Processed=true).
 type InterceptPropParams struct {
