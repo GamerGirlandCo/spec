@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -79,55 +78,11 @@ func NewRouter(opts ...option.OpenAPIOption) Generator {
 //	fmt.Println(string(schema))
 func NewGenerator(opts ...option.OpenAPIOption) Generator {
 	cfg := option.WithOpenAPIConfig(opts...)
-	ensureCallerPkgForDefName(cfg, callerPackagePath())
 	g := &generator{
 		cfg: cfg,
 	}
 	g.state = &sharedState{root: g, dirty: true}
 	return g
-}
-
-func ensureCallerPkgForDefName(cfg *openapi.Config, callerPkgPath string) {
-	if cfg.ReflectorConfig == nil {
-		cfg.ReflectorConfig = &openapi.ReflectorConfig{}
-	}
-	cfg.ReflectorConfig.DefNameCallerPkg = callerPkgPath
-}
-
-func callerPackagePath() string {
-	pcs := make([]uintptr, 16)
-	n := runtime.Callers(2, pcs)
-	frames := runtime.CallersFrames(pcs[:n])
-
-	for {
-		frame, more := frames.Next()
-		pkgPath := packagePathFromFunc(frame.Function)
-		if pkgPath != "" && pkgPath != "github.com/oaswrap/spec" {
-			return pkgPath
-		}
-		if !more {
-			break
-		}
-	}
-
-	return ""
-}
-
-func packagePathFromFunc(funcName string) string {
-	if funcName == "" {
-		return ""
-	}
-	idx := strings.LastIndex(funcName, "/")
-	if idx == -1 {
-		idx = 0
-	} else {
-		idx++
-	}
-	dot := strings.IndexByte(funcName[idx:], '.')
-	if dot == -1 {
-		return ""
-	}
-	return funcName[:idx+dot]
 }
 
 func (g *generator) Config() *openapi.Config {

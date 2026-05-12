@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `EmbedReferencer` interface and `refer:"true"` struct tag: embedded structs opt into `allOf $ref` instead of field inlining.
 - `ParameterTagMapping` now accepts `openapi.ParameterInBody` and `openapi.ParameterInForm` to override the struct tag used for JSON and form request body field names (defaults: `json` and `form`).
 
+### Changed
+- Schema component names now always include the Go package name as a prefix (e.g., `models.User` → `ModelsUser`). This eliminates cross-package naming collisions without requiring caller-package detection. Use `InterceptDefName` or `StripDefNamePrefix` to remove the prefix if desired.
+- `DefNameCallerPkg` field removed from `ReflectorConfig`; the caller-package detection mechanism in `NewGenerator` is removed.
+- Package name sanitization handles multi-segment names (e.g., `spec_test` → `SpecTest`); unexported type names are title-cased when a package prefix is prepended.
+
 ### Fixed
 - `uint8`/`uint16` reflected as `int32` format; `uint`/`uint32`/`uint64`/`uintptr` reflected as `int64` format.
 - `InterceptSchema`/`InterceptProp` hook error propagation and correctness.

@@ -21,7 +21,7 @@ paths:
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/UploadRequest'
+              $ref: '#/components/schemas/SpecTestUploadRequest'
             encoding:
               file:
                 contentType: image/png
@@ -42,7 +42,7 @@ paths:
           description: No Content
 components:
   schemas:
-    UploadRequest:
+    SpecTestUploadRequest:
       type: object
       properties:
         file:

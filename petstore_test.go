@@ -142,7 +142,8 @@ func newPetstoreRouter(opts ...option.OpenAPIOption) spec.Generator {
 		option.WithSecurity("api_key", option.SecurityAPIKey("api_key", "header")),
 		option.WithReflectorConfig(
 			option.InterceptDefName(func(_ reflect.Type, defaultName string) string {
-				return strings.TrimPrefix(defaultName, "Petstore")
+				name := strings.TrimPrefix(defaultName, "SpecTest")
+				return strings.TrimPrefix(name, "Petstore")
 			}),
 		),
 		option.WithDocument(func(doc *openapi.Document) {

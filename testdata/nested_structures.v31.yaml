@@ -9,13 +9,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/NestedRequest'
+              $ref: '#/components/schemas/SpecTestNestedRequest'
       responses:
         '204':
           description: No Content
 components:
   schemas:
-    NestedRequest:
+    SpecTestNestedRequest:
       type: object
       properties:
         level1:

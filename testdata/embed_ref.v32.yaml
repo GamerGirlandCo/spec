@@ -9,7 +9,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EmbedRefMixedRequest'
+              $ref: '#/components/schemas/SpecTestEmbedRefMixedRequest'
       responses:
         '204':
           description: No Content
@@ -19,17 +19,17 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EmbedRefRequest'
+              $ref: '#/components/schemas/SpecTestEmbedRefRequest'
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EmbedRefBase'
+                $ref: '#/components/schemas/SpecTestEmbedRefBase'
 components:
   schemas:
-    EmbedRefBase:
+    SpecTestEmbedRefBase:
       type: object
       properties:
         id:
@@ -37,12 +37,12 @@ components:
           format: int32
         role:
           type: string
-    EmbedRefBaseViaInterface:
+    SpecTestEmbedRefBaseViaInterface:
       type: object
       properties:
         tag:
           type: string
-    EmbedRefMixedRequest:
+    SpecTestEmbedRefMixedRequest:
       type: object
       properties:
         code:
@@ -51,8 +51,8 @@ components:
           type: integer
           format: int32
       allOf:
-        - $ref: '#/components/schemas/EmbedRefBaseViaInterface'
-    EmbedRefRequest:
+        - $ref: '#/components/schemas/SpecTestEmbedRefBaseViaInterface'
+    SpecTestEmbedRefRequest:
       type: object
       properties:
         age:
@@ -61,4 +61,4 @@ components:
         name:
           type: string
       allOf:
-        - $ref: '#/components/schemas/EmbedRefBase'
+        - $ref: '#/components/schemas/SpecTestEmbedRefBase'

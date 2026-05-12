@@ -73,8 +73,8 @@ func TestRouter_GenerateSchema_DefaultVersion(t *testing.T) {
 	}
 
 	assert.NotContains(t, doc.Components.Schemas, "user", "component names should use exported Go type names")
-	assert.NotNil(t, doc.Components.Schemas["User"])
-	assert.NotNil(t, doc.Components.Schemas["LoginRequest"])
+	assert.NotNil(t, doc.Components.Schemas["SpecTestUser"])
+	assert.NotNil(t, doc.Components.Schemas["SpecTestLoginRequest"])
 	assert.Equal(t, "http", doc.Components.SecuritySchemes["bearerAuth"].Type)
 }
 
@@ -207,7 +207,7 @@ func TestSchemaSkipsJSONIgnoredFields(t *testing.T) {
 
 	doc := r.Document()
 	require.NoError(t, r.Validate())
-	payload := doc.Components.Schemas["Payload"]
+	payload := doc.Components.Schemas["SpecTestPayload"]
 	assert.NotNil(t, payload.Properties["public"])
 	assert.NotContains(t, payload.Properties, "Secret")
 	assert.NotContains(t, payload.Properties, "secret")
@@ -453,7 +453,7 @@ func TestRouter_EscapeHatches(t *testing.T) {
 			}
 			doc.Components.MediaTypes = map[string]*openapi.MediaType{
 				"json-seq": {
-					ItemSchema: &openapi.Schema{Ref: "#/components/schemas/User"},
+					ItemSchema: &openapi.Schema{Ref: "#/components/schemas/SpecTestUser"},
 					ItemEncoding: &openapi.Encoding{
 						ContentType: "application/json",
 						Extensions:  map[string]any{"x-encoding": true},

@@ -71,28 +71,25 @@ func TestForEachField(t *testing.T) {
 }
 
 func TestInternalHelpers(t *testing.T) {
-	t.Run("sanitizeDefName", func(t *testing.T) {
-		assert.Equal(t, "Model", sanitizeDefName(nil, "Model", "github.com/oaswrap/spec"))
-		assert.Equal(t, "Model", sanitizeDefName(reflect.TypeFor[struct{}](), "Model", "github.com/oaswrap/spec"))
-		assert.Equal(t, "Model", sanitizeDefName(reflect.TypeFor[time.Time](), "Model", ""))
-		assert.Equal(t, "TimeModel", sanitizeDefName(reflect.TypeFor[time.Time](), "Model", "github.com/oaswrap/spec"))
+	t.Run("prefixWithPkg", func(t *testing.T) {
+		assert.Equal(t, "Model", prefixWithPkg(nil, "Model"))
+		assert.Equal(t, "Model", prefixWithPkg(reflect.TypeFor[struct{}](), "Model"))
+		assert.Equal(t, "TimeModel", prefixWithPkg(reflect.TypeFor[time.Time](), "Model"))
+		assert.Empty(t, prefixWithPkg(reflect.TypeFor[time.Time](), ""))
 	})
 
 	t.Run("reflector helper accessors", func(t *testing.T) {
 		r := &Reflector{}
-		assert.Empty(t, r.callerPkgPath())
 		assert.Nil(t, r.interceptPropFn())
 		assert.Nil(t, r.interceptSchemaFn())
 
 		cfg := &openapi.Config{
 			ReflectorConfig: &openapi.ReflectorConfig{
-				DefNameCallerPkg: "github.com/oaswrap/spec",
-				InterceptProp:    func(openapi.InterceptPropParams) error { return nil },
-				InterceptSchema:  func(openapi.InterceptSchemaParams) (bool, error) { return false, nil },
+				InterceptProp:   func(openapi.InterceptPropParams) error { return nil },
+				InterceptSchema: func(openapi.InterceptSchemaParams) (bool, error) { return false, nil },
 			},
 		}
 		r = &Reflector{Config: cfg}
-		assert.Equal(t, "github.com/oaswrap/spec", r.callerPkgPath())
 		assert.NotNil(t, r.interceptPropFn())
 		assert.NotNil(t, r.interceptSchemaFn())
 	})

@@ -17,7 +17,7 @@ func (r *Reflector) TypeName(t reflect.Type) string {
 		return name
 	}
 	name := SanitizeTypeName(t.Name())
-	name = sanitizeDefName(t, name, r.callerPkgPath())
+	name = prefixWithPkg(t, name)
 	for _, prefix := range r.StripPrefixes() {
 		name = strings.TrimPrefix(name, prefix)
 	}
@@ -39,23 +39,33 @@ func (r *Reflector) TypeName(t reflect.Type) string {
 	return name
 }
 
-func sanitizeDefName(t reflect.Type, defaultDefName, callerPkgPath string) string {
-	if callerPkgPath == "" || defaultDefName == "" || t == nil || t.PkgPath() == "" || t.PkgPath() == callerPkgPath {
-		return defaultDefName
+func prefixWithPkg(t reflect.Type, defName string) string {
+	if defName == "" || t == nil || t.PkgPath() == "" || t.PkgPath() == "main" {
+		return defName
 	}
 	pkgName := path.Base(t.PkgPath())
 	if pkgName == "" || pkgName == "main" {
-		return defaultDefName
+		return defName
 	}
-	pkgName = strings.ToUpper(pkgName[:1]) + pkgName[1:]
-	return pkgName + defaultDefName
+	pkgName = sanitizePkgName(pkgName)
+	if pkgName == "" {
+		return defName
+	}
+	return pkgName + strings.ToUpper(defName[:1]) + defName[1:]
 }
 
-func (r *Reflector) callerPkgPath() string {
-	if r.Config == nil || r.Config.ReflectorConfig == nil {
-		return ""
+func sanitizePkgName(name string) string {
+	parts := strings.FieldsFunc(name, func(r rune) bool {
+		return r == '_' || r == '-' || r == '.'
+	})
+	var b strings.Builder
+	for _, p := range parts {
+		if len(p) == 0 {
+			continue
+		}
+		b.WriteString(strings.ToUpper(p[:1]) + p[1:])
 	}
-	return r.Config.ReflectorConfig.DefNameCallerPkg
+	return b.String()
 }
 
 func (r *Reflector) StripPrefixes() []string {

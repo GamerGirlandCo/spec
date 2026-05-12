@@ -12,17 +12,17 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LoginRequest'
+              $ref: '#/components/schemas/SpecTestLoginRequest'
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LoginResponse'
+                $ref: '#/components/schemas/SpecTestLoginResponse'
 components:
   schemas:
-    LoginRequest:
+    SpecTestLoginRequest:
       type: object
       required:
         - username
@@ -34,7 +34,7 @@ components:
         username:
           type: string
           minLength: 3
-    LoginResponse:
+    SpecTestLoginResponse:
       type: object
       required:
         - token

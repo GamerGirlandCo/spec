@@ -11,7 +11,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProfileResponse'
+                $ref: '#/components/schemas/SpecTestProfileResponse'
   /user:
     get:
       responses:
@@ -20,7 +20,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BaseResponseUser'
+                $ref: '#/components/schemas/SpecTestBaseResponseUser'
   /users:
     post:
       responses:
@@ -29,10 +29,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BaseResponseUserList'
+                $ref: '#/components/schemas/SpecTestBaseResponseUserList'
 components:
   schemas:
-    BaseResponseUser:
+    SpecTestBaseResponseUser:
       type: object
       properties:
         data:
@@ -48,18 +48,18 @@ components:
           type: string
         success:
           type: boolean
-    BaseResponseUserList:
+    SpecTestBaseResponseUserList:
       type: object
       properties:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/User'
+            $ref: '#/components/schemas/SpecTestUser'
         message:
           type: string
         success:
           type: boolean
-    ProfileResponse:
+    SpecTestProfileResponse:
       type: object
       properties:
         data:
@@ -75,7 +75,7 @@ components:
           type: string
         success:
           type: boolean
-    User:
+    SpecTestUser:
       type: object
       required:
         - id

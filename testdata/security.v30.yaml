@@ -11,12 +11,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/SpecTestUser'
       security:
         - bearerAuth: []
 components:
   schemas:
-    User:
+    SpecTestUser:
       type: object
       required:
         - id

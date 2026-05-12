@@ -618,3 +618,9 @@ Issues and pull requests are welcome. Please check existing issues and discussio
 ## License
 
 [MIT](LICENSE)
+
+---
+
+## Acknowledgements
+
+- [swaggest/openapi-go](https://github.com/swaggest/openapi-go) and [swaggest/jsonschema-go](https://github.com/swaggest/jsonschema-go) — parts of this library's reflection design are inspired by their work.

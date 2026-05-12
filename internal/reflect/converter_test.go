@@ -128,7 +128,7 @@ func TestConverter_CustomSchemaExposer(t *testing.T) {
 	raw, err := r.GenerateSchema("json")
 	require.NoError(t, err)
 
-	id := generatedComponentProperty(t, raw, "CustomSchemaPayload", "id")
+	id := generatedComponentProperty(t, raw, "ReflectTestCustomSchemaPayload", "id")
 	assert.Equal(t, "slug", id["format"])
 	assert.Equal(t, "Stable identifier", id["description"])
 }
@@ -141,7 +141,7 @@ func TestConverter_Nullable(t *testing.T) {
 		raw, err := r.GenerateSchema("json")
 		require.NoError(t, err)
 
-		owner := generatedComponentProperty(t, raw, "ReflectionVersionPayload", "owner")
+		owner := generatedComponentProperty(t, raw, "ReflectTestReflectionVersionPayload", "owner")
 		assert.NotContains(t, owner, "$ref", "nullable component refs must not emit $ref siblings in 3.0")
 		assert.Equal(t, true, owner["nullable"])
 	})
@@ -153,7 +153,7 @@ func TestConverter_Nullable(t *testing.T) {
 		raw, err := r.GenerateSchema("json")
 		require.NoError(t, err)
 
-		name := generatedComponentProperty(t, raw, "ReflectionVersionPayload312", "name")
+		name := generatedComponentProperty(t, raw, "ReflectTestReflectionVersionPayload312", "name")
 		typ := name["type"].([]any)
 		assert.Equal(t, []any{"string", "null"}, typ)
 	})
@@ -208,7 +208,7 @@ func TestConverter_EmbedRef(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Len(t, schema.AllOf, 1, "embedded type must appear in allOf")
-		assert.Equal(t, "#/components/schemas/embedBase", schema.AllOf[0].Ref)
+		assert.Equal(t, "#/components/schemas/ReflectTestEmbedBase", schema.AllOf[0].Ref)
 
 		_, hasBaseField := schema.Properties["base_field"]
 		assert.False(t, hasBaseField, "base_field must not be inlined into parent properties")
@@ -228,7 +228,7 @@ func TestConverter_EmbedRef(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Len(t, schema.AllOf, 1)
-		assert.Equal(t, "#/components/schemas/embedBaseViaInterface", schema.AllOf[0].Ref)
+		assert.Equal(t, "#/components/schemas/ReflectTestEmbedBaseViaInterface", schema.AllOf[0].Ref)
 
 		_, hasOther := schema.Properties["other_field"]
 		assert.False(t, hasOther, "interface-embedded fields must not be inlined")
@@ -386,13 +386,13 @@ func TestConverter_SchemaForType_Branches(t *testing.T) {
 		require.NoError(t, err)
 		assert.True(t, s304.Nullable)
 		require.Len(t, s304.AllOf, 1)
-		assert.Equal(t, "#/components/schemas/User", s304.AllOf[0].Ref)
+		assert.Equal(t, "#/components/schemas/ReflectTestUser", s304.AllOf[0].Ref)
 
 		r312 := reflect.NewReflector(&openapi.Config{OpenAPIVersion: openapi.Version312})
 		s312, err := r312.SchemaForType(std_reflect.TypeFor[*User](), reflect.SchemaUseComponent, nil)
 		require.NoError(t, err)
 		require.Len(t, s312.AnyOf, 2)
-		assert.Equal(t, "#/components/schemas/User", s312.AnyOf[0].Ref)
+		assert.Equal(t, "#/components/schemas/ReflectTestUser", s312.AnyOf[0].Ref)
 		assert.Equal(t, "null", s312.AnyOf[1].Type)
 	})
 }

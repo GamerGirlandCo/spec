@@ -9,7 +9,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OneOfRequest'
+              $ref: '#/components/schemas/SpecTestOneOfRequest'
       responses:
         '200':
           description: OK
@@ -21,7 +21,7 @@ paths:
                   - type: string
 components:
   schemas:
-    OneOfRequest:
+    SpecTestOneOfRequest:
       type: object
       properties:
         value: {}

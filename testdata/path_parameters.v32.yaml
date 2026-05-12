@@ -22,10 +22,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/SpecTestUser'
 components:
   schemas:
-    User:
+    SpecTestUser:
       type: object
       required:
         - id

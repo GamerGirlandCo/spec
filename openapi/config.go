@@ -117,7 +117,6 @@ type ReflectorConfig struct {
 	InterceptDefName    func(t reflect.Type, defaultDefName string) string
 	InterceptProp       InterceptPropFunc
 	InterceptSchema     InterceptSchemaFunc
-	DefNameCallerPkg    string
 	TypeMappings        []TypeMapping
 	ParameterTagMapping map[ParameterIn]string
 }
