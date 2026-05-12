@@ -524,7 +524,7 @@ r := spec.NewRouter(
 | `InlineRefs(inline...)` | Inline schemas instead of using component references for named structs. |
 | `StripDefNamePrefix(prefixes...)` | Strip prefixes from generated component names. |
 | `TypeMapping(src, dst)` | Reflect `src` as if it were `dst`. |
-| `ParameterTagMapping(in, sourceTag)` | Add a custom tag for a parameter location while keeping the default tag. |
+| `ParameterTagMapping(in, sourceTag)` | Override the struct tag for a parameter location or body. Use `openapi.ParameterInBody` to replace `json` tag, `openapi.ParameterInForm` to replace `form` tag. |
 | `InterceptDefName(fn)` | Customize schema component names. |
 | `InterceptSchema(fn)` | Hook called before and after each type is reflected. Pre-call (`Processed=false`): return `stop=true` to override schema entirely. Post-call (`Processed=true`): modify the built schema. |
 | `InterceptProp(fn)` | Hook called before and after each struct field is reflected. Return `openapi.ErrSkipProperty` to exclude the field. |

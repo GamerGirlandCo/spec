@@ -71,7 +71,7 @@ func (r *Reflector) RequestParts(
 	}
 
 	var params []*openapi.Parameter
-	bodyTag := BodyNameTag(ct)
+	bodyTag := r.bodyNameTag(ct)
 	hasBody := false
 	hasParam := false
 	ForEachField(t, func(field reflect.StructField) {
@@ -119,6 +119,10 @@ func (r *Reflector) ParameterField(field reflect.StructField) (string, string, b
 	custom := map[openapi.ParameterIn]string{}
 	if r.Config.ReflectorConfig != nil {
 		for in, tag := range r.Config.ReflectorConfig.ParameterTagMapping {
+			// ParameterInBody and ParameterInForm override body tags, not parameter locations.
+			if in == openapi.ParameterInBody || in == openapi.ParameterInForm {
+				continue
+			}
 			custom[in] = tag
 		}
 	}

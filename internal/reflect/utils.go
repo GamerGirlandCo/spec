@@ -69,6 +69,27 @@ func (r *Reflector) InlineRefs() bool {
 	return r.Config.ReflectorConfig != nil && r.Config.ReflectorConfig.InlineRefs
 }
 
+// bodyNameTag returns the struct tag used to name body fields for the given content type.
+// Defaults to "json" for JSON bodies and "form" for form bodies.
+// Can be overridden via ParameterTagMapping with openapi.ParameterInBody or openapi.ParameterInForm.
+func (r *Reflector) bodyNameTag(contentType string) string {
+	base := BodyNameTag(contentType)
+	if r.Config == nil || r.Config.ReflectorConfig == nil || r.Config.ReflectorConfig.ParameterTagMapping == nil {
+		return base
+	}
+	var key openapi.ParameterIn
+	switch base {
+	case "json":
+		key = openapi.ParameterInBody
+	case "form":
+		key = openapi.ParameterInForm
+	}
+	if tag, ok := r.Config.ReflectorConfig.ParameterTagMapping[key]; ok && tag != "" {
+		return tag
+	}
+	return base
+}
+
 func (r *Reflector) interceptPropFn() openapi.InterceptPropFunc {
 	if r.Config == nil || r.Config.ReflectorConfig == nil {
 		return nil

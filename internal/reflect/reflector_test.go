@@ -183,6 +183,61 @@ func TestReflector_ParameterField_CustomMappingKeepsDefaultTag(t *testing.T) {
 	assert.True(t, params[0].Required)
 }
 
+func TestReflector_BodyTagMapping(t *testing.T) {
+	t.Run("ParameterInBody overrides json tag", func(t *testing.T) {
+		cfg := option.WithOpenAPIConfig(
+			option.WithReflectorConfig(option.ParameterTagMapping(openapi.ParameterInBody, "api")),
+		)
+		r := reflect.NewReflector(cfg)
+
+		type Req struct {
+			ID   string `path:"id"`
+			Name string `api:"name"`
+		}
+
+		params, body, err := r.RequestParts(Req{}, "application/json")
+		require.NoError(t, err)
+		require.Len(t, params, 1)
+		require.NotNil(t, body)
+		assert.Contains(t, body.Properties, "name")
+		assert.NotContains(t, body.Properties, "Name")
+	})
+
+	t.Run("ParameterInForm overrides form tag", func(t *testing.T) {
+		cfg := option.WithOpenAPIConfig(
+			option.WithReflectorConfig(option.ParameterTagMapping(openapi.ParameterInForm, "api")),
+		)
+		r := reflect.NewReflector(cfg)
+
+		type Req struct {
+			ID    string `path:"id"`
+			Email string `api:"email"`
+		}
+
+		params, body, err := r.RequestParts(Req{}, "application/x-www-form-urlencoded")
+		require.NoError(t, err)
+		require.Len(t, params, 1)
+		require.NotNil(t, body)
+		assert.Contains(t, body.Properties, "email")
+	})
+
+	t.Run("default body tags unchanged when no mapping", func(t *testing.T) {
+		cfg := option.WithOpenAPIConfig()
+		r := reflect.NewReflector(cfg)
+
+		type Req struct {
+			ID   string `path:"id"`
+			Name string `json:"name"`
+		}
+
+		params, body, err := r.RequestParts(Req{}, "application/json")
+		require.NoError(t, err)
+		require.Len(t, params, 1)
+		require.NotNil(t, body)
+		assert.Contains(t, body.Properties, "name")
+	})
+}
+
 func TestReflector_RequestPartsAndStructSchemaBranches(t *testing.T) {
 	cfg := option.WithOpenAPIConfig()
 	r := reflect.NewReflector(cfg)
