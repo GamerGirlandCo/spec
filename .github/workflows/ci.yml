@@ -19,9 +19,24 @@ jobs:
   # Quality Gate
   # ========================================
   quality:
-    name: 🛡️ Quality Gate
+    name: 🛡️ Quality Gate / ${{ matrix.module }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - .
+          - adapter/chiopenapi
+          - adapter/echoopenapi
+          - adapter/echov5openapi
+          - adapter/fiberopenapi
+          - adapter/fiberv3openapi
+          - adapter/ginopenapi
+          - adapter/httpopenapi
+          - adapter/irisopenapi
+          - adapter/muxopenapi
 
     steps:
     - name: 📥 Checkout
@@ -30,9 +45,9 @@ jobs:
     - name: 🐹 Setup Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.25.x'  # Use latest supported toolchain for quality checks
-        check-latest: true    # Always grab the newest patch release
-        cache: true           # Handles ~/.cache/go-build and ~/go/pkg/mod
+        go-version: '1.25.x'
+        check-latest: true
+        cache: true
 
     - name: ✅ Sync & Tidy
       run: make sync tidy
@@ -41,7 +56,7 @@ jobs:
       uses: golangci/golangci-lint-action@v9
       with:
         version: v2.12.2
-        experimental: "automatic-module-directories"
+        working-directory: ${{ matrix.module }}
 
   # ========================================
   # Test Matrix
