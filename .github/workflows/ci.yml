@@ -14,6 +14,11 @@ concurrency:
 env:
   CACHE_VERSION: v1  # Increment to bust cache when needed
 
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
 jobs:
   # ========================================
   # Quality Gate
@@ -129,6 +134,7 @@ jobs:
         args: '-no-fail -fmt sarif -out results.sarif ./...'
 
     - name: Upload SARIF to GitHub
+      if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
       uses: github/codeql-action/upload-sarif@v4
       with:
         sarif_file: results.sarif
