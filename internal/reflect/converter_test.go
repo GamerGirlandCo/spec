@@ -15,6 +15,43 @@ import (
 	"github.com/oaswrap/spec/option"
 )
 
+// TextMarshaler test types.
+
+type textStatus int
+
+func (s textStatus) MarshalText() ([]byte, error) { return []byte("ok"), nil }
+func (s *textStatus) UnmarshalText([]byte) error  { return nil }
+
+type textStatusJSONOverride int
+
+func (s textStatusJSONOverride) MarshalText() ([]byte, error) { return []byte("ok"), nil }
+func (s *textStatusJSONOverride) UnmarshalText([]byte) error  { return nil }
+func (s textStatusJSONOverride) MarshalJSON() ([]byte, error) { return []byte(`"ok"`), nil }
+
+// EmbedReferencer test types.
+
+type embedBase struct {
+	BaseField string `json:"base_field"`
+}
+
+type embedRefViaTag struct {
+	embedBase `refer:"true"`
+
+	Name string `json:"name"`
+}
+
+type embedBaseViaInterface struct {
+	OtherField string `json:"other_field"`
+}
+
+func (embedBaseViaInterface) ReferEmbedded() {}
+
+type embedRefViaInterface struct {
+	embedBaseViaInterface
+
+	ID int `json:"id"`
+}
+
 type CustomSlug string
 
 func (*CustomSlug) OpenAPISchema(version string) *openapi.Schema {
@@ -91,7 +128,7 @@ func TestConverter_CustomSchemaExposer(t *testing.T) {
 	raw, err := r.GenerateSchema("json")
 	require.NoError(t, err)
 
-	id := generatedComponentProperty(t, raw, "CustomSchemaPayload", "id")
+	id := generatedComponentProperty(t, raw, "ReflectTestCustomSchemaPayload", "id")
 	assert.Equal(t, "slug", id["format"])
 	assert.Equal(t, "Stable identifier", id["description"])
 }
@@ -104,7 +141,7 @@ func TestConverter_Nullable(t *testing.T) {
 		raw, err := r.GenerateSchema("json")
 		require.NoError(t, err)
 
-		owner := generatedComponentProperty(t, raw, "ReflectionVersionPayload", "owner")
+		owner := generatedComponentProperty(t, raw, "ReflectTestReflectionVersionPayload", "owner")
 		assert.NotContains(t, owner, "$ref", "nullable component refs must not emit $ref siblings in 3.0")
 		assert.Equal(t, true, owner["nullable"])
 	})
@@ -116,7 +153,7 @@ func TestConverter_Nullable(t *testing.T) {
 		raw, err := r.GenerateSchema("json")
 		require.NoError(t, err)
 
-		name := generatedComponentProperty(t, raw, "ReflectionVersionPayload312", "name")
+		name := generatedComponentProperty(t, raw, "ReflectTestReflectionVersionPayload312", "name")
 		typ := name["type"].([]any)
 		assert.Equal(t, []any{"string", "null"}, typ)
 	})
@@ -133,6 +170,89 @@ func TestConverter_SchemaExposer(t *testing.T) {
 		"Exposed",
 		doc.Paths["/exposer"].Get.Responses["200"].Content["application/json"].Schema.Description,
 	)
+}
+
+func TestConverter_TextMarshaler(t *testing.T) {
+	r := reflect.NewReflector(&openapi.Config{OpenAPIVersion: openapi.Version312})
+
+	t.Run("direct type produces string schema", func(t *testing.T) {
+		s, err := r.SchemaForType(std_reflect.TypeFor[textStatus](), reflect.SchemaInline, nil)
+		require.NoError(t, err)
+		assert.Equal(t, "string", s.Type)
+	})
+
+	t.Run("pointer type preserves nullable", func(t *testing.T) {
+		s, err := r.SchemaForType(std_reflect.TypeFor[*textStatus](), reflect.SchemaInline, nil)
+		require.NoError(t, err)
+		assert.Equal(t, "string", s.Type.([]string)[0])
+		assert.Equal(t, "null", s.Type.([]string)[1])
+	})
+
+	t.Run("not a component type", func(t *testing.T) {
+		assert.False(t, reflect.IsComponentType(std_reflect.TypeFor[textStatus]()))
+	})
+
+	t.Run("json.Marshaler takes precedence — not reflected as string", func(t *testing.T) {
+		// textStatusJSONOverride implements TextMarshaler+TextUnmarshaler AND json.Marshaler.
+		// json.Marshaler wins → falls through to normal kindSwitch → integer.
+		s, err := r.SchemaForType(std_reflect.TypeFor[textStatusJSONOverride](), reflect.SchemaInline, nil)
+		require.NoError(t, err)
+		assert.Equal(t, "integer", s.Type, "must not receive string/text-marshaler treatment")
+	})
+}
+
+func TestConverter_EmbedRef(t *testing.T) {
+	t.Run("refer tag produces allOf ref, fields not inlined", func(t *testing.T) {
+		r := reflect.NewReflector(&openapi.Config{OpenAPIVersion: openapi.Version312})
+		schema, err := r.StructSchema(std_reflect.TypeFor[embedRefViaTag](), "json", false, reflect.SchemaUseComponent)
+		require.NoError(t, err)
+
+		require.Len(t, schema.AllOf, 1, "embedded type must appear in allOf")
+		assert.Equal(t, "#/components/schemas/ReflectTestEmbedBase", schema.AllOf[0].Ref)
+
+		_, hasBaseField := schema.Properties["base_field"]
+		assert.False(t, hasBaseField, "base_field must not be inlined into parent properties")
+
+		_, hasName := schema.Properties["name"]
+		assert.True(t, hasName, "own fields must still be present")
+	})
+
+	t.Run("EmbedReferencer interface produces allOf ref", func(t *testing.T) {
+		r := reflect.NewReflector(&openapi.Config{OpenAPIVersion: openapi.Version312})
+		schema, err := r.StructSchema(
+			std_reflect.TypeFor[embedRefViaInterface](),
+			"json",
+			false,
+			reflect.SchemaUseComponent,
+		)
+		require.NoError(t, err)
+
+		require.Len(t, schema.AllOf, 1)
+		assert.Equal(t, "#/components/schemas/ReflectTestEmbedBaseViaInterface", schema.AllOf[0].Ref)
+
+		_, hasOther := schema.Properties["other_field"]
+		assert.False(t, hasOther, "interface-embedded fields must not be inlined")
+
+		_, hasID := schema.Properties["id"]
+		assert.True(t, hasID)
+	})
+
+	t.Run("plain embed without refer tag still inlines fields", func(t *testing.T) {
+		type plainBase struct {
+			BaseVal string `json:"base_val"`
+		}
+		type plainParent struct {
+			plainBase
+
+			Extra string `json:"extra"`
+		}
+		r := reflect.NewReflector(&openapi.Config{OpenAPIVersion: openapi.Version312})
+		schema, err := r.StructSchema(std_reflect.TypeFor[plainParent](), "json", false, reflect.SchemaInline)
+		require.NoError(t, err)
+		assert.Empty(t, schema.AllOf, "no allOf for plain embed")
+		_, hasBase := schema.Properties["base_val"]
+		assert.True(t, hasBase, "plain embed fields must be inlined")
+	})
 }
 
 func TestConverter_SchemaForType_Branches(t *testing.T) {
@@ -266,13 +386,13 @@ func TestConverter_SchemaForType_Branches(t *testing.T) {
 		require.NoError(t, err)
 		assert.True(t, s304.Nullable)
 		require.Len(t, s304.AllOf, 1)
-		assert.Equal(t, "#/components/schemas/User", s304.AllOf[0].Ref)
+		assert.Equal(t, "#/components/schemas/ReflectTestUser", s304.AllOf[0].Ref)
 
 		r312 := reflect.NewReflector(&openapi.Config{OpenAPIVersion: openapi.Version312})
 		s312, err := r312.SchemaForType(std_reflect.TypeFor[*User](), reflect.SchemaUseComponent, nil)
 		require.NoError(t, err)
 		require.Len(t, s312.AnyOf, 2)
-		assert.Equal(t, "#/components/schemas/User", s312.AnyOf[0].Ref)
+		assert.Equal(t, "#/components/schemas/ReflectTestUser", s312.AnyOf[0].Ref)
 		assert.Equal(t, "null", s312.AnyOf[1].Type)
 	})
 }

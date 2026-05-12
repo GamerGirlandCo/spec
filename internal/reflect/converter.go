@@ -1,11 +1,26 @@
 package reflect
 
 import (
+	"encoding"
+	"encoding/json"
 	"reflect"
 	"slices"
 
 	"github.com/oaswrap/spec/openapi"
 )
+
+var (
+	typeOfTextMarshaler   = reflect.TypeFor[encoding.TextMarshaler]()
+	typeOfTextUnmarshaler = reflect.TypeFor[encoding.TextUnmarshaler]()
+	typeOfJSONMarshaler   = reflect.TypeFor[json.Marshaler]()
+)
+
+func isTextMarshaler(t reflect.Type) bool {
+	impl := func(iface reflect.Type) bool {
+		return t.Implements(iface) || reflect.PointerTo(t).Implements(iface)
+	}
+	return impl(typeOfTextMarshaler) && impl(typeOfTextUnmarshaler) && !impl(typeOfJSONMarshaler)
+}
 
 //nolint:funlen,gocognit // covers full OpenAPI scalar/collection/struct mapping in one switch for readability.
 func (r *Reflector) SchemaForType(
@@ -80,6 +95,22 @@ func (r *Reflector) SchemaForType(
 			}
 			return preSchema, nil
 		}
+	}
+
+	if isTextMarshaler(t) {
+		schema := &openapi.Schema{Type: "string"}
+		if interceptSchema != nil {
+			if _, err := interceptSchema(
+				openapi.InterceptSchemaParams{Type: t, Schema: schema, Processed: true},
+			); err != nil {
+				return nil, err
+			}
+		}
+		r.ApplyNullable(schema, nullable)
+		if field != nil {
+			r.ApplySchemaTags(schema, *field)
+		}
+		return schema, nil
 	}
 
 	var schema *openapi.Schema
@@ -201,5 +232,5 @@ func IsOpenAPI30(version string) bool {
 }
 
 func IsComponentType(t reflect.Type) bool {
-	return t.Kind() == reflect.Struct && t.Name() != "" && !IsTime(t)
+	return t.Kind() == reflect.Struct && t.Name() != "" && !IsTime(t) && !isTextMarshaler(t)
 }

@@ -26,9 +26,9 @@ type Category struct {
 }
 
 type UpdatePetWithFormRequest struct {
-	ID     int    `path:"petId" required:"true"`
-	Name   string `formData:"name" required:"true"`
-	Status string `formData:"status" enum:"available,pending,sold"`
+	ID     int    `path:"petId" validate:"required"`
+	Name   string `form:"name" validate:"required"`
+	Status string `form:"status" enum:"available,pending,sold"`
 }
 
 type UploadImageRequest struct {
@@ -38,7 +38,7 @@ type UploadImageRequest struct {
 }
 
 type DeletePetRequest struct {
-	ID     int    `path:"petId" required:"true"`
+	ID     int    `path:"petId" validate:"required"`
 	ApiKey string `header:"api_key"`
 }
 

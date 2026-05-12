@@ -67,6 +67,33 @@ type QueryStringRequest struct {
 	} `querystring:"payload"`
 }
 
+// EmbedRef golden test types.
+
+type EmbedRefBase struct {
+	ID   int    `json:"id"`
+	Role string `json:"role"`
+}
+
+type EmbedRefBaseViaInterface struct {
+	Tag string `json:"tag"`
+}
+
+func (EmbedRefBaseViaInterface) ReferEmbedded() {}
+
+type EmbedRefRequest struct {
+	EmbedRefBase `refer:"true"`
+
+	Name string `json:"name"`
+	Age  int    `json:"age"`
+}
+
+type EmbedRefMixedRequest struct {
+	EmbedRefBaseViaInterface
+
+	Code  string `json:"code"`
+	Value int    `json:"value"`
+}
+
 type mockPathParser struct{}
 
 func (mockPathParser) Parse(path string) (string, error) {
@@ -152,6 +179,20 @@ func TestGolden(t *testing.T) {
 			name: "anonymous_structs",
 			run: func(r spec.Router) {
 				r.Post("/anonymous", option.Request(new(AnonymousStructRequest)), option.Response(204, nil))
+			},
+		},
+		{
+			name: "embed_ref",
+			opts: []option.OpenAPIOption{option.WithTitle("EmbedRef API"), option.WithVersion("1.0.0")},
+			run: func(r spec.Router) {
+				r.Post("/refer-tag",
+					option.Request(new(EmbedRefRequest)),
+					option.Response(200, new(EmbedRefBase)),
+				)
+				r.Post("/refer-interface",
+					option.Request(new(EmbedRefMixedRequest)),
+					option.Response(204, nil),
+				)
 			},
 		},
 		{

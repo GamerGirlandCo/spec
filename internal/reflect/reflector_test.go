@@ -116,7 +116,7 @@ func TestReflector_Config(t *testing.T) {
 		assert.Contains(t, doc.Components.Schemas, "Collision2")
 	})
 
-	t.Run("DefaultDefNameUsesPkgPrefixExceptCallerPackage", func(t *testing.T) {
+	t.Run("DefaultDefNameUsesPkgPrefixForAllTypes", func(t *testing.T) {
 		r := spec.NewRouter()
 
 		type SamePkgModel struct{ Foo string }
@@ -127,7 +127,7 @@ func TestReflector_Config(t *testing.T) {
 		require.NoError(t, err)
 		doc := r.Document()
 
-		assert.Contains(t, doc.Components.Schemas, "SamePkgModel")
+		assert.Contains(t, doc.Components.Schemas, "ReflectTestSamePkgModel")
 		assert.Contains(t, doc.Components.Schemas, "DtoPet")
 	})
 
@@ -181,6 +181,61 @@ func TestReflector_ParameterField_CustomMappingKeepsDefaultTag(t *testing.T) {
 	assert.Equal(t, "id", params[0].Name)
 	assert.Equal(t, "path", params[0].In)
 	assert.True(t, params[0].Required)
+}
+
+func TestReflector_BodyTagMapping(t *testing.T) {
+	t.Run("ParameterInBody overrides json tag", func(t *testing.T) {
+		cfg := option.WithOpenAPIConfig(
+			option.WithReflectorConfig(option.ParameterTagMapping(openapi.ParameterInBody, "api")),
+		)
+		r := reflect.NewReflector(cfg)
+
+		type Req struct {
+			ID   string `path:"id"`
+			Name string `api:"name"`
+		}
+
+		params, body, err := r.RequestParts(Req{}, "application/json")
+		require.NoError(t, err)
+		require.Len(t, params, 1)
+		require.NotNil(t, body)
+		assert.Contains(t, body.Properties, "name")
+		assert.NotContains(t, body.Properties, "Name")
+	})
+
+	t.Run("ParameterInForm overrides form tag", func(t *testing.T) {
+		cfg := option.WithOpenAPIConfig(
+			option.WithReflectorConfig(option.ParameterTagMapping(openapi.ParameterInForm, "api")),
+		)
+		r := reflect.NewReflector(cfg)
+
+		type Req struct {
+			ID    string `path:"id"`
+			Email string `api:"email"`
+		}
+
+		params, body, err := r.RequestParts(Req{}, "application/x-www-form-urlencoded")
+		require.NoError(t, err)
+		require.Len(t, params, 1)
+		require.NotNil(t, body)
+		assert.Contains(t, body.Properties, "email")
+	})
+
+	t.Run("default body tags unchanged when no mapping", func(t *testing.T) {
+		cfg := option.WithOpenAPIConfig()
+		r := reflect.NewReflector(cfg)
+
+		type Req struct {
+			ID   string `path:"id"`
+			Name string `json:"name"`
+		}
+
+		params, body, err := r.RequestParts(Req{}, "application/json")
+		require.NoError(t, err)
+		require.Len(t, params, 1)
+		require.NotNil(t, body)
+		assert.Contains(t, body.Properties, "name")
+	})
 }
 
 func TestReflector_RequestPartsAndStructSchemaBranches(t *testing.T) {
@@ -243,7 +298,7 @@ func TestReflector_RequestPartsAndStructSchemaBranches(t *testing.T) {
 		require.NoError(t, err)
 		assert.Nil(t, params)
 		require.NotNil(t, body)
-		assert.Equal(t, "#/components/schemas/Dst", body.Ref)
+		assert.Equal(t, "#/components/schemas/ReflectTestDst", body.Ref)
 	})
 }
 
@@ -486,8 +541,8 @@ func TestStructSchema_InterceptSchema(t *testing.T) {
 		_, err := r.GenerateSchema("yaml")
 		require.NoError(t, err)
 		doc := r.Document()
-		require.Contains(t, doc.Components.Schemas, "Item")
-		assert.Equal(t, true, doc.Components.Schemas["Item"].Extensions["x-intercepted"])
+		require.Contains(t, doc.Components.Schemas, "ReflectTestItem")
+		assert.Equal(t, true, doc.Components.Schemas["ReflectTestItem"].Extensions["x-intercepted"])
 	})
 
 	t.Run("PreHookStopOnComponentSkipsStructSchema", func(t *testing.T) {
@@ -508,9 +563,9 @@ func TestStructSchema_InterceptSchema(t *testing.T) {
 		_, err := r.GenerateSchema("yaml")
 		require.NoError(t, err)
 		doc := r.Document()
-		require.Contains(t, doc.Components.Schemas, "Skipped")
-		assert.Equal(t, "custom", doc.Components.Schemas["Skipped"].Description)
-		assert.Nil(t, doc.Components.Schemas["Skipped"].Properties) // StructSchema was skipped
+		require.Contains(t, doc.Components.Schemas, "ReflectTestSkipped")
+		assert.Equal(t, "custom", doc.Components.Schemas["ReflectTestSkipped"].Description)
+		assert.Nil(t, doc.Components.Schemas["ReflectTestSkipped"].Properties) // StructSchema was skipped
 	})
 
 	t.Run("PreHookErrorPropagated", func(t *testing.T) {
@@ -642,7 +697,7 @@ func TestStructSchema_InterceptSchema(t *testing.T) {
 		// Second call must retry (not hit stale empty component from first call).
 		schema, err := r.SchemaForType(std_reflect.TypeFor[Target](), reflect.SchemaUseComponent, nil)
 		require.NoError(t, err)
-		assert.Equal(t, "#/components/schemas/Target", schema.Ref)
+		assert.Equal(t, "#/components/schemas/ReflectTestTarget", schema.Ref)
 		assert.Equal(t, 2, calls)
 	})
 }
@@ -666,9 +721,9 @@ func TestReflector_InterceptPropViaRouter(t *testing.T) {
 	_, err := r.GenerateSchema("yaml")
 	require.NoError(t, err)
 	doc := r.Document()
-	require.Contains(t, doc.Components.Schemas, "Item")
-	assert.Contains(t, doc.Components.Schemas["Item"].Properties, "name")
-	assert.NotContains(t, doc.Components.Schemas["Item"].Properties, "hidden")
+	require.Contains(t, doc.Components.Schemas, "ReflectTestItem")
+	assert.Contains(t, doc.Components.Schemas["ReflectTestItem"].Properties, "name")
+	assert.NotContains(t, doc.Components.Schemas["ReflectTestItem"].Properties, "hidden")
 }
 
 func TestStructSchema_InterceptProp_NonSkipErrorPropagated(t *testing.T) {

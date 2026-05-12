@@ -168,6 +168,22 @@ paths:
           schema:
             type: integer
             format: int32
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                status:
+                  type: string
+                  enum:
+                    - available
+                    - pending
+                    - sold
       responses:
         '200':
           description: OK

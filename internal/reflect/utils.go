@@ -2,6 +2,7 @@ package reflect
 
 import (
 	"fmt"
+	"mime/multipart"
 	"path"
 	"reflect"
 	"regexp"
@@ -16,7 +17,7 @@ func (r *Reflector) TypeName(t reflect.Type) string {
 		return name
 	}
 	name := SanitizeTypeName(t.Name())
-	name = sanitizeDefName(t, name, r.callerPkgPath())
+	name = prefixWithPkg(t, name)
 	for _, prefix := range r.StripPrefixes() {
 		name = strings.TrimPrefix(name, prefix)
 	}
@@ -38,23 +39,33 @@ func (r *Reflector) TypeName(t reflect.Type) string {
 	return name
 }
 
-func sanitizeDefName(t reflect.Type, defaultDefName, callerPkgPath string) string {
-	if callerPkgPath == "" || defaultDefName == "" || t == nil || t.PkgPath() == "" || t.PkgPath() == callerPkgPath {
-		return defaultDefName
+func prefixWithPkg(t reflect.Type, defName string) string {
+	if defName == "" || t == nil || t.PkgPath() == "" || t.PkgPath() == "main" {
+		return defName
 	}
 	pkgName := path.Base(t.PkgPath())
 	if pkgName == "" || pkgName == "main" {
-		return defaultDefName
+		return defName
 	}
-	pkgName = strings.ToUpper(pkgName[:1]) + pkgName[1:]
-	return pkgName + defaultDefName
+	pkgName = sanitizePkgName(pkgName)
+	if pkgName == "" {
+		return defName
+	}
+	return pkgName + strings.ToUpper(defName[:1]) + defName[1:]
 }
 
-func (r *Reflector) callerPkgPath() string {
-	if r.Config == nil || r.Config.ReflectorConfig == nil {
-		return ""
+func sanitizePkgName(name string) string {
+	parts := strings.FieldsFunc(name, func(r rune) bool {
+		return r == '_' || r == '-' || r == '.'
+	})
+	var b strings.Builder
+	for _, p := range parts {
+		if len(p) == 0 {
+			continue
+		}
+		b.WriteString(strings.ToUpper(p[:1]) + p[1:])
 	}
-	return r.Config.ReflectorConfig.DefNameCallerPkg
+	return b.String()
 }
 
 func (r *Reflector) StripPrefixes() []string {
@@ -66,6 +77,27 @@ func (r *Reflector) StripPrefixes() []string {
 
 func (r *Reflector) InlineRefs() bool {
 	return r.Config.ReflectorConfig != nil && r.Config.ReflectorConfig.InlineRefs
+}
+
+// bodyNameTag returns the struct tag used to name body fields for the given content type.
+// Defaults to "json" for JSON bodies and "form" for form bodies.
+// Can be overridden via ParameterTagMapping with openapi.ParameterInBody or openapi.ParameterInForm.
+func (r *Reflector) bodyNameTag(contentType string) string {
+	base := BodyNameTag(contentType)
+	if r.Config == nil || r.Config.ReflectorConfig == nil || r.Config.ReflectorConfig.ParameterTagMapping == nil {
+		return base
+	}
+	var key openapi.ParameterIn
+	switch base {
+	case "json":
+		key = openapi.ParameterInBody
+	case "form":
+		key = openapi.ParameterInForm
+	}
+	if tag, ok := r.Config.ReflectorConfig.ParameterTagMapping[key]; ok && tag != "" {
+		return tag
+	}
+	return base
 }
 
 func (r *Reflector) interceptPropFn() openapi.InterceptPropFunc {
@@ -89,6 +121,19 @@ func IndirectType(t reflect.Type) reflect.Type {
 	return t
 }
 
+var typeOfEmbedReferencer = reflect.TypeFor[openapi.EmbedReferencer]()
+
+func isEmbedRef(field reflect.StructField) bool {
+	if field.Tag.Get("refer") == "true" {
+		return true
+	}
+	t := IndirectType(field.Type)
+	if t == nil {
+		return false
+	}
+	return field.Type.Implements(typeOfEmbedReferencer) || reflect.PointerTo(t).Implements(typeOfEmbedReferencer)
+}
+
 func ForEachField(t reflect.Type, fn func(reflect.StructField)) {
 	for i := range t.NumField() {
 		field := t.Field(i)
@@ -96,7 +141,9 @@ func ForEachField(t reflect.Type, fn func(reflect.StructField)) {
 			continue
 		}
 		if field.Anonymous && IndirectType(field.Type).Kind() == reflect.Struct && TagName(field, "json") == "" {
-			ForEachField(IndirectType(field.Type), fn)
+			if !isEmbedRef(field) {
+				ForEachField(IndirectType(field.Type), fn)
+			}
 			continue
 		}
 		fn(field)
@@ -149,4 +196,50 @@ func SanitizeTypeName(name string) string {
 
 	// Final cleanup for any remaining characters
 	return genericNameRe.ReplaceAllString(name, "")
+}
+
+var (
+	typeFileHeader = reflect.TypeFor[multipart.FileHeader]()
+	typeFile       = reflect.TypeFor[multipart.File]()
+)
+
+// InferContentType inspects struct tags on value to determine request body content type.
+// Returns "multipart/form-data" if any field tagged `form` holds a file type,
+// "application/x-www-form-urlencoded" if any `form` tag is present, or "" otherwise.
+func InferContentType(value any) string {
+	t := IndirectType(reflect.TypeOf(value))
+	if t == nil || t.Kind() != reflect.Struct || IsTime(t) {
+		return ""
+	}
+	hasForm := false
+	hasFile := false
+	ForEachField(t, func(field reflect.StructField) {
+		if TagName(field, "form") == "" {
+			return
+		}
+		hasForm = true
+		if isFileField(field.Type) {
+			hasFile = true
+		}
+	})
+	if !hasForm {
+		return ""
+	}
+	if hasFile {
+		return "multipart/form-data"
+	}
+	return "application/x-www-form-urlencoded"
+}
+
+func isFileField(t reflect.Type) bool {
+	if t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	if t.Kind() == reflect.Slice {
+		t = t.Elem()
+		if t.Kind() == reflect.Pointer {
+			t = t.Elem()
+		}
+	}
+	return t == typeFileHeader || t == typeFile || t.Implements(typeFile)
 }

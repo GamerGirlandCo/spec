@@ -10,17 +10,17 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ComplexRequest'
+              $ref: '#/components/schemas/SpecTestComplexRequest'
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ComplexResponse'
+                $ref: '#/components/schemas/SpecTestComplexResponse'
 components:
   schemas:
-    ComplexRequest:
+    SpecTestComplexRequest:
       type: object
       required:
         - string
@@ -69,7 +69,7 @@ components:
           maxLength: 10
           minLength: 1
           pattern: ^[a-z]+$
-    ComplexResponse:
+    SpecTestComplexResponse:
       type: object
       properties:
         data:

@@ -56,6 +56,8 @@ func createRouter() spec.Generator {
 		),
 		option.WithSecurity("api_key", option.SecurityAPIKey("api_key", openapi.SecuritySchemeAPIKeyInHeader)),
 		option.WithStripTrailingSlash(),
+		option.WithReflectorConfig(option.RequiredPropByValidateTag()),
+		option.WithDebugLogger(),
 	)
 
 	return r

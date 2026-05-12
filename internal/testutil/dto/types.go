@@ -29,8 +29,8 @@ type Category struct {
 
 type UpdatePetWithFormRequest struct {
 	ID     int    `path:"petId" required:"true"`
-	Name   string `required:"true" formData:"name"`
-	Status string `formData:"status" enum:"available,pending,sold"`
+	Name   string `required:"true" form:"name"`
+	Status string `form:"status" enum:"available,pending,sold"`
 }
 
 type UploadImageRequest struct {

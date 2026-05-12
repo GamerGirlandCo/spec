@@ -19,10 +19,10 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/User'
+                  $ref: '#/components/schemas/SpecTestUser'
 components:
   schemas:
-    User:
+    SpecTestUser:
       type: object
       required:
         - id

@@ -2,8 +2,11 @@ package reflect
 
 import (
 	"errors"
+	"io"
+	"log/slog"
 	"reflect"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/oaswrap/spec/openapi"
@@ -25,6 +28,12 @@ type Reflector struct {
 }
 
 func NewReflector(cfg *openapi.Config) *Reflector {
+	if cfg == nil {
+		cfg = &openapi.Config{}
+	}
+	if cfg.Logger == nil {
+		cfg.Logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+	}
 	r := &Reflector{
 		Config:      cfg,
 		Components:  map[string]*openapi.Schema{},
@@ -53,6 +62,7 @@ func (r *Reflector) RequestParts(
 		return nil, nil, nil
 	}
 	if mapped := r.TypeMapping[t]; mapped != nil {
+		r.Config.Logger.Debug("applying type mapping", "src", t.String(), "dst", mapped.String())
 		t = mapped
 	}
 	if t.Kind() != reflect.Struct || IsTime(t) {
@@ -61,7 +71,7 @@ func (r *Reflector) RequestParts(
 	}
 
 	var params []*openapi.Parameter
-	bodyTag := BodyNameTag(ct)
+	bodyTag := r.bodyNameTag(ct)
 	hasBody := false
 	hasParam := false
 	ForEachField(t, func(field reflect.StructField) {
@@ -109,6 +119,10 @@ func (r *Reflector) ParameterField(field reflect.StructField) (string, string, b
 	custom := map[openapi.ParameterIn]string{}
 	if r.Config.ReflectorConfig != nil {
 		for in, tag := range r.Config.ReflectorConfig.ParameterTagMapping {
+			// ParameterInBody and ParameterInForm override body tags, not parameter locations.
+			if in == openapi.ParameterInBody || in == openapi.ParameterInForm {
+				continue
+			}
 			custom[in] = tag
 		}
 	}
@@ -182,6 +196,7 @@ func (r *Reflector) SchemaForValue(value any, mode SchemaMode) (*openapi.Schema,
 	//nolint:nestif // exposer path needs pre+post hook
 	if schema := r.SchemaFromValueExposer(value); schema != nil {
 		t := IndirectType(reflect.TypeOf(value))
+		r.Config.Logger.Debug("using SchemaExposer bypass", "type", t.String())
 		interceptSchema := r.interceptSchemaFn()
 		if interceptSchema != nil {
 			preSchema := &openapi.Schema{}
@@ -190,9 +205,11 @@ func (r *Reflector) SchemaForValue(value any, mode SchemaMode) (*openapi.Schema,
 				return nil, err
 			}
 			if stop {
+				r.Config.Logger.Debug("interceptSchema: pre-build stopped", "type", t.String())
 				return preSchema, nil
 			}
 			params := openapi.InterceptSchemaParams{Type: t, Schema: schema, Processed: true}
+			r.Config.Logger.Debug("interceptSchema: post-build called", "type", t.String())
 			if _, err := interceptSchema(params); err != nil {
 				return nil, err
 			}
@@ -212,6 +229,7 @@ func (r *Reflector) RefSchema(t reflect.Type) (*openapi.Schema, error) {
 	}
 	r.Generating[t] = true
 	r.Components[name] = &openapi.Schema{}
+	r.Config.Logger.Debug("generating component schema", "name", name, "type", t.String())
 	interceptSchema := r.interceptSchemaFn()
 	if interceptSchema != nil {
 		stop, err := interceptSchema(openapi.InterceptSchemaParams{Type: t, Schema: r.Components[name]})
@@ -221,6 +239,7 @@ func (r *Reflector) RefSchema(t reflect.Type) (*openapi.Schema, error) {
 			return nil, err
 		}
 		if stop {
+			r.Config.Logger.Debug("interceptSchema: pre-build stopped", "type", t.String(), "component", name)
 			delete(r.Generating, t)
 			return &openapi.Schema{Ref: "#/components/schemas/" + name}, nil
 		}
@@ -236,8 +255,10 @@ func (r *Reflector) RefSchema(t reflect.Type) (*openapi.Schema, error) {
 	r.Components[name].Type = built.Type
 	r.Components[name].Properties = built.Properties
 	r.Components[name].Required = built.Required
+	r.Components[name].AllOf = built.AllOf
 	if interceptSchema != nil {
 		postParams := openapi.InterceptSchemaParams{Type: t, Schema: r.Components[name], Processed: true}
+		r.Config.Logger.Debug("interceptSchema: post-build called", "type", t.String(), "component", name)
 		if _, err := interceptSchema(postParams); err != nil {
 			delete(r.Generating, t)
 			delete(r.Components, name)
@@ -256,6 +277,22 @@ func (r *Reflector) StructSchema(
 	mode SchemaMode,
 ) (*openapi.Schema, error) {
 	schema := &openapi.Schema{Type: "object", Properties: map[string]*openapi.Schema{}}
+	// Pre-scan: collect embedded types opted into allOf $ref (via refer:"true" tag or EmbedReferencer).
+	for i := range t.NumField() {
+		field := t.Field(i)
+		if !field.Anonymous || TagName(field, "json") != "" {
+			continue
+		}
+		embType := IndirectType(field.Type)
+		if embType == nil || embType.Kind() != reflect.Struct || !isEmbedRef(field) {
+			continue
+		}
+		ref, err := r.RefSchema(embType)
+		if err != nil {
+			return nil, err
+		}
+		schema.AllOf = append(schema.AllOf, ref)
+	}
 	interceptProp := r.interceptPropFn()
 	parentType := t
 	var firstErr error
@@ -277,6 +314,7 @@ func (r *Reflector) StructSchema(
 			name = LowerCamel(field.Name)
 		}
 		if interceptProp != nil {
+			r.Config.Logger.Debug("interceptProp: field hook called", "field", name, "parent", typeName(parentType))
 			if err := interceptProp(openapi.InterceptPropParams{
 				Name:         name,
 				Field:        field,
@@ -448,4 +486,18 @@ func (r *Reflector) SchemaFromTypeExposer(t reflect.Type) *openapi.Schema {
 
 func IsTime(t reflect.Type) bool {
 	return t == reflect.TypeFor[time.Time]()
+}
+
+func typeName(t reflect.Type) string {
+	if t.Name() == "" {
+		return "<anonymous>"
+	}
+	pkg := t.PkgPath()
+	if idx := strings.LastIndex(pkg, "/"); idx >= 0 {
+		pkg = pkg[idx+1:]
+	}
+	if pkg != "" {
+		return pkg + "." + t.Name()
+	}
+	return t.Name()
 }

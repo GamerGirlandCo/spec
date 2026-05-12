@@ -19,9 +19,24 @@ jobs:
   # Quality Gate
   # ========================================
   quality:
-    name: 🛡️ Quality Gate
+    name: 🛡️ Quality Gate / ${{ matrix.module }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - .
+          - adapter/chiopenapi
+          - adapter/echoopenapi
+          - adapter/echov5openapi
+          - adapter/fiberopenapi
+          - adapter/fiberv3openapi
+          - adapter/ginopenapi
+          - adapter/httpopenapi
+          - adapter/irisopenapi
+          - adapter/muxopenapi
 
     steps:
     - name: 📥 Checkout
@@ -30,26 +45,18 @@ jobs:
     - name: 🐹 Setup Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.25.x'  # Use latest supported toolchain for quality checks
-        check-latest: true    # Always grab the newest patch release
-        cache: true           # Handles ~/.cache/go-build and ~/go/pkg/mod
+        go-version: '1.25.x'
+        check-latest: true
+        cache: true
 
-    - name: 📁 Cache Tools
-      uses: actions/cache@v4
+    - name: ✅ Sync & Tidy
+      run: make sync tidy
+
+    - name: 🔍 Lint
+      uses: golangci/golangci-lint-action@v9
       with:
-        path: |
-          ~/.cache/golangci-lint
-          ~/go/bin
-        key: ${{ runner.os }}-tools-${{ env.CACHE_VERSION }}-${{ hashFiles('tools/tools.go', 'Makefile') }}
-        restore-keys: |
-          ${{ runner.os }}-tools-${{ env.CACHE_VERSION }}-
-          ${{ runner.os }}-tools-
-
-    - name: 🔧 Install Tools
-      run: make install-tools
-
-    - name: ✅ Run Quality Checks
-      run: make sync tidy lint
+        version: v2.12.2
+        working-directory: ${{ matrix.module }}
 
   # ========================================
   # Test Matrix
@@ -119,7 +126,12 @@ jobs:
     - name: Run Gosec Security Scanner
       uses: securego/gosec@v2.26.1
       with:
-        args: './...'
+        args: '-no-fail -fmt sarif -out results.sarif ./...'
+
+    - name: Upload SARIF to GitHub
+      uses: github/codeql-action/upload-sarif@v4
+      with:
+        sarif_file: results.sarif
 
   # ========================================
   # Final Status Check

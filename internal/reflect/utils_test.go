@@ -1,6 +1,7 @@
 package reflect
 
 import (
+	"mime/multipart"
 	"reflect"
 	"testing"
 	"time"
@@ -70,28 +71,25 @@ func TestForEachField(t *testing.T) {
 }
 
 func TestInternalHelpers(t *testing.T) {
-	t.Run("sanitizeDefName", func(t *testing.T) {
-		assert.Equal(t, "Model", sanitizeDefName(nil, "Model", "github.com/oaswrap/spec"))
-		assert.Equal(t, "Model", sanitizeDefName(reflect.TypeFor[struct{}](), "Model", "github.com/oaswrap/spec"))
-		assert.Equal(t, "Model", sanitizeDefName(reflect.TypeFor[time.Time](), "Model", ""))
-		assert.Equal(t, "TimeModel", sanitizeDefName(reflect.TypeFor[time.Time](), "Model", "github.com/oaswrap/spec"))
+	t.Run("prefixWithPkg", func(t *testing.T) {
+		assert.Equal(t, "Model", prefixWithPkg(nil, "Model"))
+		assert.Equal(t, "Model", prefixWithPkg(reflect.TypeFor[struct{}](), "Model"))
+		assert.Equal(t, "TimeModel", prefixWithPkg(reflect.TypeFor[time.Time](), "Model"))
+		assert.Empty(t, prefixWithPkg(reflect.TypeFor[time.Time](), ""))
 	})
 
 	t.Run("reflector helper accessors", func(t *testing.T) {
 		r := &Reflector{}
-		assert.Empty(t, r.callerPkgPath())
 		assert.Nil(t, r.interceptPropFn())
 		assert.Nil(t, r.interceptSchemaFn())
 
 		cfg := &openapi.Config{
 			ReflectorConfig: &openapi.ReflectorConfig{
-				DefNameCallerPkg: "github.com/oaswrap/spec",
-				InterceptProp:    func(openapi.InterceptPropParams) error { return nil },
-				InterceptSchema:  func(openapi.InterceptSchemaParams) (bool, error) { return false, nil },
+				InterceptProp:   func(openapi.InterceptPropParams) error { return nil },
+				InterceptSchema: func(openapi.InterceptSchemaParams) (bool, error) { return false, nil },
 			},
 		}
 		r = &Reflector{Config: cfg}
-		assert.Equal(t, "github.com/oaswrap/spec", r.callerPkgPath())
 		assert.NotNil(t, r.interceptPropFn())
 		assert.NotNil(t, r.interceptSchemaFn())
 	})
@@ -112,4 +110,37 @@ func TestInternalHelpers(t *testing.T) {
 		assert.Equal(t, []string{}, uniqueStrings([]string{}))
 		assert.Equal(t, []string{"a", "b", "c"}, uniqueStrings([]string{"a", "b", "a", "c", "b"}))
 	})
+}
+
+func TestInferContentType(t *testing.T) {
+	type noTags struct {
+		Name string `json:"name"`
+	}
+	type formBody struct {
+		Name  string `form:"name"`
+		Email string `form:"email"`
+	}
+	type mixedBody struct {
+		Query string `query:"q"`
+		Name  string `form:"name"`
+	}
+	type fileBody struct {
+		File *multipart.FileHeader `form:"file"`
+	}
+	type multiFileBody struct {
+		Files []*multipart.FileHeader `form:"files"`
+	}
+	type fileInterfaceBody struct {
+		File multipart.File `form:"file"`
+	}
+
+	assert.Empty(t, InferContentType(nil))
+	assert.Empty(t, InferContentType(noTags{}))
+	assert.Empty(t, InferContentType("string"))
+	assert.Equal(t, "application/x-www-form-urlencoded", InferContentType(formBody{}))
+	assert.Equal(t, "application/x-www-form-urlencoded", InferContentType(&formBody{}))
+	assert.Equal(t, "application/x-www-form-urlencoded", InferContentType(mixedBody{}))
+	assert.Equal(t, "multipart/form-data", InferContentType(fileBody{}))
+	assert.Equal(t, "multipart/form-data", InferContentType(multiFileBody{}))
+	assert.Equal(t, "multipart/form-data", InferContentType(fileInterfaceBody{}))
 }

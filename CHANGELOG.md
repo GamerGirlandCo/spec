@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - Unreleased
+
+### Added
+- Logger debug feature for tracing spec generation behavior.
+- `InterceptSchema` and `InterceptProp` reflector hooks for customizing schema and property generation.
+- `RequiredPropByValidateTag` hook for marking fields required based on `validate` struct tags.
+- `ParentType` field on `InterceptPropParams` for richer hook context.
+- Automatic content-type detection from struct type when not explicitly set.
+- `encoding.TextMarshaler`/`TextUnmarshaler` support: types implementing both interfaces (without `json.Marshaler`) are reflected as `type: string`.
+- `EmbedReferencer` interface and `refer:"true"` struct tag: embedded structs opt into `allOf $ref` instead of field inlining.
+- `ParameterTagMapping` now accepts `openapi.ParameterInBody` and `openapi.ParameterInForm` to override the struct tag used for JSON and form request body field names (defaults: `json` and `form`).
+
+### Changed
+- Schema component names now always include the Go package name as a prefix (e.g., `models.User` → `ModelsUser`). This eliminates cross-package naming collisions without requiring caller-package detection. Use `InterceptDefName` or `StripDefNamePrefix` to remove the prefix if desired.
+- `DefNameCallerPkg` field removed from `ReflectorConfig`; the caller-package detection mechanism in `NewGenerator` is removed.
+- Package name sanitization handles multi-segment names (e.g., `spec_test` → `SpecTest`); unexported type names are title-cased when a package prefix is prepended.
+
+### Fixed
+- `uint8`/`uint16` reflected as `int32` format; `uint`/`uint32`/`uint64`/`uintptr` reflected as `int64` format.
+- `InterceptSchema`/`InterceptProp` hook error propagation and correctness.
+- `RefSchema` pre-hook: assign `StructSchema` fields onto existing pointer so pre-hook customizations (extensions, description) survive to the post-hook.
+- `ApplyNullable` (OAS 3.1+): merge `"null"` into an existing `[]string` type slice instead of silently skipping.
+- `Required` field deduplication to prevent duplicates when both `required` struct tag and `RequiredPropByValidateTag` are used simultaneously.
+- `parentSnapshot` restore on `ErrSkipProperty` in post-hooks to roll back parent schema mutations (`AllOf`, `AnyOf`, `OneOf`, extensions).
+- Lint violations and YAML tag reading in `MarshalYAML`.
+
 ## [0.5.0] - 2026-05-11
 
 ### Added
@@ -78,6 +104,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Updated adapter dependency versions.
 
+[0.5.1]: https://github.com/oaswrap/spec/compare/v0.5.0...HEAD
 [0.5.0]: https://github.com/oaswrap/spec/compare/v0.4.2...v0.5.0
 [0.4.2]: https://github.com/oaswrap/spec/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/oaswrap/spec/compare/v0.4.0...v0.4.1

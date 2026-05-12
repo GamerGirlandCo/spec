@@ -2,6 +2,7 @@ package openapi
 
 import (
 	"errors"
+	"log/slog"
 	"reflect"
 
 	specui "github.com/oaswrap/spec-ui"
@@ -10,6 +11,14 @@ import (
 
 // ErrSkipProperty can be returned from InterceptPropFunc to skip adding the property to the schema.
 var ErrSkipProperty = errors.New("skip property")
+
+// EmbedReferencer can be implemented by an embedded struct type to opt into $ref-based embedding.
+// When a struct embeds a type that implements EmbedReferencer (or is tagged `refer:"true"`),
+// the embedded type is registered as a component schema and referenced via allOf instead of
+// having its fields inlined into the parent schema.
+type EmbedReferencer interface {
+	ReferEmbedded()
+}
 
 // InterceptPropParams defines parameters passed to InterceptPropFunc.
 // Called twice per field: before schema generation (Processed=false) and after (Processed=true).
@@ -63,6 +72,7 @@ const (
 // It contains all the necessary information and options to customize the generated document, including metadata,
 // server information, security schemes, and UI configuration.
 type Config struct {
+	Logger            *slog.Logger
 	OpenAPIVersion    string
 	Self              string
 	Title             string
@@ -107,7 +117,6 @@ type ReflectorConfig struct {
 	InterceptDefName    func(t reflect.Type, defaultDefName string) string
 	InterceptProp       InterceptPropFunc
 	InterceptSchema     InterceptSchemaFunc
-	DefNameCallerPkg    string
 	TypeMappings        []TypeMapping
 	ParameterTagMapping map[ParameterIn]string
 }

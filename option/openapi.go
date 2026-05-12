@@ -1,6 +1,10 @@
 package option
 
 import (
+	"io"
+	"log/slog"
+	"os"
+
 	specui "github.com/oaswrap/spec-ui"
 	"github.com/oaswrap/spec-ui/config"
 	"github.com/oaswrap/spec-ui/rapidoc"
@@ -25,6 +29,7 @@ type OpenAPIOption func(*openapi.Config)
 //	)
 func WithOpenAPIConfig(opts ...OpenAPIOption) *openapi.Config {
 	cfg := &openapi.Config{
+		Logger:         slog.New(slog.NewTextHandler(io.Discard, nil)),
 		OpenAPIVersion: openapi.Version312,
 		Title:          "API Documentation",
 		Version:        "1.0.0",
@@ -479,5 +484,23 @@ func WithRapiDoc(cfg ...config.RapiDoc) OpenAPIOption {
 		c.UIProvider = config.ProviderRapiDoc
 		c.RapiDocConfig = &uiCfg
 		c.UIOption = rapidoc.WithUI(uiCfg)
+	}
+}
+
+// WithLogger sets logger used for internal debug logs. Passing nil uses [slog.Default()].
+func WithLogger(logger *slog.Logger) OpenAPIOption {
+	return func(c *openapi.Config) {
+		if logger == nil {
+			c.Logger = slog.Default()
+			return
+		}
+		c.Logger = logger
+	}
+}
+
+// WithDebugLogger enables debug-level logging to stderr using [slog.Default()].
+func WithDebugLogger() OpenAPIOption {
+	return func(c *openapi.Config) {
+		c.Logger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	}
 }

@@ -56,4 +56,11 @@ const (
 	ParameterInHeader ParameterIn = "header"
 	// ParameterInCookie indicates a cookie parameter.
 	ParameterInCookie ParameterIn = "cookie"
+
+	// ParameterInBody is used with ParameterTagMapping to override the struct tag used for JSON
+	// request body field names. Defaults to "json".
+	ParameterInBody ParameterIn = "body"
+	// ParameterInForm is used with ParameterTagMapping to override the struct tag used for form
+	// (application/x-www-form-urlencoded and multipart/form-data) request body field names. Defaults to "form".
+	ParameterInForm ParameterIn = "form"
 )

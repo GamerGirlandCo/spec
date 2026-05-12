@@ -10,14 +10,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AllBasicDataTypes'
+              $ref: '#/components/schemas/SpecTestAllBasicDataTypes'
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AllBasicDataTypes'
+                $ref: '#/components/schemas/SpecTestAllBasicDataTypes'
   /basic-types-pointers:
     post:
       operationId: basicTypesPointers
@@ -25,17 +25,17 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AllBasicDataTypesPointers'
+              $ref: '#/components/schemas/SpecTestAllBasicDataTypesPointers'
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AllBasicDataTypesPointers'
+                $ref: '#/components/schemas/SpecTestAllBasicDataTypesPointers'
 components:
   schemas:
-    AllBasicDataTypes:
+    SpecTestAllBasicDataTypes:
       type: object
       properties:
         bool:
@@ -94,7 +94,7 @@ components:
           type: integer
           format: int64
           minimum: 0.0
-    AllBasicDataTypesPointers:
+    SpecTestAllBasicDataTypesPointers:
       type: object
       properties:
         bool:
